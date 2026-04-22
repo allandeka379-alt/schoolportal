@@ -2,35 +2,81 @@
 @tailwind components;
 @tailwind utilities;
 
+/*
+ * Global defaults follow §03 of the landing-page design spec.
+ * The editorial palette sits on Cream; headings set in Fraunces; body
+ * copy in Source Serif; UI chrome in Inter.
+ */
+
 @layer base {
   html {
     font-feature-settings: 'ss01', 'cv11';
     text-rendering: optimizeLegibility;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
   }
 
   body {
-    @apply bg-granite-50 text-granite-900 font-sans;
+    @apply bg-cream text-ink font-serif;
   }
 
+  /*
+   * Editorial headings. Fraunces is the display face. Spec §03:
+   *   display/xl  · 88/92 · hero headline only
+   *   display/lg  · 64/68 · section openers
+   *   display/md  · 44/52 · feature card titles
+   *   heading/lg  · 32/40 · H2
+   *   heading/md  · 24/32 · H3, card headings (Inter 600)
+   */
   h1, h2, h3, h4 {
-    @apply font-display text-heritage-950;
+    @apply font-display text-ink;
   }
+  h1 { @apply text-display-lg; }
+  h2 { @apply text-heading-lg; }
+  h3 { @apply text-heading-md font-sans font-semibold; }
+  h4 { @apply text-body-lg font-sans font-semibold; }
 
-  h1 { @apply text-display-md tracking-tight; }
-  h2 { @apply text-display-sm tracking-tight; }
-  h3 { @apply text-2xl; }
-  h4 { @apply text-xl; }
+  /* Body measure constrained for readability per §03. */
+  p {
+    @apply max-w-measure;
+  }
 
   ::selection {
-    @apply bg-heritage-200 text-heritage-950;
+    @apply bg-terracotta/20 text-ink;
   }
 
   :focus-visible {
-    @apply outline-none shadow-focus rounded;
+    @apply outline-none;
+    box-shadow: 0 0 0 2px #fff, 0 0 0 4px #C65D3D;
+    border-radius: 0.25rem;
+  }
+
+  /* Portal chrome still lives in its own palette; reset the body there. */
+  .portal-shell-root {
+    @apply bg-granite-50 text-granite-900;
   }
 }
 
 @layer components {
+  /* Editorial containers — 1440px cap per spec §15. */
+  .hha-wrap {
+    @apply mx-auto w-full max-w-[1440px] px-6 md:px-10 lg:px-14;
+  }
+
+  /* Eyebrow label used throughout the landing (§03 label/caps token). */
+  .hha-eyebrow {
+    @apply font-sans text-label-caps font-semibold uppercase text-terracotta;
+  }
+
+  .hha-eyebrow-earth {
+    @apply font-sans text-label-caps font-semibold uppercase text-earth;
+  }
+
+  /* Hairline divider — the spec's Level-1 surface treatment. */
+  .hha-hairline {
+    @apply border-sand;
+  }
+
   .hha-card-surface {
     @apply bg-white border border-granite-200 rounded-lg shadow-card;
   }
@@ -62,4 +108,72 @@
   .hha-table tbody tr:hover {
     @apply bg-granite-50/60;
   }
+
+  /* Landing-specific primitives. */
+  .landing-card {
+    @apply bg-sand-light border border-sand rounded transition-all duration-300 ease-out-soft;
+  }
+
+  .landing-card:hover {
+    @apply shadow-e2;
+  }
+
+  .landing-link {
+    @apply relative inline-flex items-center gap-1 text-terracotta transition-colors;
+  }
+
+  .landing-link::after {
+    content: '';
+    @apply absolute left-0 -bottom-0.5 h-px w-full bg-terracotta origin-left scale-x-0 transition-transform duration-[240ms] ease-out-soft;
+  }
+
+  .landing-link:hover::after {
+    @apply scale-x-100;
+  }
+
+  /* Editorial button styles — reserved to the terracotta CTA. */
+  .btn-terracotta {
+    @apply inline-flex h-10 items-center justify-center gap-2 rounded bg-terracotta px-6 font-sans text-sm font-semibold text-cream transition-all duration-200 ease-out-soft hover:bg-terracotta-hover focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-terracotta;
+  }
+
+  .btn-terracotta svg {
+    @apply transition-transform duration-200 ease-out-soft;
+  }
+
+  .btn-terracotta:hover svg {
+    @apply translate-x-1;
+  }
+
+  .btn-ghost {
+    @apply inline-flex h-10 items-center justify-center gap-2 rounded border border-sand bg-transparent px-5 font-sans text-sm font-medium text-earth transition-colors hover:bg-sand-light;
+  }
+
+  /* Underlined input per §06 hero sign-in panel spec. */
+  .input-underlined {
+    @apply w-full border-0 border-b border-earth bg-transparent px-0 py-2 font-sans text-base text-ink placeholder-stone transition-colors focus:border-terracotta focus:outline-none focus:ring-0;
+  }
+}
+
+/*
+ * Respect prefers-reduced-motion globally (§16–17).
+ * All custom keyframe animations are reduced to near-instant fades.
+ */
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}
+
+/*
+ * Stone-pattern SVG used as a hero-corner motif, kept as inline CSS
+ * so it doesn't count against our image budget (§18).
+ */
+.stone-pattern {
+  background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='240' height='240' viewBox='0 0 240 240'><g fill='none' stroke='%235C3A1E' stroke-width='0.6' opacity='0.08'><path d='M0 60 L60 30 L120 60 L60 90 Z'/><path d='M120 60 L180 30 L240 60 L180 90 Z'/><path d='M60 90 L120 60 L180 90 L120 120 Z'/><path d='M0 180 L60 150 L120 180 L60 210 Z'/><path d='M120 180 L180 150 L240 180 L180 210 Z'/><path d='M60 210 L120 180 L180 210 L120 240 Z'/></g></svg>");
+  background-size: 240px 240px;
+  background-position: bottom right;
+  background-repeat: no-repeat;
 }

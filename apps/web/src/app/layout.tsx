@@ -1,32 +1,36 @@
 import type { Metadata, Viewport } from 'next';
 import type { ReactNode } from 'react';
 
+import { fontVariables } from '@/lib/fonts';
+
 import './globals.css';
 
 export const metadata: Metadata = {
-  title: 'HHA Portal — Harare Heritage Academy',
+  title: {
+    default: 'Harare Heritage Academy · Portal',
+    template: '%s · HHA Portal',
+  },
   description:
-    'One unified digital platform for students, teachers, administration, and parents of Harare Heritage Academy.',
+    'A unified digital home for students, teachers, administration, and parents of Harare Heritage Academy.',
+  metadataBase: new URL('https://hha-portal.vercel.app'),
+  openGraph: {
+    title: 'Harare Heritage Academy · Portal',
+    description:
+      'Where knowledge meets heritage. The unified portal for HHA students, teachers, and parents.',
+    type: 'website',
+  },
 };
 
 export const viewport: Viewport = {
-  themeColor: '#0f1d3a',
+  themeColor: '#FAF5EB', // Cream — matches the landing background
   width: 'device-width',
   initialScale: 1,
 };
 
 export default function RootLayout({ children }: { children: ReactNode }) {
   return (
-    <html lang="en" className="h-full">
-      <head>
-        <link rel="preconnect" href="https://fonts.googleapis.com" />
-        <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="" />
-        <link
-          rel="stylesheet"
-          href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Source+Serif+4:opsz,wght@8..60,400;8..60,600;8..60,700&family=JetBrains+Mono:wght@400;500&display=swap"
-        />
-      </head>
-      <body className="h-full bg-granite-50 text-granite-900 antialiased">{children}</body>
+    <html lang="en" className={`h-full ${fontVariables}`}>
+      <body className="h-full bg-cream text-ink antialiased">{children}</body>
     </html>
   );
 }
