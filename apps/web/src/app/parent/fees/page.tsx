@@ -1,197 +1,387 @@
-import { Badge, Button, Card, CardContent, CardHeader, CardTitle, Money, Stepper } from '@hha/ui';
-import { Banknote, CreditCard, FileDown, Smartphone, Upload } from 'lucide-react';
+'use client';
 
-import { INVOICES, SLIPS, STUDENTS } from '@/lib/mock/fixtures';
+import Link from 'next/link';
+import { useState } from 'react';
+import {
+  Banknote,
+  ChevronDown,
+  CreditCard,
+  Download,
+  FileText,
+  HandCoins,
+  Smartphone,
+  Upload,
+} from 'lucide-react';
 
-const STEP_LABELS = {
-  IMAGE_ENHANCEMENT: 'Image enhancement',
-  OCR: 'Optical character recognition',
-  STRUCTURAL_PARSING: 'Structural parsing',
-  ACCOUNT_VERIFICATION: 'Account verification',
-  STATEMENT_RECONCILIATION: 'Statement reconciliation',
-  ACCOUNT_UPDATE: 'Account update & receipt',
-} as const;
+import { EditorialAvatar, EditorialCard, SectionEyebrow } from '@/components/student/primitives';
+import { ChildColourDot, ParentPageHeader, ParentStatusPill } from '@/components/parent/primitives';
+import {
+  FAMILY_FEES,
+  FAMILY_FEES_SUMMARY,
+  PARENT_CHILDREN,
+  PAYMENT_HISTORY,
+  sumChildFees,
+} from '@/lib/mock/parent-extras';
 
-const STEP_DESCRIPTIONS = {
-  IMAGE_ENHANCEMENT: 'Deskewed, cropped, contrast-adjusted.',
-  OCR: 'Every printed field extracted from the slip.',
-  STRUCTURAL_PARSING: 'Bank layout recognised (CBZ, Stanbic, ZB…).',
-  ACCOUNT_VERIFICATION: 'Beneficiary matches an HHA registered account.',
-  STATEMENT_RECONCILIATION: 'Deposit found on our bank statement.',
-  ACCOUNT_UPDATE: 'Ledger updated and receipt issued.',
-} as const;
-
+/**
+ * Parent fees — §08, §15.
+ *
+ *   - Family total band
+ *   - Per-child expandable sections with line items
+ *   - Payment methods grid (EcoCash / OneMoney / InnBucks / ZIPIT / Bank /
+ *     Card / Upload slip)
+ *   - Payment history
+ *   - Request-payment-plan affordance when outstanding
+ */
 export default function ParentFeesPage() {
-  const ourInvoices = INVOICES.filter((i) =>
-    STUDENTS.filter((s) => s.guardianIds.includes('u-parent')).some((s) => s.id === i.studentId),
-  );
+  const [expanded, setExpanded] = useState<string | null>('s-tanaka');
 
-  // The parent's most recent slip upload for Tanaka (from fixtures).
-  const slip = SLIPS.find((s) => s.studentId === 's-tanaka')!;
-
-  const totalOutstanding = ourInvoices.reduce(
-    (sum, inv) => sum + Number(inv.balance),
-    0,
-  );
+  const anyOutstanding = FAMILY_FEES_SUMMARY.outstanding > 0;
 
   return (
-    <div className="space-y-6">
-      <div>
-        <h2 className="font-display text-2xl text-heritage-950">Fees</h2>
-        <p className="text-sm text-granite-600 mt-1">
-          One view across both children. Sibling discount already applied.
-        </p>
+    <div className="space-y-8">
+      <ParentPageHeader
+        eyebrow="Fees · family total"
+        title="Term 2 2026,"
+        accent="across all children."
+        subtitle="Pay the family total, split automatically, or direct to a specific child."
+        right={
+          <>
+            <button
+              type="button"
+              className="inline-flex h-10 items-center gap-2 rounded border border-sand bg-white px-3 font-sans text-[13px] font-medium text-earth hover:bg-sand-light"
+            >
+              <Download className="h-4 w-4" strokeWidth={1.5} aria-hidden />
+              Statement
+            </button>
+            <button type="button" className="btn-terracotta">
+              Pay now
+            </button>
+          </>
+        }
+      />
+
+      {/* Family total */}
+      <div className="grid grid-cols-2 gap-4 md:grid-cols-4">
+        <SummaryCard
+          label="Total fees"
+          value={`USD ${FAMILY_FEES_SUMMARY.due.toLocaleString('en-ZW')}`}
+        />
+        <SummaryCard
+          label="Paid"
+          value={`USD ${FAMILY_FEES_SUMMARY.paid.toLocaleString('en-ZW')}`}
+          tone="ok"
+        />
+        <SummaryCard
+          label="Sibling discount"
+          value={`USD ${FAMILY_FEES_SUMMARY.discount.toFixed(2)}`}
+          tone="neutral"
+          sub="5% per sibling"
+        />
+        <SummaryCard
+          label="Outstanding"
+          value={`USD ${FAMILY_FEES_SUMMARY.outstanding.toFixed(2)}`}
+          tone={anyOutstanding ? 'warn' : 'ok'}
+          sub={anyOutstanding ? 'Due Friday 9 May' : 'All settled'}
+        />
       </div>
 
-      <Card>
-        <CardContent className="flex flex-wrap items-center justify-between gap-4">
-          <div>
-            <p className="hha-label">Total outstanding — both children</p>
-            <p className="mt-1 font-display text-display-sm text-heritage-950">
-              <Money amount={totalOutstanding.toFixed(2)} currency="USD" bold />
-            </p>
-            <p className="mt-1 text-sm text-granite-600">Due Friday 9 May · Term 2 2026</p>
-          </div>
-          <div className="flex gap-2">
-            <Button variant="secondary">
-              <FileDown className="h-4 w-4" /> Combined statement
-            </Button>
-            <Button>Pay both now</Button>
-          </div>
-        </CardContent>
-      </Card>
+      {/* Per-child breakdown */}
+      <section>
+        <div className="mb-3 flex items-center justify-between">
+          <SectionEyebrow>Per child</SectionEyebrow>
+          <span className="font-sans text-[12px] text-stone">
+            Expand a child to see line items
+          </span>
+        </div>
+        <ul className="space-y-3">
+          {FAMILY_FEES.map((cf) => {
+            const child = PARENT_CHILDREN.find((c) => c.id === cf.childId)!;
+            const s = sumChildFees(cf);
+            const isOpen = expanded === cf.childId;
+            const statusState =
+              s.outstanding === 0
+                ? 'paid'
+                : s.paid > 0
+                ? 'partial'
+                : 'overdue';
+            return (
+              <li key={cf.childId}>
+                <EditorialCard className="overflow-hidden">
+                  <button
+                    type="button"
+                    onClick={() => setExpanded(isOpen ? null : cf.childId)}
+                    className="flex w-full items-center gap-4 px-6 py-4 text-left transition-colors hover:bg-sand-light/40"
+                    aria-expanded={isOpen}
+                  >
+                    <ChildColourDot tone={child.colourTone} />
+                    <EditorialAvatar
+                      name={`${child.firstName} ${child.lastName}`}
+                      size="md"
+                      tone={child.colourTone === 'earth' ? 'sand' : 'terracotta'}
+                    />
+                    <div className="min-w-0 flex-1">
+                      <p className="font-display text-[18px] text-ink">
+                        {child.firstName} {child.lastName}
+                      </p>
+                      <p className="font-sans text-[12px] text-stone">
+                        {child.form} · {child.boardingStatus}
+                      </p>
+                    </div>
+                    <div className="hidden items-center gap-6 md:flex">
+                      <Number label="Due" value={s.due} />
+                      <Number label="Paid" value={s.paid} />
+                      <Number
+                        label="Balance"
+                        value={s.outstanding}
+                        tone={s.outstanding > 0 ? 'warn' : 'ok'}
+                      />
+                    </div>
+                    <ParentStatusPill state={statusState} />
+                    <ChevronDown
+                      className={`h-4 w-4 flex-none text-stone transition-transform ${isOpen ? 'rotate-180' : ''}`}
+                      strokeWidth={1.5}
+                      aria-hidden
+                    />
+                  </button>
 
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        <Card>
-          <CardHeader>
-            <CardTitle>Payment options</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="grid grid-cols-2 gap-3">
-              <OptionTile icon={<Smartphone className="h-5 w-5" />} label="EcoCash" note="Real-time via Paynow" />
-              <OptionTile icon={<Smartphone className="h-5 w-5" />} label="OneMoney" note="Real-time" />
-              <OptionTile icon={<Smartphone className="h-5 w-5" />} label="InnBucks" note="Real-time" />
-              <OptionTile icon={<Banknote className="h-5 w-5" />} label="ZIPIT" note="Instant transfer" />
-              <OptionTile icon={<Banknote className="h-5 w-5" />} label="CBZ / Stanbic / ZB" note="Same-day EFT" />
-              <OptionTile icon={<CreditCard className="h-5 w-5" />} label="Visa / Mastercard" note="Via Paynow" />
-            </div>
-            <div className="mt-4 rounded-lg border-2 border-dashed border-savanna-300 bg-savanna-50/60 p-4 text-center">
-              <Upload className="mx-auto h-6 w-6 text-savanna-700" aria-hidden />
-              <p className="mt-2 text-sm font-semibold text-savanna-900">Paid at the bank?</p>
-              <p className="text-xs text-savanna-800 mt-0.5">
-                Upload a photo of the slip — we&rsquo;ll read it and reconcile automatically.
-              </p>
-              <button className="mt-3 rounded bg-savanna-600 px-4 py-1.5 text-sm font-semibold text-white hover:bg-savanna-700">
-                Upload slip
-              </button>
-            </div>
-          </CardContent>
-        </Card>
+                  {isOpen ? (
+                    <div className="border-t border-sand bg-sand-light/30">
+                      <table className="w-full text-[14px]">
+                        <thead>
+                          <tr className="text-left">
+                            <th className="px-6 py-2.5 font-sans text-[10px] font-semibold uppercase tracking-[0.14em] text-stone">
+                              Line item
+                            </th>
+                            <th className="px-4 py-2.5 text-right font-sans text-[10px] font-semibold uppercase tracking-[0.14em] text-stone">
+                              Due
+                            </th>
+                            <th className="px-4 py-2.5 text-right font-sans text-[10px] font-semibold uppercase tracking-[0.14em] text-stone">
+                              Paid
+                            </th>
+                            <th className="px-4 py-2.5 text-right font-sans text-[10px] font-semibold uppercase tracking-[0.14em] text-stone">
+                              Balance
+                            </th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {cf.lines.map((l) => (
+                            <tr key={l.label} className="border-t border-sand-light">
+                              <td className="px-6 py-2.5 font-sans text-[13px] text-ink">{l.label}</td>
+                              <td className="px-4 py-2.5 text-right font-mono tabular-nums text-ink">
+                                USD {l.due.toFixed(2)}
+                              </td>
+                              <td className="px-4 py-2.5 text-right font-mono tabular-nums text-stone">
+                                USD {l.paid.toFixed(2)}
+                              </td>
+                              <td
+                                className={`px-4 py-2.5 text-right font-mono tabular-nums ${
+                                  l.due - l.paid > 0 ? 'text-warn font-medium' : 'text-stone'
+                                }`}
+                              >
+                                USD {(l.due - l.paid).toFixed(2)}
+                              </td>
+                            </tr>
+                          ))}
+                          {cf.siblingDiscount > 0 ? (
+                            <tr className="border-t border-sand-light bg-sand-light/60">
+                              <td className="px-6 py-2.5 font-sans text-[13px] italic text-earth">
+                                Sibling discount ({cf.siblingDiscount}%)
+                              </td>
+                              <td
+                                colSpan={3}
+                                className="px-4 py-2.5 text-right font-mono tabular-nums text-earth"
+                              >
+                                − USD {s.discountAmt.toFixed(2)}
+                              </td>
+                            </tr>
+                          ) : null}
+                          <tr className="border-t border-sand bg-sand-light/40">
+                            <td className="px-6 py-3 font-sans text-[13px] font-semibold text-ink">
+                              Balance
+                            </td>
+                            <td colSpan={3} className="px-4 py-3 text-right font-mono tabular-nums font-semibold text-ink">
+                              USD {s.outstanding.toFixed(2)}
+                            </td>
+                          </tr>
+                        </tbody>
+                      </table>
+                      <div className="flex items-center justify-between border-t border-sand px-6 py-3">
+                        <button
+                          type="button"
+                          className="inline-flex items-center gap-1 font-sans text-[12px] font-medium text-stone hover:text-earth"
+                        >
+                          <HandCoins className="h-3.5 w-3.5" strokeWidth={1.5} aria-hidden />
+                          Request payment plan
+                        </button>
+                        {s.outstanding > 0 ? (
+                          <button
+                            type="button"
+                            className="inline-flex h-9 items-center rounded bg-terracotta px-4 font-sans text-[12px] font-semibold text-cream hover:bg-terracotta-hover"
+                          >
+                            Pay {child.firstName}&rsquo;s balance
+                          </button>
+                        ) : null}
+                      </div>
+                    </div>
+                  ) : null}
+                </EditorialCard>
+              </li>
+            );
+          })}
+        </ul>
+      </section>
 
-        <Card>
-          <CardHeader>
-            <CardTitle>Your latest slip upload</CardTitle>
-            <p className="text-xs text-granite-500 mt-1">
-              Tanaka · Stanbic deposit · uploaded 22 Apr 11:03
-            </p>
-          </CardHeader>
-          <CardContent>
-            <Stepper
-              items={slip.steps.map((s) => ({
-                key: s.step,
-                label: STEP_LABELS[s.step],
-                description: STEP_DESCRIPTIONS[s.step],
-                status:
-                  s.outcome === 'done'
-                    ? 'done'
-                    : s.outcome === 'failed'
-                    ? 'failed'
-                    : s.outcome === 'in-progress'
-                    ? 'in-progress'
-                    : 'pending',
-              }))}
-            />
-            <div className="mt-4 rounded border border-heritage-200 bg-heritage-50/60 p-3 text-xs text-heritage-800">
-              Currently reconciling against our CBZ statement. You&rsquo;ll see the balance clear
-              once the deposit reaches the school&rsquo;s account — typically within 4 hours.
-            </div>
-          </CardContent>
-        </Card>
-      </div>
+      {/* Payment methods */}
+      <EditorialCard>
+        <div className="border-b border-sand px-6 py-4">
+          <SectionEyebrow>Payment methods</SectionEyebrow>
+          <p className="mt-1 font-sans text-[13px] text-stone">
+            Seven options, one workflow. Mobile money and ZIPIT clear in real time.
+          </p>
+        </div>
+        <ul className="grid grid-cols-2 gap-3 p-5 sm:grid-cols-3 lg:grid-cols-4">
+          <Method icon={Smartphone} label="EcoCash" settle="Real-time" />
+          <Method icon={Smartphone} label="OneMoney" settle="Real-time" />
+          <Method icon={Smartphone} label="InnBucks" settle="Real-time" />
+          <Method icon={Banknote} label="ZIPIT" settle="Instant" />
+          <Method icon={Banknote} label="CBZ / Stanbic / ZB" settle="Same-day" />
+          <Method icon={CreditCard} label="Visa / Mastercard" settle="Real-time" />
+          <Method icon={Upload} label="Upload slip" settle="Reconciled" featured />
+        </ul>
+      </EditorialCard>
 
-      <Card>
-        <CardHeader>
-          <CardTitle>Invoices</CardTitle>
-        </CardHeader>
-        <CardContent className="p-0">
-          <table className="hha-table">
+      {/* Payment history */}
+      <EditorialCard className="overflow-hidden">
+        <div className="flex items-center justify-between border-b border-sand px-6 py-4">
+          <SectionEyebrow>Payment history</SectionEyebrow>
+          <button
+            type="button"
+            className="inline-flex h-9 items-center gap-2 rounded border border-sand bg-white px-3 font-sans text-[12px] font-medium text-earth hover:bg-sand-light"
+          >
+            <Download className="h-3.5 w-3.5" strokeWidth={1.5} aria-hidden />
+            Export
+          </button>
+        </div>
+        <div className="overflow-x-auto">
+          <table className="w-full text-[14px]">
             <thead>
-              <tr>
-                <th>Child</th>
-                <th>Invoice</th>
-                <th>Term</th>
-                <th className="text-right">Total</th>
-                <th className="text-right">Balance</th>
-                <th>Status</th>
-                <th className="text-right">Due</th>
+              <tr className="bg-sand-light/40 text-left">
+                <th className="px-6 py-3 font-sans text-[10px] font-semibold uppercase tracking-[0.14em] text-stone">
+                  Date
+                </th>
+                <th className="px-4 py-3 font-sans text-[10px] font-semibold uppercase tracking-[0.14em] text-stone">
+                  Method
+                </th>
+                <th className="px-4 py-3 text-right font-sans text-[10px] font-semibold uppercase tracking-[0.14em] text-stone">
+                  Amount
+                </th>
+                <th className="px-4 py-3 font-sans text-[10px] font-semibold uppercase tracking-[0.14em] text-stone">
+                  Child
+                </th>
+                <th className="px-4 py-3 font-sans text-[10px] font-semibold uppercase tracking-[0.14em] text-stone">
+                  Reference
+                </th>
+                <th className="px-4 py-3 font-sans text-[10px] font-semibold uppercase tracking-[0.14em] text-stone">
+                  Status
+                </th>
+                <th className="w-12 px-4 py-3" />
               </tr>
             </thead>
             <tbody>
-              {ourInvoices.map((inv) => {
-                const student = STUDENTS.find((s) => s.id === inv.studentId)!;
-                return (
-                  <tr key={inv.id}>
-                    <td className="font-medium">{student.firstName}</td>
-                    <td className="font-mono text-xs">{inv.invoiceNumber}</td>
-                    <td>{inv.term}</td>
-                    <td className="text-right">
-                      <Money amount={inv.subtotal} currency="USD" />
-                    </td>
-                    <td className="text-right">
-                      <Money
-                        amount={inv.balance}
-                        currency="USD"
-                        tone={inv.balance === '0.00' ? 'positive' : 'negative'}
-                      />
-                    </td>
-                    <td>
-                      <Badge
-                        tone={
-                          inv.status === 'PAID'
-                            ? 'success'
-                            : inv.status === 'PARTIALLY_PAID'
-                            ? 'warning'
-                            : inv.status === 'OVERDUE'
-                            ? 'danger'
-                            : 'info'
-                        }
-                      >
-                        {inv.status.replace('_', ' ').toLowerCase()}
-                      </Badge>
-                    </td>
-                    <td className="text-right text-xs text-granite-600">
-                      {new Date(inv.dueDate).toLocaleDateString('en-ZW', {
-                        day: 'numeric',
-                        month: 'short',
-                      })}
-                    </td>
-                  </tr>
-                );
-              })}
+              {PAYMENT_HISTORY.map((p) => (
+                <tr key={p.id} className="border-t border-sand-light">
+                  <td className="px-6 py-3 font-sans text-[13px] text-stone">{p.when}</td>
+                  <td className="px-4 py-3 font-sans font-medium text-ink">{p.method}</td>
+                  <td className="px-4 py-3 text-right font-mono tabular-nums text-ink">
+                    USD {p.amount.toFixed(2)}
+                  </td>
+                  <td className="px-4 py-3 font-sans text-[13px] text-ink">{p.child}</td>
+                  <td className="px-4 py-3 font-mono text-[12px] text-stone">{p.reference}</td>
+                  <td className="px-4 py-3">
+                    <ParentStatusPill state="paid">{p.status}</ParentStatusPill>
+                  </td>
+                  <td className="px-4 py-3 text-right">
+                    <button
+                      type="button"
+                      className="rounded p-1.5 text-stone hover:bg-sand hover:text-ink"
+                      aria-label="Download receipt"
+                    >
+                      <FileText className="h-4 w-4" strokeWidth={1.5} />
+                    </button>
+                  </td>
+                </tr>
+              ))}
             </tbody>
           </table>
-        </CardContent>
-      </Card>
+        </div>
+      </EditorialCard>
     </div>
   );
 }
 
-function OptionTile({ icon, label, note }: { icon: React.ReactNode; label: string; note: string }) {
+function SummaryCard({
+  label,
+  value,
+  tone,
+  sub,
+}: {
+  label: string;
+  value: string;
+  tone?: 'ok' | 'warn' | 'neutral';
+  sub?: string;
+}) {
+  const colour = tone === 'ok' ? 'text-ok' : tone === 'warn' ? 'text-danger' : 'text-ink';
   return (
-    <button className="flex flex-col items-start gap-2 rounded-lg border border-granite-200 bg-white p-3 text-left hover:border-heritage-400 hover:bg-heritage-50/30 transition-colors">
-      <span className="text-granite-600">{icon}</span>
-      <span className="text-sm font-semibold text-granite-900">{label}</span>
-      <span className="text-xs text-granite-500">{note}</span>
-    </button>
+    <EditorialCard className="px-5 py-4">
+      <p className="font-sans text-[10px] font-semibold uppercase tracking-[0.14em] text-stone">
+        {label}
+      </p>
+      <p className={`mt-1 font-display text-[26px] leading-none tabular-nums ${colour}`}>{value}</p>
+      {sub ? <p className="mt-1 font-sans text-[11px] text-stone">{sub}</p> : null}
+    </EditorialCard>
+  );
+}
+
+function Number({ label, value, tone }: { label: string; value: number; tone?: 'ok' | 'warn' }) {
+  const colour = tone === 'warn' ? 'text-danger' : tone === 'ok' ? 'text-ok' : 'text-ink';
+  return (
+    <div className="text-right">
+      <p className="font-sans text-[10px] font-semibold uppercase tracking-[0.14em] text-stone">
+        {label}
+      </p>
+      <p className={`font-mono text-[14px] tabular-nums ${colour}`}>
+        USD {value.toFixed(2)}
+      </p>
+    </div>
+  );
+}
+
+function Method({
+  icon: Icon,
+  label,
+  settle,
+  featured,
+}: {
+  icon: typeof Banknote;
+  label: string;
+  settle: string;
+  featured?: boolean;
+}) {
+  return (
+    <li
+      className={[
+        'group flex flex-col gap-2 rounded border px-4 py-3 transition-all hover:-translate-y-px',
+        featured
+          ? 'border-terracotta/60 bg-sand-light'
+          : 'border-sand bg-sand-light/40 hover:border-terracotta',
+      ].join(' ')}
+    >
+      <Icon className="h-5 w-5 text-earth" strokeWidth={1.5} aria-hidden />
+      <p className="font-sans text-[13px] font-semibold text-ink">{label}</p>
+      <p className="font-sans text-[11px] font-semibold uppercase tracking-[0.14em] text-stone">
+        {settle}
+      </p>
+    </li>
   );
 }
