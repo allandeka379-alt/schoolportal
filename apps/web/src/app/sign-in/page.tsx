@@ -98,7 +98,7 @@ export default async function SignInPage({ searchParams }: PageProps) {
                 </div>
                 <div className="flex justify-between gap-4">
                   <dt className="text-granite-700">head@hha.ac.zw</dt>
-                  <dd className="text-granite-500">Head Teacher</dd>
+                  <dd className="text-granite-500">Headmaster — The Bridge</dd>
                 </div>
               </dl>
             </div>

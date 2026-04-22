@@ -5,7 +5,7 @@
  * reads from here. The shape deliberately mirrors the Prisma schema in
  * packages/database so swapping to a real API later is a straight lift.
  */
-export type PortalRole = 'student' | 'teacher' | 'parent' | 'admin';
+export type PortalRole = 'student' | 'teacher' | 'parent' | 'admin' | 'headmaster';
 export type RoleKey =
   | 'HEAD_TEACHER'
   | 'BURSAR'
@@ -41,10 +41,10 @@ export const ACCOUNTS: readonly DemoAccount[] = [
     password: DEMO_PASSWORD,
     firstName: 'Tendai',
     lastName: 'Makoni',
-    portal: 'admin',
+    portal: 'headmaster',
     roles: ['HEAD_TEACHER'],
     avatarInitials: 'TM',
-    position: 'Head Teacher',
+    position: 'Headmaster',
     staffId: 'sp-head',
   },
   {
