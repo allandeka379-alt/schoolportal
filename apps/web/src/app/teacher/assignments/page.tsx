@@ -1,77 +1,272 @@
-import { Badge, Button, Card, CardContent, CardHeader, CardTitle } from '@hha/ui';
-import { Plus } from 'lucide-react';
+import Link from 'next/link';
+import { ChevronRight, Copy, MoreHorizontal, Plus } from 'lucide-react';
 
-import { ASSIGNMENTS_FOR_FARAI, SUBJECTS } from '@/lib/mock/fixtures';
+import { EditorialCard, SectionEyebrow } from '@/components/student/primitives';
+import {
+  ClassChip,
+  TeacherPageHeader,
+  TeacherStatusPill,
+  type TeacherStatusState,
+} from '@/components/teacher/primitives';
 
+const TABS = [
+  { key: 'active', label: 'Active', count: 4 },
+  { key: 'drafts', label: 'Drafts', count: 2 },
+  { key: 'scheduled', label: 'Scheduled', count: 1 },
+  { key: 'archived', label: 'Archived', count: 28 },
+] as const;
+
+interface AssignmentRow {
+  id: string;
+  title: string;
+  classLabel: string;
+  form: string;
+  stream: string;
+  status: TeacherStatusState;
+  submitted: number;
+  total: number;
+  marked: number;
+  dueLabel: string;
+  releasedLabel?: string;
+}
+
+const ROWS: AssignmentRow[] = [
+  {
+    id: 'a-math-5',
+    title: 'Problem Set 7 — Quadratic Equations',
+    classLabel: 'Form 4A · Mathematics',
+    form: '4',
+    stream: 'A',
+    status: 'to-mark',
+    submitted: 18,
+    total: 32,
+    marked: 4,
+    dueLabel: 'due in 2 days',
+    releasedLabel: 'released 18 Apr',
+  },
+  {
+    id: 'a-math-test2',
+    title: 'Test 2 — Functions',
+    classLabel: 'Form 4B · Mathematics',
+    form: '4',
+    stream: 'B',
+    status: 'marked',
+    submitted: 28,
+    total: 30,
+    marked: 28,
+    dueLabel: 'released 16 Apr',
+    releasedLabel: 'ready to release',
+  },
+  {
+    id: 'a-math-4',
+    title: 'Chapter 3 Worksheet',
+    classLabel: 'Form 3B · Mathematics',
+    form: '3',
+    stream: 'B',
+    status: 'active',
+    submitted: 28,
+    total: 30,
+    marked: 12,
+    dueLabel: 'overdue by 1d',
+    releasedLabel: 'released 14 Apr',
+  },
+  {
+    id: 'a-math-7',
+    title: 'Homework 9 — Algebra revision',
+    classLabel: 'Form 3A · Mathematics',
+    form: '3',
+    stream: 'A',
+    status: 'active',
+    submitted: 4,
+    total: 28,
+    marked: 0,
+    dueLabel: 'due in 5 days',
+    releasedLabel: 'released today',
+  },
+];
+
+const TEMPLATES = [
+  { key: 'problem-set', label: 'Problem set', blurb: 'Numbered questions, single-file, numerical rubric.' },
+  { key: 'essay', label: 'Essay', blurb: 'Word-count, 4-criterion rubric (thesis · evidence · structure · writing).' },
+  { key: 'lab-report', label: 'Lab report', blurb: 'Aim / method / results / conclusion sections.' },
+  { key: 'test', label: 'Test', blurb: 'Timed release, submission-locked after duration.' },
+  { key: 'comprehension', label: 'Comprehension', blurb: 'Passage slot + short-answer format.' },
+  { key: 'revision', label: 'Revision', blurb: 'No marks — tracking only, any format.' },
+];
+
+/**
+ * Assignments — §07 of the spec.
+ *
+ *   - Tabbed list (Active / Drafts / Scheduled / Archived)
+ *   - Each row shows class chip + title + submission / marked progress
+ *   - Template bank below, accelerating new-assignment authoring
+ */
 export default function TeacherAssignmentsPage() {
-  const mine = ASSIGNMENTS_FOR_FARAI.filter((a) => a.subjectCode === 'MATH');
-  function subjectName(code: string) {
-    return SUBJECTS.find((s) => s.code === code)?.name ?? code;
-  }
   return (
-    <div className="space-y-6">
-      <div className="flex flex-wrap items-center justify-between gap-4">
-        <div>
-          <h2 className="font-display text-2xl text-heritage-950">Assignments</h2>
-          <p className="text-sm text-granite-600 mt-1">
-            Create, schedule, and re-use. The assignment bank saves you a Sunday evening.
-          </p>
-        </div>
-        <Button>
-          <Plus className="h-4 w-4" /> New assignment
-        </Button>
-      </div>
+    <div className="space-y-8">
+      <TeacherPageHeader
+        eyebrow="Assignments"
+        title="What you&rsquo;ve set,"
+        accent="and what&rsquo;s in."
+        right={
+          <Link href="/teacher/assignments/new" className="btn-terracotta">
+            <Plus className="h-4 w-4" strokeWidth={1.5} aria-hidden />
+            New assignment
+          </Link>
+        }
+      />
 
-      <Card>
-        <CardHeader>
-          <CardTitle>Active</CardTitle>
-        </CardHeader>
-        <CardContent className="p-0">
-          <table className="hha-table">
+      {/* Tabs */}
+      <nav aria-label="Assignments status" className="border-b border-sand">
+        <ul className="flex flex-wrap gap-0">
+          {TABS.map((t, i) => {
+            const active = i === 0;
+            return (
+              <li key={t.key}>
+                <button
+                  type="button"
+                  className={[
+                    'inline-flex h-11 items-center gap-2 border-b-[2px] px-4 font-sans text-[14px] transition-colors',
+                    active
+                      ? 'border-terracotta font-semibold text-ink'
+                      : 'border-transparent text-stone hover:text-ink',
+                  ].join(' ')}
+                >
+                  {t.label}
+                  <span
+                    className={[
+                      'rounded-sm px-1.5 py-0.5 font-sans text-[11px] font-semibold tabular-nums',
+                      active ? 'bg-sand text-earth' : 'bg-sand-light text-stone',
+                    ].join(' ')}
+                  >
+                    {t.count}
+                  </span>
+                </button>
+              </li>
+            );
+          })}
+        </ul>
+      </nav>
+
+      {/* Table */}
+      <EditorialCard className="overflow-hidden">
+        <div className="overflow-x-auto">
+          <table className="w-full text-[14px]">
             <thead>
-              <tr>
-                <th>Title</th>
-                <th>Class</th>
-                <th>Due</th>
-                <th className="text-right">Submitted</th>
-                <th className="text-right">Marked</th>
-                <th />
+              <tr className="bg-sand-light/40 text-left">
+                <th className="px-5 py-3 font-sans text-[10px] font-semibold uppercase tracking-[0.14em] text-stone">
+                  Title
+                </th>
+                <th className="px-4 py-3 font-sans text-[10px] font-semibold uppercase tracking-[0.14em] text-stone">
+                  Class
+                </th>
+                <th className="px-4 py-3 text-center font-sans text-[10px] font-semibold uppercase tracking-[0.14em] text-stone">
+                  Submissions
+                </th>
+                <th className="px-4 py-3 text-center font-sans text-[10px] font-semibold uppercase tracking-[0.14em] text-stone">
+                  Marked
+                </th>
+                <th className="px-4 py-3 font-sans text-[10px] font-semibold uppercase tracking-[0.14em] text-stone">
+                  Due
+                </th>
+                <th className="px-4 py-3 font-sans text-[10px] font-semibold uppercase tracking-[0.14em] text-stone">
+                  Status
+                </th>
+                <th className="w-10 px-2" />
               </tr>
             </thead>
             <tbody>
-              {mine.map((a) => (
-                <tr key={a.id}>
-                  <td className="font-medium">{a.title}</td>
-                  <td>Form 3 Blue</td>
-                  <td>{new Date(a.dueAt).toLocaleDateString('en-ZW', { day: 'numeric', month: 'short' })}</td>
-                  <td className="text-right">14 / 28</td>
-                  <td className="text-right">2 / 14</td>
-                  <td className="text-right">
-                    <Badge tone={a.status === 'OPEN' ? 'info' : 'success'}>
-                      {a.status.toLowerCase()}
-                    </Badge>
-                  </td>
-                </tr>
-              ))}
-              {[
-                { t: 'Linear Graphs — Worksheet 4', c: 'Form 3 Green', d: 'Apr 18', sub: '25 / 26', mk: '25 / 25', st: 'closed' },
-                { t: 'Calculus — Differentiation basics', c: 'Form 4 Blue', d: 'Apr 29', sub: '5 / 14', mk: '0 / 5', st: 'open' },
-              ].map((row, i) => (
-                <tr key={i}>
-                  <td className="font-medium">{row.t}</td>
-                  <td>{row.c}</td>
-                  <td>{row.d}</td>
-                  <td className="text-right">{row.sub}</td>
-                  <td className="text-right">{row.mk}</td>
-                  <td className="text-right">
-                    <Badge tone={row.st === 'open' ? 'info' : 'success'}>{row.st}</Badge>
-                  </td>
-                </tr>
-              ))}
+              {ROWS.map((r) => {
+                const submittedPct = (r.submitted / r.total) * 100;
+                const markedPct = r.marked > 0 ? (r.marked / Math.max(r.submitted, 1)) * 100 : 0;
+                return (
+                  <tr key={r.id} className="border-t border-sand-light hover:bg-sand-light/40">
+                    <td className="px-5 py-4">
+                      <Link
+                        href={`/teacher/marking/${r.id}`}
+                        className="font-display text-[16px] leading-snug text-ink hover:text-earth"
+                      >
+                        {r.title}
+                      </Link>
+                      <p className="mt-1 font-sans text-[12px] text-stone">
+                        {r.releasedLabel}
+                      </p>
+                    </td>
+                    <td className="px-4 py-4">
+                      <ClassChip form={r.form} stream={r.stream} subjectTone="ochre" />
+                    </td>
+                    <td className="px-4 py-4">
+                      <div className="mx-auto w-32 text-center">
+                        <div className="font-mono text-[13px] tabular-nums text-ink">
+                          {r.submitted}/{r.total}
+                        </div>
+                        <div className="mt-1 h-1 overflow-hidden rounded-full bg-sand">
+                          <div
+                            className="h-full bg-earth"
+                            style={{ width: `${submittedPct}%` }}
+                          />
+                        </div>
+                      </div>
+                    </td>
+                    <td className="px-4 py-4">
+                      <div className="mx-auto w-32 text-center">
+                        <div className="font-mono text-[13px] tabular-nums text-ink">
+                          {r.marked}/{Math.max(r.submitted, 1)}
+                        </div>
+                        <div className="mt-1 h-1 overflow-hidden rounded-full bg-sand">
+                          <div
+                            className="h-full bg-terracotta"
+                            style={{ width: `${markedPct}%` }}
+                          />
+                        </div>
+                      </div>
+                    </td>
+                    <td className="px-4 py-4 font-sans text-[13px] text-stone">{r.dueLabel}</td>
+                    <td className="px-4 py-4">
+                      <TeacherStatusPill state={r.status} />
+                    </td>
+                    <td className="px-2 py-4 text-right">
+                      <Link
+                        href={`/teacher/marking/${r.id}`}
+                        className="inline-flex h-8 w-8 items-center justify-center rounded text-stone hover:bg-sand hover:text-ink"
+                        aria-label="Open marking"
+                      >
+                        <ChevronRight className="h-4 w-4" strokeWidth={1.5} />
+                      </Link>
+                    </td>
+                  </tr>
+                );
+              })}
             </tbody>
           </table>
-        </CardContent>
-      </Card>
+        </div>
+      </EditorialCard>
+
+      {/* Template bank */}
+      <section>
+        <div className="mb-3 flex items-center justify-between">
+          <SectionEyebrow>Templates</SectionEyebrow>
+          <span className="font-sans text-[12px] text-stone">
+            Accelerate authoring — pre-configured structure + rubric
+          </span>
+        </div>
+        <ul className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
+          {TEMPLATES.map((t) => (
+            <li key={t.key}>
+              <Link
+                href={`/teacher/assignments/new?template=${t.key}`}
+                className="group flex h-full flex-col gap-2 rounded border border-sand bg-white p-5 transition-all duration-200 ease-out-soft hover:-translate-y-px hover:border-terracotta hover:shadow-e2"
+              >
+                <Copy className="h-4 w-4 text-earth" strokeWidth={1.5} aria-hidden />
+                <p className="font-display text-[18px] text-ink group-hover:text-earth">
+                  {t.label}
+                </p>
+                <p className="font-serif text-[13px] leading-relaxed text-stone">{t.blurb}</p>
+              </Link>
+            </li>
+          ))}
+        </ul>
+      </section>
     </div>
   );
 }

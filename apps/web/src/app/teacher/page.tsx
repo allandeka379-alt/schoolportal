@@ -1,164 +1,252 @@
 import Link from 'next/link';
-import { Alert, Badge, Card, CardContent, CardHeader, CardTitle, Stat } from '@hha/ui';
-import { AlertTriangle, ArrowRight, CheckCircle2, ClipboardCheck, Clock, TrendingDown } from 'lucide-react';
+import { ArrowRight, BookOpen, FileEdit, Megaphone, MessageSquare, Users } from 'lucide-react';
 
-import { ASSIGNMENTS_FOR_FARAI } from '@/lib/mock/fixtures';
+import { EditorialCard, SectionEyebrow } from '@/components/student/primitives';
+import { AttentionRow, ClassChip, TeacherStatusPill, TeacherTag } from '@/components/teacher/primitives';
+import {
+  ATTENTION_ITEMS,
+  greetingFor,
+  MARKING_QUEUE,
+  ME_TEACHER,
+  TEACHER_CLASSES,
+  TEACHER_TODAY,
+  TOTAL_STUDENTS_TAUGHT,
+} from '@/lib/mock/teacher-extras';
 
+/**
+ * Teacher console — §05 of the spec.
+ *
+ * Four zones:
+ *   1. Greeting         — title + surname, day, subject, lesson count
+ *   2. Attention Today  — prioritised action list (terracotta top border)
+ *   3. Today's Lessons  — schedule with "Take register" inline
+ *   4. Marking Queue    — 3 most urgent
+ * Plus three secondary tiles: Messages / Classes / Announcements.
+ */
 export default function TeacherConsole() {
-  const submitted = ASSIGNMENTS_FOR_FARAI.filter((a) => a.status === 'SUBMITTED' || a.status === 'LATE');
-
-  // Early-warning list — students whose recent marks or attendance have dipped.
-  const earlyWarning = [
-    { id: 's-chipo', name: 'Chipo Banda', reason: 'Maths dropped from 74% → 58%', tone: 'danger' as const },
-    { id: 's-tinashe', name: 'Tinashe Ncube', reason: 'Missed 3 of the last 5 submissions', tone: 'warning' as const },
-    { id: 's-rudo', name: 'Rudo Mutasa', reason: 'Attendance 86% this term', tone: 'warning' as const },
-  ];
+  const greeting = greetingFor();
+  const now = new Date();
+  const weekday = now.toLocaleDateString('en-ZW', { weekday: 'long' });
+  const dateLabel = now.toLocaleDateString('en-ZW', { day: 'numeric', month: 'long' });
+  const lessonsToday = TEACHER_TODAY.filter((l) => l.classId !== undefined).length;
+  const classAverage = Math.round(
+    TEACHER_CLASSES.reduce((sum, c) => sum + c.averagePercent, 0) / TEACHER_CLASSES.length,
+  );
 
   return (
-    <div className="space-y-6">
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-        <Stat label="Lessons today" value="4" trendLabel="Next: Form 3 Blue at 07:30" trend="flat" icon={<Clock className="h-5 w-5" />} />
-        <Stat label="Awaiting marking" value="18" trendLabel="Down from 24 yesterday" trend="up" icon={<ClipboardCheck className="h-5 w-5" />} />
-        <Stat label="Class average" value="74%" trendLabel="+2% since mid-term" trend="up" />
-        <Stat label="Early-warning" value={earlyWarning.length} trendLabel="Students to check in with" trend="down" icon={<AlertTriangle className="h-5 w-5" />} />
+    <div className="space-y-8">
+      {/* Zone 1 — Greeting */}
+      <section className="rounded border border-sand bg-sand-light px-6 py-8 md:px-10 md:py-10">
+        <p className="hha-eyebrow-earth">{greeting}</p>
+        <h1 className="mt-3 flex flex-wrap items-center gap-3 font-display text-[clamp(2rem,4vw,2.75rem)] leading-tight text-ink">
+          {greeting}, {ME_TEACHER.title} {ME_TEACHER.lastName}
+          <span className="text-terracotta">.</span>
+          {ME_TEACHER.isFormTeacher ? <TeacherTag label="FT" /> : null}
+          {ME_TEACHER.isHod ? <TeacherTag label="HOD" tone="terracotta" /> : null}
+        </h1>
+        <p className="mt-3 font-serif text-body-lg text-stone">
+          {weekday}, {dateLabel} · {ME_TEACHER.subject} · {lessonsToday} lessons today
+        </p>
+      </section>
+
+      {/* Zone 2 — Attention today */}
+      <EditorialCard className="overflow-hidden border-t-[3px] border-t-terracotta">
+        <div className="flex items-center justify-between px-6 py-4 border-b border-sand">
+          <SectionEyebrow>Attention today</SectionEyebrow>
+          <span className="font-sans text-[12px] text-stone">
+            Cleared items drop off automatically
+          </span>
+        </div>
+        {ATTENTION_ITEMS.length === 0 ? (
+          <p className="px-6 py-10 text-center font-serif text-[15px] text-stone">
+            No outstanding actions. Have a clear morning.
+          </p>
+        ) : (
+          <ul>
+            {ATTENTION_ITEMS.map((item) => (
+              <li key={item.id}>
+                <AttentionRow
+                  tone={item.tone}
+                  label={item.label}
+                  detail={item.detail}
+                  href={item.href}
+                />
+              </li>
+            ))}
+          </ul>
+        )}
+      </EditorialCard>
+
+      {/* Zones 3 + 4 side by side */}
+      <div className="grid grid-cols-1 gap-6 lg:grid-cols-3">
+        {/* Zone 3 — Today's lessons */}
+        <EditorialCard className="overflow-hidden lg:col-span-2">
+          <div className="flex items-center justify-between border-b border-sand px-6 py-4">
+            <SectionEyebrow>Today&rsquo;s lessons</SectionEyebrow>
+            <span className="font-sans text-[12px] text-stone">
+              {TEACHER_TODAY.length} scheduled
+            </span>
+          </div>
+          <ul className="divide-y divide-sand-light">
+            {TEACHER_TODAY.map((lesson) => {
+              const cls = TEACHER_CLASSES.find((c) => c.id === lesson.classId);
+              return (
+                <li
+                  key={lesson.id}
+                  className={`relative flex items-center gap-4 px-6 py-4 ${
+                    lesson.isCurrent ? 'bg-sand-light/60' : ''
+                  }`}
+                >
+                  {lesson.isCurrent ? (
+                    <span
+                      aria-hidden
+                      className="absolute inset-y-2 left-0 w-[2px] rounded-r-sm bg-terracotta"
+                    />
+                  ) : null}
+                  <span className="w-14 flex-none font-mono text-[13px] tabular-nums text-stone">
+                    {lesson.start}
+                  </span>
+                  <div className="min-w-0 flex-1">
+                    <div className="flex flex-wrap items-center gap-2">
+                      {cls ? (
+                        <ClassChip
+                          form={cls.form}
+                          stream={cls.stream}
+                          subjectTone={cls.subjectTone}
+                        />
+                      ) : null}
+                      <span className="font-sans text-[12px] text-stone">Room {lesson.room}</span>
+                    </div>
+                    <p className="mt-1 font-serif text-[15px] text-ink">{lesson.topic}</p>
+                  </div>
+                  {!lesson.registerTaken ? (
+                    <Link
+                      href="/teacher/attendance"
+                      className="inline-flex h-8 items-center rounded bg-terracotta px-3 font-sans text-[12px] font-semibold text-cream hover:bg-terracotta-hover"
+                    >
+                      Take register
+                    </Link>
+                  ) : (
+                    <span className="font-sans text-[12px] text-ok">✓ register taken</span>
+                  )}
+                </li>
+              );
+            })}
+          </ul>
+        </EditorialCard>
+
+        {/* Zone 4 — Marking queue */}
+        <EditorialCard className="overflow-hidden">
+          <div className="flex items-center justify-between border-b border-sand px-6 py-4">
+            <SectionEyebrow>Marking queue</SectionEyebrow>
+            <Link
+              href="/teacher/assignments"
+              className="landing-link font-sans text-[12px] font-medium text-terracotta"
+            >
+              Open queue
+              <ArrowRight className="h-3 w-3" strokeWidth={1.5} aria-hidden />
+            </Link>
+          </div>
+          <ul className="divide-y divide-sand-light">
+            {MARKING_QUEUE.map((q) => {
+              const pct = (q.submitted / q.total) * 100;
+              return (
+                <li key={q.assignmentId}>
+                  <Link
+                    href={`/teacher/marking/${q.assignmentId}`}
+                    className="group block px-5 py-4 hover:bg-sand-light/40"
+                  >
+                    <p className="font-sans text-[11px] font-semibold uppercase tracking-[0.14em] text-stone">
+                      {q.classLabel}
+                    </p>
+                    <p className="mt-1 truncate font-display text-[16px] leading-snug text-ink group-hover:text-earth">
+                      {q.title}
+                    </p>
+                    <div className="mt-2 flex items-center gap-2">
+                      <span
+                        className={`font-sans text-[12px] font-medium ${
+                          q.overdue ? 'text-danger' : 'text-stone'
+                        }`}
+                      >
+                        {q.submitted} of {q.total} submitted · {q.dueLabel}
+                      </span>
+                      {q.status === 'marked-pending-release' ? (
+                        <TeacherStatusPill state="marked" />
+                      ) : null}
+                    </div>
+                    <div className="mt-2 h-1 overflow-hidden rounded-full bg-sand">
+                      <div
+                        className="h-full bg-terracotta"
+                        style={{ width: `${pct}%` }}
+                      />
+                    </div>
+                  </Link>
+                </li>
+              );
+            })}
+          </ul>
+        </EditorialCard>
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        <div className="lg:col-span-2 space-y-6">
-          <Card>
-            <CardHeader className="flex-row items-center justify-between">
-              <CardTitle>Awaiting my marking</CardTitle>
-              <Link href="/teacher/marking" className="text-sm text-heritage-700 hover:underline inline-flex items-center gap-1">
-                Open marking queue <ArrowRight className="h-3.5 w-3.5" />
-              </Link>
-            </CardHeader>
-            <CardContent className="p-0">
-              <ul className="divide-y divide-granite-100">
-                {submitted.map((a) => (
-                  <li key={a.id} className="flex items-center gap-4 p-4">
-                    <div className="flex-1 min-w-0">
-                      <p className="text-sm font-medium text-granite-900">{a.title}</p>
-                      <p className="text-xs text-granite-500 mt-0.5">
-                        {a.subjectCode} · Farai Moyo · submitted{' '}
-                        {new Date(a.submittedAt ?? '').toLocaleString('en-ZW', {
-                          day: 'numeric',
-                          month: 'short',
-                          hour: '2-digit',
-                          minute: '2-digit',
-                        })}
-                      </p>
-                    </div>
-                    {a.status === 'LATE' ? (
-                      <Badge tone="warning">Late</Badge>
-                    ) : (
-                      <Badge tone="info">New</Badge>
-                    )}
-                  </li>
-                ))}
-                <li className="flex items-center gap-4 p-4">
-                  <div className="flex-1">
-                    <p className="text-sm font-medium text-granite-900">Quadratic Equations — Worksheet 5</p>
-                    <p className="text-xs text-granite-500 mt-0.5">MATH · 14 of 28 submitted · 14 outstanding</p>
-                  </div>
-                  <Badge tone="neutral">14 / 28</Badge>
-                </li>
-              </ul>
-            </CardContent>
-          </Card>
-
-          <Card>
-            <CardHeader>
-              <CardTitle>Class analytics — Form 3 Blue Mathematics</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="grid grid-cols-3 gap-4 mb-6">
-                <div>
-                  <p className="hha-label">Average</p>
-                  <p className="font-display text-xl text-heritage-950 mt-1">74%</p>
-                </div>
-                <div>
-                  <p className="hha-label">Submission rate</p>
-                  <p className="font-display text-xl text-heritage-950 mt-1">91%</p>
-                </div>
-                <div>
-                  <p className="hha-label">On-time rate</p>
-                  <p className="font-display text-xl text-heritage-950 mt-1">84%</p>
-                </div>
-              </div>
-              <div className="space-y-2">
-                {['A', 'B', 'C', 'D', 'E'].map((grade, i) => {
-                  const counts = [4, 9, 10, 3, 2];
-                  const count = counts[i] ?? 0;
-                  const pct = (count / 28) * 100;
-                  return (
-                    <div key={grade} className="flex items-center gap-3">
-                      <span className="w-4 text-xs text-granite-600">{grade}</span>
-                      <div className="flex-1 h-4 rounded bg-granite-100 overflow-hidden">
-                        <div
-                          className="h-full bg-heritage-500"
-                          style={{ width: `${pct}%` }}
-                        />
-                      </div>
-                      <span className="w-10 text-right text-xs text-granite-600 tabular-nums">
-                        {count}
-                      </span>
-                    </div>
-                  );
-                })}
-              </div>
-            </CardContent>
-          </Card>
-        </div>
-
-        <div className="space-y-6">
-          <Card>
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <AlertTriangle className="h-5 w-5 text-msasa-600" aria-hidden />
-                Early warning list
-              </CardTitle>
-            </CardHeader>
-            <CardContent className="p-0">
-              <ul className="divide-y divide-granite-100">
-                {earlyWarning.map((w) => (
-                  <li key={w.id} className="p-4">
-                    <p className="text-sm font-medium text-granite-900">{w.name}</p>
-                    <p className="text-xs text-granite-600 mt-0.5 flex items-center gap-1.5">
-                      <TrendingDown className="h-3 w-3 text-msasa-600" aria-hidden />
-                      {w.reason}
-                    </p>
-                  </li>
-                ))}
-              </ul>
-            </CardContent>
-          </Card>
-
-          <Alert tone="info" title="CPD reminder">
-            Your annual CPD log is at 12 of 30 hours. The new ZIMTA workshop on active-learning
-            mathematics counts for 6 hours.
-          </Alert>
-
-          <Card>
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <CheckCircle2 className="h-5 w-5 text-emerald-600" aria-hidden /> Reports progress
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              <p className="text-sm text-granite-700">
-                You have drafted <strong>24 of 28</strong> end-of-term comments for Form 3 Blue.
-              </p>
-              <div className="mt-3 h-2 w-full rounded-full bg-granite-100 overflow-hidden">
-                <div className="h-full bg-emerald-500" style={{ width: '86%' }} />
-              </div>
-              <p className="mt-2 text-xs text-granite-500">
-                After drafting, the form teacher and the head both sign off before a parent sees
-                anything.
-              </p>
-            </CardContent>
-          </Card>
-        </div>
+      {/* Secondary tiles */}
+      <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
+        <SecondaryTile
+          href="/teacher/messages"
+          eyebrow="Messages"
+          icon={<MessageSquare className="h-5 w-5 text-earth" strokeWidth={1.5} aria-hidden />}
+          value="10"
+          line="3 parent · 5 student · 2 staff"
+          valueColour="text-ink"
+        />
+        <SecondaryTile
+          href="/teacher/classes"
+          eyebrow="My classes"
+          icon={<Users className="h-5 w-5 text-earth" strokeWidth={1.5} aria-hidden />}
+          value={`${TEACHER_CLASSES.length}`}
+          line={`${TOTAL_STUDENTS_TAUGHT} students · average ${classAverage}%`}
+          valueColour="text-ink"
+        />
+        <SecondaryTile
+          href="/teacher/messages"
+          eyebrow="Announcements"
+          icon={<Megaphone className="h-5 w-5 text-earth" strokeWidth={1.5} aria-hidden />}
+          value="2"
+          line="Staff noticeboard · HOD updates"
+          valueColour="text-ink"
+        />
       </div>
     </div>
+  );
+}
+
+function SecondaryTile({
+  href,
+  eyebrow,
+  icon,
+  value,
+  line,
+  valueColour,
+}: {
+  href: string;
+  eyebrow: string;
+  icon: React.ReactNode;
+  value: string;
+  line: string;
+  valueColour: string;
+}) {
+  return (
+    <Link
+      href={href}
+      className="group block rounded border border-sand bg-white p-5 transition-all duration-200 ease-out-soft hover:-translate-y-px hover:shadow-e2"
+    >
+      <div className="flex items-center justify-between">
+        <SectionEyebrow>{eyebrow}</SectionEyebrow>
+        {icon}
+      </div>
+      <p className={`mt-2 font-display text-[40px] leading-none tabular-nums ${valueColour}`}>
+        {value}
+      </p>
+      <p className="mt-2 font-sans text-[13px] text-stone">{line}</p>
+    </Link>
   );
 }
