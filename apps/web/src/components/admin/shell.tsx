@@ -2,36 +2,38 @@
 
 import { useState, type ReactNode } from 'react';
 
-import { HeadmasterSidebar } from './sidebar';
-import { HeadmasterTopBar } from './top-bar';
+import { AdminSidebar } from './sidebar';
+import { AdminTopBar } from './top-bar';
 
 /**
- * The Headmaster's Bridge — portal shell.
+ * Admin back-office shell — v2.0.
  *
- * Dark 260px Earth-filled sidebar (visually distinct from the role-based
- * portals, which use Cream). 64px top bar with breadcrumbs, command
- * palette, security indicators, alerts bell. Dense executive workspace
- * below.
+ * Obsidian 260px sidebar + 64px snow top bar. Amber accent via the
+ * `portal-admin` scope class so every descendant's --accent resolves to
+ * the bursar amber.
  */
-export function HeadmasterShell({
+export function AdminShell({
   accountName,
+  accountMeta,
   children,
 }: {
   accountName: string;
+  accountMeta: string;
   children: ReactNode;
 }) {
   const [mobileOpen, setMobileOpen] = useState(false);
 
   return (
-    <div className="portal-headmaster min-h-screen bg-snow">
+    <div className="portal-admin min-h-screen bg-snow">
       <div className="flex min-h-screen">
-        <HeadmasterSidebar
+        <AdminSidebar
           accountName={accountName}
+          accountMeta={accountMeta}
           mobileOpen={mobileOpen}
           onMobileClose={() => setMobileOpen(false)}
         />
         <div className="flex min-w-0 flex-1 flex-col">
-          <HeadmasterTopBar onOpenMobileNav={() => setMobileOpen(true)} />
+          <AdminTopBar onOpenMobileNav={() => setMobileOpen(true)} />
           <main className="flex-1 px-4 py-6 md:px-8 md:py-8">
             <div className="mx-auto w-full max-w-[1320px]">{children}</div>
           </main>

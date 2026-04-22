@@ -3,12 +3,44 @@
 @tailwind utilities;
 
 /*
- * Global defaults follow §03 of the landing-page design spec.
- * The editorial palette sits on Cream; headings set in Fraunces; body
- * copy in Source Serif; UI chrome in Inter.
+ * HHA Portal · v2.0 Design Direction
+ *
+ * Cool precision over warm editorial. Space Grotesk display · Inter body ·
+ * JetBrains Mono signature. Snow / Fog / Obsidian surfaces with per-portal
+ * vivid accents injected through the --accent CSS variable.
  */
 
 @layer base {
+  :root {
+    /* Default accent — if a page isn't inside a portal scope, fall back
+       to Landing's electric cyan so focus rings & CTAs still have a
+       recognisable tone. */
+    --accent: 10 239 255;
+    --accent-hover: 0 197 212;
+
+    /* Palette echoes — accessible as CSS vars for components that need
+       colour-math (e.g. gradients, alpha). */
+    --snow: 255 255 255;
+    --fog: 237 239 242;
+    --mist: 212 215 221;
+    --steel: 144 149 160;
+    --slate: 77 81 89;
+    --graphite: 43 45 49;
+    --charcoal: 23 24 27;
+    --obsidian: 10 10 11;
+  }
+
+  /* Per-portal scope — the sidebar/shell wraps its children with one of
+     these classes so every button, focus ring, and active-state CTA
+     downstream picks up the right accent without per-component edits. */
+
+  .portal-student   { --accent: 91 92 255;   --accent-hover: 70 72 217; }
+  .portal-teacher   { --accent: 0 179 126;   --accent-hover: 0 144 96;  }
+  .portal-parent    { --accent: 255 91 122;  --accent-hover: 230 69 100;}
+  .portal-headmaster{ --accent: 245 165 36;  --accent-hover: 217 144 32;}
+  .portal-admin     { --accent: 245 165 36;  --accent-hover: 217 144 32;}
+  .portal-landing   { --accent: 10 239 255;  --accent-hover: 0 197 212; }
+
   html {
     font-feature-settings: 'ss01', 'cv11';
     text-rendering: optimizeLegibility;
@@ -17,146 +49,188 @@
   }
 
   body {
-    @apply bg-cream text-ink font-serif;
+    @apply bg-snow text-obsidian font-sans;
   }
 
-  /*
-   * Editorial headings. Fraunces is the display face. Spec §03:
-   *   display/xl  · 88/92 · hero headline only
-   *   display/lg  · 64/68 · section openers
-   *   display/md  · 44/52 · feature card titles
-   *   heading/lg  · 32/40 · H2
-   *   heading/md  · 24/32 · H3, card headings (Inter 600)
-   */
+  /* Headings — geometric display, tight tracking. No more italics for
+     emphasis, no more serifs anywhere. */
   h1, h2, h3, h4 {
-    @apply font-display text-ink;
+    @apply font-display text-obsidian;
+    font-feature-settings: 'ss02', 'cv11';
   }
-  h1 { @apply text-display-lg; }
-  h2 { @apply text-heading-lg; }
-  h3 { @apply text-heading-md font-sans font-semibold; }
-  h4 { @apply text-body-lg font-sans font-semibold; }
+  h1 { @apply text-display-m font-medium tracking-tight; }
+  h2 { @apply text-heading-1 font-medium tracking-tight; }
+  h3 { @apply text-heading-2 font-medium; }
+  h4 { @apply text-heading-3 font-medium; }
 
-  /* Body measure constrained for readability per §03. */
+  /* Body measure cap per §03. */
   p {
     @apply max-w-measure;
   }
 
   ::selection {
-    @apply bg-terracotta/20 text-ink;
+    background: rgb(var(--accent) / 0.2);
+    color: #0A0A0B;
   }
 
   :focus-visible {
-    @apply outline-none;
-    box-shadow: 0 0 0 2px #fff, 0 0 0 4px #C65D3D;
-    border-radius: 0.25rem;
+    outline: none;
+    box-shadow: 0 0 0 2px #FFFFFF, 0 0 0 4px rgb(var(--accent));
+    border-radius: 4px;
   }
 
-  /* Portal chrome still lives in its own palette; reset the body there. */
+  /* Authenticated portals still keep their own base background. */
   .portal-shell-root {
-    @apply bg-granite-50 text-granite-900;
+    @apply bg-snow text-obsidian;
   }
 }
 
 @layer components {
-  /* Editorial containers — 1440px cap per spec §15. */
   .hha-wrap {
-    @apply mx-auto w-full max-w-[1440px] px-6 md:px-10 lg:px-14;
+    @apply mx-auto w-full max-w-[1440px] px-6 md:px-8 lg:px-10;
   }
 
-  /* Eyebrow label used throughout the landing (§03 label/caps token). */
-  .hha-eyebrow {
-    @apply font-sans text-label-caps font-semibold uppercase text-terracotta;
-  }
-
+  /* Eyebrow — v2.0 is mono caps, tight tracking. */
+  .hha-eyebrow,
   .hha-eyebrow-earth {
-    @apply font-sans text-label-caps font-semibold uppercase text-earth;
-  }
-
-  /* Hairline divider — the spec's Level-1 surface treatment. */
-  .hha-hairline {
-    @apply border-sand;
-  }
-
-  .hha-card-surface {
-    @apply bg-white border border-granite-200 rounded-lg shadow-card;
+    @apply font-mono text-[11px] font-medium uppercase tracking-[0.12em] text-slate;
   }
 
   .hha-label {
-    @apply text-xs font-medium uppercase tracking-wider text-granite-600;
+    @apply font-mono text-[11px] font-medium uppercase tracking-[0.12em] text-slate;
   }
 
+  .hha-hairline {
+    @apply border-mist;
+  }
+
+  /* Cards — crisp mist borders, no shadow at rest, subtle darken on hover. */
+  .hha-card-surface {
+    @apply bg-snow border border-mist rounded-md transition-colors duration-120 ease-out-soft;
+  }
+
+  .hha-card-surface:hover {
+    @apply border-slate/30;
+  }
+
+  /* Sidebar nav rows used by legacy shells — still work; new shells
+     style their own nav inline. */
   .hha-nav-link {
-    @apply flex items-center gap-3 px-3 py-2 rounded text-sm font-medium text-granite-700 hover:bg-granite-100 hover:text-heritage-950 transition-colors;
+    @apply flex items-center gap-3 px-3 py-2 rounded font-sans text-sm font-medium text-slate transition-colors duration-120 hover:bg-fog hover:text-obsidian;
   }
 
   .hha-nav-link-active {
-    @apply bg-heritage-50 text-heritage-900 hover:bg-heritage-100;
+    background: rgb(var(--accent) / 0.1);
+    color: rgb(var(--accent));
   }
 
+  /* Tables */
   .hha-table {
     @apply w-full text-sm;
   }
 
   .hha-table thead th {
-    @apply text-left text-xs font-medium uppercase tracking-wider text-granite-600 px-4 py-2 border-b border-granite-200 bg-granite-50;
+    @apply text-left font-mono text-[11px] font-medium uppercase tracking-[0.12em] text-slate px-4 py-2.5 border-b border-mist bg-fog/50;
   }
 
   .hha-table tbody td {
-    @apply px-4 py-3 border-b border-granite-100;
+    @apply px-4 py-3 border-b border-mist/60;
   }
 
   .hha-table tbody tr:hover {
-    @apply bg-granite-50/60;
+    @apply bg-fog/60;
   }
 
-  /* Landing-specific primitives. */
+  /* Landing-specific primitives — re-tuned to v2.0 */
   .landing-card {
-    @apply bg-sand-light border border-sand rounded transition-all duration-300 ease-out-soft;
+    @apply bg-snow border border-mist rounded-md transition-all duration-120 ease-out-soft;
   }
 
   .landing-card:hover {
-    @apply shadow-e2;
+    @apply border-slate/30 -translate-y-px;
   }
 
   .landing-link {
-    @apply relative inline-flex items-center gap-1 text-terracotta transition-colors;
+    @apply relative inline-flex items-center gap-1 font-medium;
+    color: rgb(var(--accent));
   }
 
   .landing-link::after {
     content: '';
-    @apply absolute left-0 -bottom-0.5 h-px w-full bg-terracotta origin-left scale-x-0 transition-transform duration-[240ms] ease-out-soft;
+    @apply absolute left-0 -bottom-0.5 h-px w-full origin-left scale-x-0 transition-transform duration-120 ease-out-soft;
+    background: rgb(var(--accent));
   }
 
   .landing-link:hover::after {
     @apply scale-x-100;
   }
 
-  /* Editorial button styles — reserved to the terracotta CTA. */
+  /* Primary button — accent-aware. "btn-terracotta" kept as alias for
+     backward compatibility; new code should use btn-primary. */
+  .btn-primary,
   .btn-terracotta {
-    @apply inline-flex h-10 items-center justify-center gap-2 rounded bg-terracotta px-6 font-sans text-sm font-semibold text-cream transition-all duration-200 ease-out-soft hover:bg-terracotta-hover focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-terracotta;
+    @apply inline-flex h-10 items-center justify-center gap-2 rounded-md px-4 font-sans text-[14px] font-semibold transition-all duration-120 ease-out-soft;
+    background: rgb(var(--accent));
+    color: #FFFFFF;
   }
 
+  .btn-primary:hover,
+  .btn-terracotta:hover {
+    background: rgb(var(--accent-hover));
+    transform: translateY(-1px);
+  }
+
+  .btn-primary:active,
+  .btn-terracotta:active {
+    transform: scale(0.98);
+  }
+
+  .btn-primary svg,
   .btn-terracotta svg {
-    @apply transition-transform duration-200 ease-out-soft;
+    @apply transition-transform duration-120 ease-out-soft;
   }
 
+  .btn-primary:hover svg,
   .btn-terracotta:hover svg {
     @apply translate-x-1;
   }
 
   .btn-ghost {
-    @apply inline-flex h-10 items-center justify-center gap-2 rounded border border-sand bg-transparent px-5 font-sans text-sm font-medium text-earth transition-colors hover:bg-sand-light;
+    @apply inline-flex h-10 items-center justify-center gap-2 rounded-md border border-mist bg-snow px-4 font-sans text-[14px] font-medium text-slate transition-colors duration-120 hover:bg-fog hover:text-obsidian;
   }
 
-  /* Underlined input per §06 hero sign-in panel spec. */
+  /* Inputs — underline for primary forms; 6px radius boxes for settings. */
   .input-underlined {
-    @apply w-full border-0 border-b border-earth bg-transparent px-0 py-2 font-sans text-base text-ink placeholder-stone transition-colors focus:border-terracotta focus:outline-none focus:ring-0;
+    @apply w-full border-0 border-b border-mist bg-transparent px-0 py-2 font-sans text-[15px] text-obsidian placeholder-steel transition-colors focus:outline-none focus:ring-0;
+  }
+
+  .input-underlined:focus {
+    border-bottom-color: rgb(var(--accent));
+    border-bottom-width: 2px;
+  }
+
+  .input-boxed {
+    @apply h-10 w-full rounded-md border border-mist bg-snow px-3 font-sans text-[14px] text-obsidian placeholder-steel transition-colors focus:outline-none focus:ring-0;
+  }
+
+  .input-boxed:focus {
+    border-color: rgb(var(--accent));
+    border-width: 2px;
+  }
+
+  /* Pill / status tag — v2.0 mono caps treatment */
+  .hha-pill {
+    @apply inline-flex items-center rounded-sm px-2 py-0.5 font-mono text-[10px] font-medium uppercase tracking-[0.12em];
+  }
+
+  /* Dark-sidebar active-row accent stripe (used by all portal shells). */
+  .sidebar-active-accent {
+    background: rgb(var(--accent));
   }
 }
 
 /*
- * Respect prefers-reduced-motion globally (§16–17).
- * All custom keyframe animations are reduced to near-instant fades.
+ * Reduced-motion fallback per §05 of the direction.
  */
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after {
@@ -168,11 +242,12 @@
 }
 
 /*
- * Stone-pattern SVG used as a hero-corner motif, kept as inline CSS
- * so it doesn't count against our image budget (§18).
+ * Subtle stone pattern from v1 — retained so the landing page's hero
+ * isn't a visual regression. Disabled by default; opt in by adding
+ * .stone-pattern.
  */
 .stone-pattern {
-  background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='240' height='240' viewBox='0 0 240 240'><g fill='none' stroke='%235C3A1E' stroke-width='0.6' opacity='0.08'><path d='M0 60 L60 30 L120 60 L60 90 Z'/><path d='M120 60 L180 30 L240 60 L180 90 Z'/><path d='M60 90 L120 60 L180 90 L120 120 Z'/><path d='M0 180 L60 150 L120 180 L60 210 Z'/><path d='M120 180 L180 150 L240 180 L180 210 Z'/><path d='M60 210 L120 180 L180 210 L120 240 Z'/></g></svg>");
+  background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='240' height='240' viewBox='0 0 240 240'><g fill='none' stroke='%239095A0' stroke-width='0.4' opacity='0.12'><path d='M0 60 L60 30 L120 60 L60 90 Z'/><path d='M120 60 L180 30 L240 60 L180 90 Z'/><path d='M60 90 L120 60 L180 90 L120 120 Z'/><path d='M0 180 L60 150 L120 180 L60 210 Z'/><path d='M120 180 L180 150 L240 180 L180 210 Z'/><path d='M60 210 L120 180 L180 210 L120 240 Z'/></g></svg>");
   background-size: 240px 240px;
   background-position: bottom right;
   background-repeat: no-repeat;

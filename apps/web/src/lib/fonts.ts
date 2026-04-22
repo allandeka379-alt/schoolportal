@@ -1,30 +1,25 @@
-import { Fraunces, Inter, JetBrains_Mono, Source_Serif_4 } from 'next/font/google';
+import { Inter, JetBrains_Mono, Space_Grotesk } from 'next/font/google';
 
 /**
- * Self-hosted fonts per the design spec §03.
+ * v2.0 design direction — cool precision. §02 of the Direction doc.
  *
- *   Fraunces       — display serif with variable weight + italic
- *   Source Serif 4 — body serif for long-form reading
- *   Inter          — UI sans for navigation, labels, forms
- *   JetBrains Mono — reference numbers, transaction IDs
+ *   Space Grotesk  — geometric display for headlines, hero numbers,
+ *                    page titles. Weights 400/500/700. Tight tracking.
+ *   Inter          — neutral body & UI sans. Weights 400/500/600.
+ *                    Optical-size variable, optimised for screen.
+ *   JetBrains Mono — code-adjacent signature used for eyebrows, IDs,
+ *                    metadata, key-value specs, tabular data.
  *
- * next/font downloads at build time and serves from our origin with
- * `font-display: swap`, hitting the performance budget in §18.
+ * The previous Fraunces + Source Serif 4 pairing is retired; no more
+ * serifs on any surface. All three faces are self-hosted via next/font
+ * with font-display: swap.
  */
-export const fraunces = Fraunces({
-  subsets: ['latin'],
-  variable: '--font-fraunces',
-  display: 'swap',
-  weight: ['300', '400', '500', '600'],
-  style: ['normal', 'italic'],
-});
 
-export const sourceSerif = Source_Serif_4({
+export const spaceGrotesk = Space_Grotesk({
   subsets: ['latin'],
-  variable: '--font-source-serif',
+  variable: '--font-display',
   display: 'swap',
-  weight: ['400', '500', '600'],
-  style: ['normal', 'italic'],
+  weight: ['400', '500', '600', '700'],
 });
 
 export const inter = Inter({
@@ -38,13 +33,29 @@ export const jetbrainsMono = JetBrains_Mono({
   subsets: ['latin'],
   variable: '--font-jetbrains-mono',
   display: 'swap',
-  weight: ['400', '500'],
+  weight: ['400', '500', '700'],
 });
+
+/* ------------------------------------------------------------------ */
+/*  Legacy variable aliases                                            */
+/* ------------------------------------------------------------------ */
+/*
+ * Pages still reference --font-fraunces and --font-source-serif in their
+ * class names ("font-display", "font-serif"). We alias both of those to
+ * Space Grotesk and Inter respectively, so the cascade inherits the new
+ * faces without requiring a per-page edit. The legacy Fraunces / Source
+ * Serif assets are no longer downloaded.
+ */
+export const legacyAliasStyle = `
+:root {
+  --font-fraunces: ${spaceGrotesk.style.fontFamily};
+  --font-source-serif: ${inter.style.fontFamily};
+}
+`;
 
 /** Joined class string to attach to <html>. */
 export const fontVariables = [
-  fraunces.variable,
-  sourceSerif.variable,
+  spaceGrotesk.variable,
   inter.variable,
   jetbrainsMono.variable,
 ].join(' ');

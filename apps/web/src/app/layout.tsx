@@ -11,18 +11,18 @@ export const metadata: Metadata = {
     template: '%s · HHA Portal',
   },
   description:
-    'A unified digital home for students, teachers, administration, and parents of Harare Heritage Academy.',
+    'Software for the academic life of Harare Heritage Academy — students, teachers, parents, and the Headmaster.',
   metadataBase: new URL('https://hha-portal.vercel.app'),
   openGraph: {
-    title: 'Harare Heritage Academy · Portal',
+    title: 'HHA Portal · v2.0',
     description:
-      'Where knowledge meets heritage. The unified portal for HHA students, teachers, and parents.',
+      'Cool precision software for students, teachers, parents, and the Headmaster of Harare Heritage Academy.',
     type: 'website',
   },
 };
 
 export const viewport: Viewport = {
-  themeColor: '#FAF5EB', // Cream — matches the landing background
+  themeColor: '#0A0A0B',
   width: 'device-width',
   initialScale: 1,
 };
@@ -30,7 +30,7 @@ export const viewport: Viewport = {
 export default function RootLayout({ children }: { children: ReactNode }) {
   return (
     <html lang="en" className={`h-full ${fontVariables}`}>
-      <body className="h-full bg-cream text-ink antialiased">{children}</body>
+      <body className="h-full bg-snow text-obsidian antialiased">{children}</body>
     </html>
   );
 }

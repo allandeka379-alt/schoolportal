@@ -31,11 +31,10 @@ const PUBLIC_ANNOUNCEMENTS = [
 ] as const;
 
 /**
- * Announcements window — §12 of the spec.
+ * Announcements window — v2.0.
  *
- * Three most-recent public announcements. Urgent rows carry a 3px Terracotta
- * top border and a Sand-Light fill. Each row is a full server-rendered link,
- * works without JavaScript, and is indexed by search engines.
+ * Three most-recent public announcements on a Snow surface. Urgent rows
+ * carry a 3px accent top border and Fog fill.
  */
 export function AnnouncementsWindow() {
   return (
@@ -43,21 +42,29 @@ export function AnnouncementsWindow() {
       id="announcements"
       aria-labelledby="announcements-heading"
       aria-live="polite"
-      className="bg-cream py-20 md:py-28"
+      className="bg-snow py-20 md:py-28"
     >
       <div className="hha-wrap">
-        <div className="flex flex-wrap items-end justify-between gap-6 border-b border-sand pb-8">
+        <div className="flex flex-wrap items-end justify-between gap-6 border-b border-mist pb-8">
           <div>
-            <p className="hha-eyebrow">Announcements</p>
+            <p
+              className="font-mono text-[11px] font-medium uppercase tracking-[0.18em]"
+              style={{ color: 'rgb(var(--accent))' }}
+            >
+              Announcements
+            </p>
             <h2
               id="announcements-heading"
-              className="mt-3 font-display text-heading-lg font-normal text-ink"
+              className="mt-3 font-display text-[clamp(1.75rem,3vw,2.5rem)] font-medium leading-tight tracking-tight text-obsidian"
             >
               What the school is saying,{' '}
-              <span className="italic font-light text-terracotta">openly.</span>
+              <span style={{ color: 'rgb(var(--accent))' }}>openly.</span>
             </h2>
           </div>
-          <Link href="#" className="landing-link font-sans text-sm font-medium">
+          <Link
+            href="#"
+            className="inline-flex items-center gap-2 font-mono text-[11px] font-medium uppercase tracking-[0.14em] text-obsidian hover:opacity-70"
+          >
             View all announcements
             <ArrowRight className="h-4 w-4" strokeWidth={1.5} aria-hidden />
           </Link>
@@ -69,30 +76,37 @@ export function AnnouncementsWindow() {
               <Link
                 href="#"
                 className={[
-                  'group block border-b border-sand transition-colors hover:bg-sand-light',
-                  a.urgent ? 'border-t-[3px] border-t-terracotta bg-sand-light/50' : '',
+                  'group block border-b border-mist transition-colors hover:bg-fog',
+                  a.urgent ? 'bg-fog/50' : '',
                 ].join(' ')}
+                style={a.urgent ? { borderTop: '3px solid rgb(var(--accent))' } : undefined}
               >
                 <div className="hha-wrap -mx-0 px-0 py-6 md:py-8">
-                  <p className="flex items-center gap-3 font-sans text-[11px] font-semibold uppercase tracking-[0.18em]">
+                  <p className="flex flex-wrap items-center gap-3 font-mono text-[11px] font-medium uppercase tracking-[0.14em]">
                     {a.urgent ? (
-                      <span className="inline-flex items-center rounded bg-terracotta px-2 py-0.5 text-cream">
+                      <span
+                        className="inline-flex items-center rounded-sm px-2 py-0.5 text-snow"
+                        style={{ backgroundColor: 'rgb(var(--accent))' }}
+                      >
                         Urgent
                       </span>
                     ) : (
-                      <span className="text-earth">Notice</span>
+                      <span className="text-slate">Notice</span>
                     )}
-                    <span className="text-stone">·</span>
-                    <span className="text-stone">{a.date}</span>
-                    <span className="text-stone">·</span>
-                    <span className="text-stone">{a.source}</span>
+                    <span className="text-steel">·</span>
+                    <span className="text-steel">{a.date}</span>
+                    <span className="text-steel">·</span>
+                    <span className="text-steel">{a.source}</span>
                   </p>
-                  <h3 className="mt-3 font-display text-[24px] md:text-[26px] font-normal leading-snug text-ink transition-colors group-hover:text-earth">
+                  <h3 className="mt-3 font-display text-[24px] md:text-[26px] font-medium leading-snug tracking-tight text-obsidian transition-colors group-hover:text-slate">
                     {a.title}
                   </h3>
-                  <p className="mt-2 line-clamp-1 font-serif text-body-base text-stone">
+                  <p className="mt-2 line-clamp-1 font-sans text-[15px] leading-relaxed text-slate">
                     {a.preview}{' '}
-                    <span className="font-sans text-sm font-medium text-terracotta">
+                    <span
+                      className="font-mono text-[11px] font-medium uppercase tracking-[0.14em]"
+                      style={{ color: 'rgb(var(--accent))' }}
+                    >
                       Read more →
                     </span>
                   </p>

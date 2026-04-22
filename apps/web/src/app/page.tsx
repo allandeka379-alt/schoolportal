@@ -15,16 +15,16 @@ import { currentAccount, portalHomePath } from '@/lib/auth/session';
 /**
  * Root route — the landing page.
  *
- * Authenticated users are redirected to their portal home; unauthenticated
- * users see the editorial landing in the Cream / Earth / Terracotta palette
- * described in the Landing Page Design Specification.
+ * v2.0 direction: the landing earns the electric-cyan accent (the public
+ * face of the system). The `portal-landing` scope class sets --accent to
+ * cyan for all downstream components.
  */
 export default async function LandingPage() {
   const account = await currentAccount();
   if (account) redirect(portalHomePath(account.portal));
 
   return (
-    <div className="min-h-screen bg-cream text-ink">
+    <div className="portal-landing min-h-screen bg-snow text-obsidian">
       <LandingNav />
       <main>
         <Hero />

@@ -21,14 +21,14 @@ const LOCALES: readonly { code: 'EN' | 'SN' | 'ND'; label: string }[] = [
 ];
 
 /**
- * Sticky nav — §05 of the design spec.
+ * Sticky nav — v2.0 "cool precision software".
  *
- * At top of page, transparent over the hero at 80px tall. After 40px of
- * scroll the Cream-92 backdrop-blur fills in, the Sand hairline appears,
- * and between 80–200px of scroll the height compresses to 64px.
+ * Transparent over the hero at 80px tall. After 40px of scroll, a
+ * Snow/Fog-92 backdrop-blur fills in with a Mist hairline. Between
+ * 80–200px the height compresses to 64px.
  *
- * A compact "Sign in" floating action appears in the bottom-right after
- * 400px of scroll, so returning users can enter without scrolling back up.
+ * A compact "Sign in" FAB appears in the bottom-right after 400px of
+ * scroll.
  */
 export function LandingNav() {
   const [scrolled, setScrolled] = useState(false);
@@ -53,7 +53,7 @@ export function LandingNav() {
     <>
       <a
         href="#main"
-        className="absolute left-2 top-2 z-[60] -translate-y-20 rounded bg-ink px-3 py-2 text-xs font-semibold text-cream focus:translate-y-0"
+        className="absolute left-2 top-2 z-[60] -translate-y-20 rounded bg-obsidian px-3 py-2 text-xs font-semibold text-snow focus:translate-y-0"
       >
         Skip to main content
       </a>
@@ -64,8 +64,8 @@ export function LandingNav() {
         className={[
           'sticky top-0 z-50 w-full transition-all duration-300 ease-out-soft',
           scrolled
-            ? 'border-b border-sand bg-cream/92 shadow-nav-scroll backdrop-blur-[12px]'
-            : 'border-b border-transparent bg-cream/0 backdrop-blur-0',
+            ? 'border-b border-mist bg-snow/92 shadow-nav-scroll backdrop-blur-[12px]'
+            : 'border-b border-transparent bg-snow/0 backdrop-blur-0',
           compact ? 'h-16' : 'h-20',
         ].join(' ')}
       >
@@ -77,11 +77,14 @@ export function LandingNav() {
           >
             <LandingCrest size={32} />
             <span className="hidden leading-tight sm:block">
-              <span className="block font-display text-[18px] font-medium text-ink">
-                Harare Heritage
+              <span
+                className="block font-mono text-[11px] font-medium uppercase tracking-[0.18em]"
+                style={{ color: 'rgb(var(--accent))' }}
+              >
+                Harare Heritage Academy
               </span>
-              <span className="block font-display text-[15px] italic font-light text-earth">
-                Academy
+              <span className="block font-display text-[15px] font-medium text-obsidian">
+                HHA Portal
               </span>
             </span>
           </Link>
@@ -94,13 +97,14 @@ export function LandingNav() {
               <Link
                 key={link.href}
                 href={link.href}
-                className="landing-link relative font-sans text-sm font-medium text-stone transition-colors hover:text-ink"
+                className="landing-link relative font-sans text-sm font-medium text-slate transition-colors hover:text-obsidian"
               >
                 {link.label}
                 {link.hot ? (
                   <span
                     aria-label="unread urgent announcement"
-                    className="absolute -right-3 -top-0.5 h-1.5 w-1.5 rounded-full bg-terracotta"
+                    className="absolute -right-3 -top-0.5 h-1.5 w-1.5 rounded-full"
+                    style={{ backgroundColor: 'rgb(var(--accent))' }}
                   />
                 ) : null}
               </Link>
@@ -111,11 +115,11 @@ export function LandingNav() {
             <div
               role="radiogroup"
               aria-label="Language"
-              className="flex items-center gap-1 font-sans text-xs font-medium"
+              className="flex items-center gap-1 font-mono text-xs font-medium uppercase tracking-[0.1em]"
             >
               {LOCALES.map((l, i) => (
                 <span key={l.code} className="flex items-center gap-1">
-                  {i > 0 ? <span className="text-sand">·</span> : null}
+                  {i > 0 ? <span className="text-steel">·</span> : null}
                   <button
                     type="button"
                     role="radio"
@@ -125,8 +129,8 @@ export function LandingNav() {
                     className={[
                       'rounded px-1.5 py-1 transition-colors',
                       locale === l.code
-                        ? 'text-ink'
-                        : 'text-stone hover:text-ink',
+                        ? 'text-obsidian'
+                        : 'text-steel hover:text-obsidian',
                     ].join(' ')}
                   >
                     {l.code}
@@ -138,7 +142,7 @@ export function LandingNav() {
 
           <Link
             href="/sign-in"
-            className="btn-terracotta hidden lg:inline-flex"
+            className="btn-primary hidden lg:inline-flex"
             data-animate="nav-cta"
           >
             Sign in
@@ -147,7 +151,7 @@ export function LandingNav() {
 
           <button
             type="button"
-            className="ml-auto inline-flex h-10 w-10 items-center justify-center rounded text-earth transition-colors hover:bg-sand-light lg:hidden"
+            className="ml-auto inline-flex h-10 w-10 items-center justify-center rounded text-slate transition-colors hover:bg-fog lg:hidden"
             aria-label={menuOpen ? 'Close menu' : 'Open menu'}
             aria-expanded={menuOpen}
             onClick={() => setMenuOpen((v) => !v)}
@@ -161,13 +165,13 @@ export function LandingNav() {
         </div>
 
         {menuOpen ? (
-          <div className="absolute inset-x-0 top-full border-t border-sand bg-cream shadow-e2 lg:hidden">
+          <div className="absolute inset-x-0 top-full border-t border-mist bg-snow shadow-e2 lg:hidden">
             <nav aria-label="Primary (mobile)" className="hha-wrap flex flex-col py-6">
               {NAV_LINKS.map((link) => (
                 <Link
                   key={link.href}
                   href={link.href}
-                  className="py-3 font-sans text-base text-ink hover:text-terracotta"
+                  className="py-3 font-sans text-base text-obsidian hover:text-slate"
                   onClick={() => setMenuOpen(false)}
                 >
                   {link.label}
@@ -175,7 +179,7 @@ export function LandingNav() {
               ))}
               <Link
                 href="/sign-in"
-                className="btn-terracotta mt-4 w-full"
+                className="btn-primary mt-4 w-full"
                 onClick={() => setMenuOpen(false)}
               >
                 Sign in
@@ -189,7 +193,7 @@ export function LandingNav() {
       {showFab ? (
         <Link
           href="/sign-in"
-          className="btn-terracotta fixed bottom-6 right-6 z-40 shadow-e3"
+          className="btn-primary fixed bottom-6 right-6 z-40 shadow-e3"
           aria-label="Sign in to the portal"
         >
           Sign in

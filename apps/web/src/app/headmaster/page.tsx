@@ -40,20 +40,23 @@ export default function BridgePage() {
   return (
     <div className="space-y-8">
       {/* Zone 1 — Status band */}
-      <section className="rounded bg-[#2A1D10] px-6 py-6 text-cream md:px-10 md:py-8">
-        <p className="font-sans text-[11px] font-semibold uppercase tracking-[0.24em] text-ochre">
+      <section className="rounded-md bg-obsidian px-6 py-6 text-snow md:px-10 md:py-8">
+        <p
+          className="font-mono text-[11px] font-medium uppercase tracking-[0.18em]"
+          style={{ color: 'rgb(var(--accent))' }}
+        >
           The Bridge
         </p>
         <div className="mt-2 flex flex-wrap items-end justify-between gap-4">
-          <h1 className="font-display text-[clamp(1.75rem,3vw,2.25rem)] text-cream">
+          <h1 className="font-display text-[clamp(1.75rem,3vw,2.25rem)] font-medium tracking-tight text-snow">
             {SCHOOL_STATE.dateLabel}
-            <span className="ml-3 font-sans text-[14px] font-normal text-sand/70">
+            <span className="ml-3 font-mono text-[12px] font-normal uppercase tracking-[0.12em] text-steel">
               · {SCHOOL_STATE.termLabel}
             </span>
           </h1>
-          <p className="font-sans text-[13px] text-sand/80">
+          <p className="font-sans text-[13px] text-steel">
             School status:{' '}
-            <span className="font-semibold text-ok">
+            <span className="font-semibold text-signal-success">
               {SCHOOL_STATE.status}
             </span>{' '}
             · {SCHOOL_STATE.learnersPresent.toLocaleString('en-ZW')} of{' '}

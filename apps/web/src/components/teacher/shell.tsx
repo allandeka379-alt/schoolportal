@@ -27,7 +27,7 @@ export function TeacherShell({
   const [mobileOpen, setMobileOpen] = useState(false);
 
   return (
-    <div className="min-h-screen bg-cream">
+    <div className="portal-teacher min-h-screen bg-snow">
       <div className="flex min-h-screen">
         <TeacherSidebar
           accountName={accountName}

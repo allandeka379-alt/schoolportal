@@ -115,17 +115,17 @@ export function TeacherSidebar({
 
       <aside
         className={[
-          'fixed inset-y-0 left-0 z-50 flex w-[260px] flex-col border-r border-sand bg-cream',
-          'transition-transform duration-300 ease-out-soft lg:static lg:translate-x-0',
+          'fixed inset-y-0 left-0 z-50 flex w-[260px] flex-col bg-obsidian text-fog',
+          'transition-transform duration-120 ease-out-soft lg:static lg:translate-x-0',
           mobileOpen ? 'translate-x-0' : '-translate-x-full lg:translate-x-0',
         ].join(' ')}
       >
-        <div className="flex items-center justify-between border-b border-sand px-6 py-5">
+        <div className="flex items-center justify-between border-b border-graphite px-6 py-5">
           <Link href="/teacher" className="flex items-center gap-3" aria-label="HHA teacher portal">
-            <LandingCrest size={36} />
+            <LandingCrest size={32} variant="cream" />
             <span className="leading-tight">
-              <span className="block font-display text-[16px] text-ink">HHA Portal</span>
-              <span className="block font-display text-[13px] italic font-light text-earth">
+              <span className="block font-display text-[15px] font-medium text-snow">HHA Portal</span>
+              <span className="block font-mono text-[10px] font-medium uppercase tracking-[0.14em] text-steel">
                 Teacher
               </span>
             </span>
@@ -134,7 +134,7 @@ export function TeacherSidebar({
             <button
               type="button"
               onClick={onMobileClose}
-              className="rounded p-1.5 text-stone transition-colors hover:bg-sand-light hover:text-ink lg:hidden"
+              className="rounded p-1.5 text-steel transition-colors hover:bg-graphite hover:text-snow lg:hidden"
               aria-label="Close menu"
             >
               <X className="h-5 w-5" strokeWidth={1.5} />
@@ -145,7 +145,7 @@ export function TeacherSidebar({
         <nav aria-label="Teacher navigation" className="flex-1 overflow-y-auto px-3 py-4">
           {TEACHER_NAV.map((group) => (
             <div key={group.label} className="mb-5 last:mb-0">
-              <p className="mb-1 px-3 font-sans text-[10px] font-semibold uppercase tracking-[0.2em] text-stone">
+              <p className="mb-1 px-3 font-mono text-[10px] font-medium uppercase tracking-[0.14em] text-steel">
                 {group.label}
               </p>
               <ul className="space-y-0.5">
@@ -159,28 +159,29 @@ export function TeacherSidebar({
                         onClick={onMobileClose}
                         aria-current={active ? 'page' : undefined}
                         className={[
-                          'relative flex items-center gap-3 rounded px-3 py-2 font-sans text-[14px] transition-colors',
+                          'relative flex items-center gap-3 rounded px-3 py-2 font-sans text-[14px] transition-colors duration-120',
                           active
-                            ? 'bg-sand-light font-medium text-ink'
-                            : 'text-stone hover:bg-sand-light/50 hover:text-ink',
+                            ? 'bg-graphite font-medium text-snow'
+                            : 'text-steel hover:bg-graphite/60 hover:text-fog',
                         ].join(' ')}
                       >
                         {active ? (
                           <span
                             aria-hidden
-                            className="absolute inset-y-1 left-0 w-[2px] rounded-r-sm bg-terracotta"
+                            className="absolute inset-y-1 left-0 w-[2px] rounded-r-sm sidebar-active-accent"
                           />
                         ) : null}
                         <Icon
-                          className={active ? 'h-4 w-4 text-terracotta' : 'h-4 w-4 text-stone'}
+                          className="h-4 w-4"
+                          style={active ? { color: 'rgb(var(--accent))' } : undefined}
                           strokeWidth={1.5}
                         />
                         <span className="flex-1">{item.label}</span>
                         {item.badge !== undefined && item.badge > 0 ? (
                           <span
                             className={[
-                              'rounded px-1.5 py-0.5 font-sans text-[11px] font-semibold tabular-nums',
-                              active ? 'bg-terracotta text-cream' : 'bg-sand text-earth',
+                              'rounded-sm px-1.5 py-0.5 font-mono text-[10px] font-medium tabular-nums',
+                              active ? 'bg-snow/10 text-snow' : 'bg-graphite text-steel',
                             ].join(' ')}
                           >
                             {item.badge}
@@ -196,28 +197,28 @@ export function TeacherSidebar({
         </nav>
 
         {/* Quick actions */}
-        <div className="border-t border-sand px-3 py-4">
-          <p className="mb-2 px-3 font-sans text-[10px] font-semibold uppercase tracking-[0.2em] text-stone">
+        <div className="border-t border-graphite px-3 py-4">
+          <p className="mb-2 px-3 font-mono text-[10px] font-medium uppercase tracking-[0.14em] text-steel">
             Quick actions
           </p>
           <div className="space-y-1.5">
             <Link
               href="/teacher/attendance"
-              className="flex items-center gap-2 rounded border border-sand bg-white px-3 py-2 font-sans text-[13px] font-medium text-earth transition-colors hover:border-terracotta hover:bg-sand-light/40"
+              className="flex items-center gap-2 rounded border border-graphite bg-graphite/40 px-3 py-2 font-sans text-[13px] font-medium text-fog transition-colors duration-120 hover:border-slate hover:text-snow"
             >
               <ClipboardCheck className="h-3.5 w-3.5" strokeWidth={1.5} aria-hidden />
               Take register
             </Link>
             <Link
               href="/teacher/marking/a-math-5"
-              className="flex items-center gap-2 rounded border border-sand bg-white px-3 py-2 font-sans text-[13px] font-medium text-earth transition-colors hover:border-terracotta hover:bg-sand-light/40"
+              className="flex items-center gap-2 rounded border border-graphite bg-graphite/40 px-3 py-2 font-sans text-[13px] font-medium text-fog transition-colors duration-120 hover:border-slate hover:text-snow"
             >
               <FileEdit className="h-3.5 w-3.5" strokeWidth={1.5} aria-hidden />
               Mark queue
             </Link>
             <Link
               href="/teacher/assignments/new"
-              className="flex items-center gap-2 rounded border border-sand bg-white px-3 py-2 font-sans text-[13px] font-medium text-earth transition-colors hover:border-terracotta hover:bg-sand-light/40"
+              className="flex items-center gap-2 rounded border border-graphite bg-graphite/40 px-3 py-2 font-sans text-[13px] font-medium text-fog transition-colors duration-120 hover:border-slate hover:text-snow"
             >
               <BookOpen className="h-3.5 w-3.5" strokeWidth={1.5} aria-hidden />
               New assignment
@@ -226,22 +227,22 @@ export function TeacherSidebar({
         </div>
 
         {/* Profile compact + sign out */}
-        <div className="border-t border-sand p-4">
+        <div className="border-t border-graphite p-4">
           <div className="flex items-center gap-3 rounded-sm px-2 py-2">
             <EditorialAvatar name={accountName} size="sm" tone="terracotta" />
             <span className="min-w-0 flex-1">
-              <span className="flex items-center gap-1.5 truncate font-sans text-[14px] font-medium text-ink">
+              <span className="flex items-center gap-1.5 truncate font-sans text-[14px] font-medium text-snow">
                 {accountName}
                 {isHod ? <TeacherTag label="HOD" /> : null}
                 {isFormTeacher && !isHod ? <TeacherTag label="FT" /> : null}
               </span>
-              <span className="block truncate font-sans text-[12px] text-stone">{accountMeta}</span>
+              <span className="block truncate font-mono text-[11px] uppercase tracking-[0.08em] text-steel">{accountMeta}</span>
             </span>
           </div>
           <form action={signOutAction} className="mt-3">
             <button
               type="submit"
-              className="flex w-full items-center gap-3 rounded px-3 py-2 font-sans text-[13px] text-stone transition-colors hover:bg-sand-light/60 hover:text-ink"
+              className="flex w-full items-center gap-3 rounded px-3 py-2 font-sans text-[13px] text-steel transition-colors duration-120 hover:bg-graphite/60 hover:text-snow"
             >
               <LogOut className="h-4 w-4" strokeWidth={1.5} aria-hidden />
               Sign out

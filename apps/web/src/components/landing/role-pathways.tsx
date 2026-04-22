@@ -3,11 +3,20 @@ import { ArrowRight } from 'lucide-react';
 
 import { Reveal } from './reveal';
 
-const ROLES = [
+type Accent = 'indigo' | 'emerald' | 'coral';
+
+const ROLES: readonly {
+  number: string;
+  name: string;
+  href: string;
+  accent: Accent;
+  lines: readonly string[];
+}[] = [
   {
     number: '01',
     name: 'Student',
     href: '/sign-in?role=student',
+    accent: 'indigo',
     lines: [
       'Assignments. Marks. Digital library.',
       'Fees at a glance. Timetable.',
@@ -18,6 +27,7 @@ const ROLES = [
     number: '02',
     name: 'Teacher',
     href: '/sign-in?role=teacher',
+    accent: 'emerald',
     lines: [
       'Classes, marking, reports.',
       'Lesson plans and resources.',
@@ -28,21 +38,27 @@ const ROLES = [
     number: '03',
     name: 'Parent',
     href: '/sign-in?role=parent',
+    accent: 'coral',
     lines: [
       "Your child's progress, as it happens.",
       'Fees. Announcements.',
       'Direct messaging to teachers.',
     ],
   },
-] as const;
+];
+
+const ACCENT_RGB: Record<Accent, string> = {
+  indigo: '91 92 255',
+  emerald: '0 179 126',
+  coral: '255 91 122',
+};
 
 /**
- * Role pathways — §07 of the spec.
+ * Role pathways — v2.0.
  *
- * Three cards on Sand-Light fills with a serif italic numeral top-left.
- * Entire card is a link; the "Enter →" affordance lives inside for clarity.
- * On hover: Level-2 shadow, numeral shifts Terracotta → Earth, a 2px
- * Terracotta bottom border draws left-to-right over 320ms.
+ * Three cards on Snow fills with a mono numeral top-left tinted to the
+ * role's accent colour. Whole card is a Link; a 2px accent border draws
+ * left→right on hover.
  */
 export function RolePathways() {
   return (
@@ -60,26 +76,36 @@ export function RolePathways() {
             <Reveal key={r.number} as="li" delayMs={i * 80}>
               <Link
                 href={r.href}
-                className="group relative block h-full min-h-[280px] overflow-hidden landing-card p-8 md:p-12"
+                className="group relative block h-full min-h-[280px] overflow-hidden rounded-md border border-mist bg-snow p-8 transition-shadow duration-200 ease-out-soft hover:shadow-e2 md:p-12"
               >
-                <span className="font-display text-[40px] italic font-light leading-none text-terracotta transition-colors duration-300 ease-out-soft group-hover:text-earth">
-                  {r.number}
+                <span
+                  className="font-mono text-[13px] font-medium uppercase tracking-[0.2em]"
+                  style={{ color: `rgb(${ACCENT_RGB[r.accent]})` }}
+                >
+                  {r.number} · {r.accent}
                 </span>
-                <h3 className="mt-6 font-display text-[28px] font-normal text-ink">
+                <h3 className="mt-6 font-display text-[28px] font-medium leading-tight tracking-tight text-obsidian">
                   {r.name}
                 </h3>
                 <ul className="mt-5 space-y-1.5">
                   {r.lines.map((line) => (
                     <li
                       key={line}
-                      className="font-serif text-[17px] leading-snug text-stone"
+                      className="flex items-start gap-3 font-sans text-[15px] leading-snug text-slate"
                     >
-                      <span className="mr-2 text-sand">—</span>
+                      <span
+                        aria-hidden
+                        className="mt-2.5 h-1 w-1 flex-none rounded-full"
+                        style={{ backgroundColor: `rgb(${ACCENT_RGB[r.accent]})` }}
+                      />
                       {line}
                     </li>
                   ))}
                 </ul>
-                <span className="mt-8 inline-flex items-center gap-1.5 font-sans text-sm font-medium text-terracotta">
+                <span
+                  className="mt-8 inline-flex items-center gap-1.5 font-sans text-sm font-medium"
+                  style={{ color: `rgb(${ACCENT_RGB[r.accent]})` }}
+                >
                   Enter
                   <ArrowRight
                     className="h-4 w-4 transition-transform duration-200 ease-out-soft group-hover:translate-x-1"
@@ -87,10 +113,10 @@ export function RolePathways() {
                     strokeWidth={1.5}
                   />
                 </span>
-                {/* Draw-in bottom border on hover */}
                 <span
                   aria-hidden
-                  className="absolute inset-x-0 bottom-0 h-0.5 origin-left scale-x-0 bg-terracotta transition-transform duration-[320ms] ease-out-soft group-hover:scale-x-100"
+                  className="absolute inset-x-0 bottom-0 h-0.5 origin-left scale-x-0 transition-transform duration-[320ms] ease-out-soft group-hover:scale-x-100"
+                  style={{ backgroundColor: `rgb(${ACCENT_RGB[r.accent]})` }}
                 />
               </Link>
             </Reveal>

@@ -3,13 +3,19 @@ import type { Config } from 'tailwindcss';
 import preset from '@hha/config/tailwind/preset';
 
 /**
- * Extend the shared preset with the landing-page tokens from the design spec:
- *   Ink, Earth, Terracotta, Ochre — primary
- *   Cream, Sand Light, Sand, Stone — supporting
- *   Soft Ink for the footer surface.
+ * v2.0 Design Direction · "Cool precision."
  *
- * The portal chrome continues to use the preset's heritage/savanna/msasa/granite
- * tokens unchanged; the landing uses these earth tokens exclusively.
+ * Seven-step neutral system from pure Snow (#FFFFFF) to deep Obsidian
+ * (#0A0A0B), plus five per-portal vivid accents used sparingly — never
+ * mixed within a single portal.
+ *
+ * The previous warm-editorial tokens (cream / sand / earth / terracotta /
+ * ochre / stone / ink) are retained for backward compatibility with pages
+ * that still reference them; the new shells and chrome use the new tokens.
+ *
+ * Shells and components that want to be "portal-aware" should use
+ * `bg-accent`, `text-accent`, `border-accent` — these resolve to the CSS
+ * variable `--accent` scoped per portal in globals.css.
  */
 const config: Config = {
   presets: [preset as Config],
@@ -20,79 +26,142 @@ const config: Config = {
   theme: {
     extend: {
       colors: {
-        // Landing-page editorial palette (per design spec §03)
+        /* v2.0 neutrals */
+        snow: '#FFFFFF',
+        fog: '#EDEFF2',
+        mist: '#D4D7DD',
+        steel: '#9095A0',
+        slate: '#4D5159',
+        graphite: '#2B2D31',
+        charcoal: '#17181B',
+        obsidian: '#0A0A0B',
+
+        /* Per-portal accents — explicit hex */
+        indigo: {
+          DEFAULT: '#5B5CFF',
+          hover: '#4648D9',
+        },
+        emerald: {
+          DEFAULT: '#00B37E',
+          hover: '#009060',
+        },
+        coral: {
+          DEFAULT: '#FF5B7A',
+          hover: '#E64564',
+        },
+        amber: {
+          DEFAULT: '#F5A524',
+          hover: '#D99020',
+        },
+        cyan: {
+          DEFAULT: '#0AEFFF',
+          hover: '#00C5D4',
+        },
+
+        /* Portal-aware accent — each shell sets --accent */
+        accent: {
+          DEFAULT: 'rgb(var(--accent) / <alpha-value>)',
+          hover: 'rgb(var(--accent-hover) / <alpha-value>)',
+        },
+
+        /* Universal signal colours */
+        signal: {
+          success: '#00B37E',
+          warning: '#F5A524',
+          error: '#FF4D4D',
+        },
+
+        /* Retained for backward compat on pages that haven't been refactored */
         ink: {
-          DEFAULT: '#1A1410',
-          soft: '#2D2520', // footer surface, slightly warmer than pure Ink
+          DEFAULT: '#0A0A0B', // re-aliased to Obsidian
+          soft: '#17181B',
         },
-        earth: '#5C3A1E',
+        earth: '#4D5159', // re-aliased to Slate so earth-labelled eyebrows still read
         terracotta: {
-          DEFAULT: '#C65D3D',
-          hover: '#A94A2E', // darkens to Earth on CTA hover
+          DEFAULT: 'rgb(var(--accent) / <alpha-value>)',
+          hover: 'rgb(var(--accent-hover) / <alpha-value>)',
         },
-        ochre: '#D4943A',
-        cream: '#FAF5EB',
-        'sand-light': '#F5EEDC',
-        sand: '#E8DCC4',
-        stone: '#6B6458',
-        // Reserved state colours (outside core palette, per spec)
-        ok: '#2F7D4E',
-        warn: '#B8860B',
-        danger: '#B0362A',
+        ochre: '#F5A524',
+        cream: '#FFFFFF', // re-aliased to Snow
+        'sand-light': '#EDEFF2', // re-aliased to Fog
+        sand: '#D4D7DD', // re-aliased to Mist
+        stone: '#4D5159', // re-aliased to Slate
+        ok: '#00B37E',
+        warn: '#F5A524',
+        danger: '#FF4D4D',
       },
       fontFamily: {
-        // Variables injected by next/font in layout.tsx
-        display: ['var(--font-fraunces)', 'Georgia', 'serif'],
-        serif: ['var(--font-source-serif)', 'Georgia', 'serif'],
-        sans: ['var(--font-inter)', 'system-ui', 'sans-serif'],
+        display: ['var(--font-display)', 'ui-sans-serif', 'system-ui', 'sans-serif'],
+        sans: ['var(--font-inter)', 'ui-sans-serif', 'system-ui', 'sans-serif'],
         mono: ['var(--font-jetbrains-mono)', 'ui-monospace', 'monospace'],
+        /* "serif" is now also Inter — the warm body serif is retired */
+        serif: ['var(--font-inter)', 'ui-sans-serif', 'system-ui', 'sans-serif'],
       },
       fontSize: {
-        // Type scale tokens from §03 of the spec
-        'display-xl': ['5.5rem', { lineHeight: '1.045', letterSpacing: '-0.018em' }], // 88/92
-        'display-lg': ['4rem', { lineHeight: '1.0625', letterSpacing: '-0.015em' }], // 64/68
-        'display-md': ['2.75rem', { lineHeight: '1.182', letterSpacing: '-0.01em' }], // 44/52
-        'heading-lg': ['2rem', { lineHeight: '1.25' }], // 32/40
-        'heading-md': ['1.5rem', { lineHeight: '1.333' }], // 24/32
-        'body-lg': ['1.1875rem', { lineHeight: '1.58' }], // 19/30
-        'body-base': ['1rem', { lineHeight: '1.625' }], // 16/26
-        'body-sm': ['0.875rem', { lineHeight: '1.571' }], // 14/22
-        'label-caps': ['0.75rem', { lineHeight: '1.333', letterSpacing: '0.16em' }], // 12/16 caps
-        'mono-sm': ['0.8125rem', { lineHeight: '1.538' }], // 13/20
+        /* v2.0 type scale from §02 */
+        'display-xl': ['7.5rem', { lineHeight: '1.0', letterSpacing: '-0.03em' }],
+        'display-l':  ['5rem',   { lineHeight: '1.05', letterSpacing: '-0.025em' }],
+        'display-m':  ['3.5rem', { lineHeight: '1.1', letterSpacing: '-0.02em' }],
+        'display-s':  ['2.5rem', { lineHeight: '1.15', letterSpacing: '-0.015em' }],
+        /* Legacy display aliases for pages that use text-display-md/sm/lg */
+        'display-lg': ['5rem',   { lineHeight: '1.05', letterSpacing: '-0.025em' }],
+        'display-md': ['3.5rem', { lineHeight: '1.1', letterSpacing: '-0.02em' }],
+        'display-sm': ['2.5rem', { lineHeight: '1.15', letterSpacing: '-0.015em' }],
+        /* Headings */
+        'heading-1': ['1.75rem',  { lineHeight: '1.2', letterSpacing: '-0.01em' }],
+        'heading-2': ['1.375rem', { lineHeight: '1.25' }],
+        'heading-3': ['1.125rem', { lineHeight: '1.3' }],
+        'heading-lg': ['1.75rem', { lineHeight: '1.2' }],
+        'heading-md': ['1.375rem', { lineHeight: '1.25' }],
+        /* Body */
+        'body-l': ['1rem',     { lineHeight: '1.5' }],
+        'body-m': ['0.875rem', { lineHeight: '1.5' }],
+        'body-s': ['0.75rem',  { lineHeight: '1.4' }],
+        'micro':  ['0.6875rem', { lineHeight: '1.35', letterSpacing: '0.08em' }],
+        'body-lg': ['1rem',    { lineHeight: '1.5' }],
+        'body-base': ['0.875rem', { lineHeight: '1.5' }],
+        'body-sm': ['0.75rem', { lineHeight: '1.4' }],
+        /* Eyebrow/caps */
+        'label-caps': ['0.6875rem', { lineHeight: '1.35', letterSpacing: '0.12em' }],
+        'mono-sm':    ['0.75rem',   { lineHeight: '1.4' }],
       },
       spacing: {
-        // Spec §03 — 4px base unit. Tailwind already has 1..4 as 0.25rem..1rem, add the larger tokens.
-        '18': '4.5rem',  // 72px
-        '22': '5.5rem',  // 88px
-        '30': '7.5rem',  // 120px
+        '18': '4.5rem',
+        '22': '5.5rem',
+        '30': '7.5rem',
       },
       borderRadius: {
-        // Spec: radius is 4px throughout. Override Tailwind default softening.
-        DEFAULT: '0.25rem',
-        md: '0.25rem',
-        lg: '0.25rem',
+        /* v2.0 — slightly squared-off; default 6-8 */
+        DEFAULT: '0.375rem', // 6px
+        sm: '0.25rem',       // 4px
+        md: '0.5rem',        // 8px
+        lg: '0.75rem',       // 12px
       },
       boxShadow: {
-        // Elevation ladder from §03
-        'e1': 'none', // Level 1 is hairline-border only
-        'e2': '0 2px 12px rgba(92, 58, 30, 0.06)',
-        'e3': '0 12px 40px rgba(26, 20, 16, 0.12)',
-        'screenshot': '0 24px 48px -12px rgba(26, 20, 16, 0.14)',
-        'nav-scroll': '0 1px 0 rgba(26, 20, 16, 0.04)',
-        'focus': '0 0 0 2px rgba(198, 93, 61, 0.35)',
+        /* v2.0 — elevation is implied through border contrast alone. */
+        e1: 'none',
+        e2: '0 0 0 1px #D4D7DD', // mist border
+        e3: '0 8px 24px -8px rgba(10, 10, 11, 0.15)',
+        screenshot: '0 8px 24px -8px rgba(10, 10, 11, 0.15)',
+        'nav-scroll': '0 1px 0 rgba(10, 10, 11, 0.04)',
+        focus: '0 0 0 2px rgb(var(--accent) / 1)',
       },
       transitionTimingFunction: {
-        'out-soft': 'cubic-bezier(0.2, 0.8, 0.2, 1)',
+        'out-soft': 'cubic-bezier(0.16, 1, 0.3, 1)',
+      },
+      transitionDuration: {
+        '60': '60ms',
+        '120': '120ms',
       },
       maxWidth: {
-        'measure': '64ch', // Spec §03 — body measure cap
-        'prose-sm': '44ch',
+        measure: '72ch',
+        'prose-sm': '52ch',
       },
       animation: {
-        'reveal': 'reveal 480ms cubic-bezier(0.2, 0.8, 0.2, 1) both',
-        'nudge': 'nudge 2.4s ease-in-out infinite',
-        'pulse-once': 'pulseOnce 1.2s ease-out 640ms 1',
-        'underline-in': 'underlineIn 240ms ease-out forwards',
+        reveal: 'reveal 200ms cubic-bezier(0.16, 1, 0.3, 1) both',
+        nudge: 'nudge 2.4s ease-in-out infinite',
+        'pulse-once': 'pulseOnce 1.2s ease-out 400ms 1',
+        'underline-in': 'underlineIn 120ms ease-out forwards',
       },
       keyframes: {
         reveal: {
@@ -104,9 +173,9 @@ const config: Config = {
           '50%': { transform: 'translateY(4px)' },
         },
         pulseOnce: {
-          '0%': { boxShadow: '0 0 0 0 rgba(198, 93, 61, 0.3)' },
-          '70%': { boxShadow: '0 0 0 8px rgba(198, 93, 61, 0)' },
-          '100%': { boxShadow: '0 0 0 0 rgba(198, 93, 61, 0)' },
+          '0%': { boxShadow: '0 0 0 0 rgb(var(--accent) / 0.35)' },
+          '70%': { boxShadow: '0 0 0 8px rgb(var(--accent) / 0)' },
+          '100%': { boxShadow: '0 0 0 0 rgb(var(--accent) / 0)' },
         },
         underlineIn: {
           from: { transform: 'scaleX(0)', transformOrigin: 'left' },

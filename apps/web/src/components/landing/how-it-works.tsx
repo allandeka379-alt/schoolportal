@@ -24,45 +24,51 @@ const STEPS = [
 ] as const;
 
 /**
- * How it works — §10 of the spec.
+ * How it works — v2.0.
  *
- * Four columns on desktop, connected by a 1px dotted horizontal rule in
- * Sand that runs behind the numerals. The connector is a CSS-only line —
- * no SVG, no image. Hidden below 768px, steps then stack.
+ * Four columns on desktop with a Mist dashed connector running behind
+ * the numerals.
  */
 export function HowItWorks() {
   return (
     <section
       aria-labelledby="how-it-works-heading"
-      className="bg-cream py-20 md:py-28"
+      className="bg-snow py-20 md:py-28"
     >
       <div className="hha-wrap text-center">
-        <p className="hha-eyebrow">How it works</p>
+        <p
+          className="font-mono text-[11px] font-medium uppercase tracking-[0.18em]"
+          style={{ color: 'rgb(var(--accent))' }}
+        >
+          How it works
+        </p>
         <h2
           id="how-it-works-heading"
-          className="mx-auto mt-4 max-w-[640px] font-display text-[clamp(2rem,4vw,2.75rem)] leading-tight text-ink"
+          className="mx-auto mt-4 max-w-[640px] font-display text-[clamp(2rem,4vw,2.75rem)] font-medium leading-tight tracking-tight text-obsidian"
         >
           Four steps. Then you are{' '}
-          <span className="italic font-light text-terracotta">home.</span>
+          <span style={{ color: 'rgb(var(--accent))' }}>home.</span>
         </h2>
 
         <div className="relative mx-auto mt-16 md:mt-20">
-          {/* Dotted connector — behind the numerals, horizontally centred on them */}
           <div
             aria-hidden
-            className="absolute left-[10%] right-[10%] top-7 hidden border-t border-dashed border-sand md:block"
+            className="absolute left-[10%] right-[10%] top-7 hidden border-t border-dashed border-mist md:block"
           />
 
           <ol className="relative grid grid-cols-1 gap-10 md:grid-cols-4 md:gap-6">
             {STEPS.map((step, i) => (
               <Reveal key={step.n} as="li" delayMs={i * 120} className="relative">
-                <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-full border border-sand bg-cream font-display text-[20px] italic font-light text-terracotta">
+                <div
+                  className="mx-auto flex h-14 w-14 items-center justify-center rounded-full border border-mist bg-snow font-mono text-[13px] font-medium uppercase tracking-[0.1em]"
+                  style={{ color: 'rgb(var(--accent))' }}
+                >
                   {step.n}
                 </div>
-                <h3 className="mt-6 font-display text-heading-md font-normal text-ink">
+                <h3 className="mt-6 font-display text-[20px] font-medium tracking-tight text-obsidian">
                   {step.title}
                 </h3>
-                <p className="mx-auto mt-3 max-w-[220px] font-serif text-body-base text-stone">
+                <p className="mx-auto mt-3 max-w-[220px] font-sans text-[14px] leading-relaxed text-slate">
                   {step.body}
                 </p>
               </Reveal>

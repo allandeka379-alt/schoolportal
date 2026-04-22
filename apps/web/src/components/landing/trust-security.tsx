@@ -24,17 +24,17 @@ const MARKS = [
 ] as const;
 
 /**
- * Trust & security — §13 of the spec.
+ * Trust & security — v2.0.
  *
- * A thin strip of four marks. Icons in 1.5px Lucide stroke / Earth; titles
- * in Inter 15/600 Ink; subtitles in Source Serif italic 14 Stone.
+ * Thin strip of four marks. Icons in 1.5px Slate; titles Inter 15/500
+ * Obsidian; subtitles mono caps Steel.
  */
 export function TrustSecurity() {
   return (
     <section
       id="support"
       aria-label="Trust and security"
-      className="border-y border-sand bg-cream py-12 md:py-14"
+      className="border-y border-mist bg-snow py-12 md:py-14"
     >
       <div className="hha-wrap">
         <ul className="grid grid-cols-2 gap-x-6 gap-y-10 md:grid-cols-4">
@@ -43,15 +43,15 @@ export function TrustSecurity() {
             return (
               <li key={m.title} className="flex items-start gap-4">
                 <Icon
-                  className="h-6 w-6 flex-none text-earth"
+                  className="h-6 w-6 flex-none text-slate"
                   strokeWidth={1.5}
                   aria-hidden
                 />
                 <div>
-                  <p className="font-sans text-[15px] font-semibold text-ink">
+                  <p className="font-sans text-[15px] font-medium text-obsidian">
                     {m.title}
                   </p>
-                  <p className="mt-1 font-serif text-[14px] italic text-stone">
+                  <p className="mt-1 font-mono text-[11px] uppercase tracking-[0.12em] text-steel">
                     {m.subtitle}
                   </p>
                 </div>

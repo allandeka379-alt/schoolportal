@@ -3,17 +3,17 @@
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import {
-  BookOpen,
+  BarChart3,
+  Banknote,
   Calendar,
-  CalendarClock,
   CreditCard,
-  FileText,
-  GraduationCap,
-  HandCoins,
+  FileSearch,
   Home,
   LogOut,
   Megaphone,
-  MessageSquare,
+  Receipt,
+  Shield,
+  Users,
   X,
   type LucideIcon,
 } from 'lucide-react';
@@ -22,19 +22,11 @@ import { LandingCrest } from '@/components/landing/crest';
 import { EditorialAvatar } from '@/components/student/primitives';
 import { signOutAction } from '@/lib/auth/actions';
 
-import { ChildSwitcher } from './child-switcher';
-import { useSelectedChild } from './selected-child-context';
-
 /**
- * Parent sidebar — §02 & §03.
+ * Admin sidebar — v2.0.
  *
- * 240px wide. Nine destinations grouped into three visual blocks:
- *   Daily      — Dashboard, Progress, Attendance
- *   Periodic   — Fees, Reports, Calendar
- *   Communication — Messages, Announcements, Meetings
- *
- * The child switcher sits at the top of the sidebar — the single most-used
- * component in the parent portal.
+ * Obsidian surface with amber accent. 260px wide. Nine destinations
+ * grouped into Operations / Finance / Communication / Compliance.
  */
 
 interface NavItem {
@@ -49,39 +41,44 @@ interface Group {
   items: readonly NavItem[];
 }
 
-const PARENT_NAV: readonly Group[] = [
+export const ADMIN_NAV: readonly Group[] = [
   {
-    label: 'Daily',
+    label: 'Operations',
     items: [
-      { href: '/parent', label: 'Dashboard', icon: Home },
-      { href: '/parent/progress', label: 'Progress', icon: GraduationCap },
-      { href: '/parent/attendance', label: 'Attendance', icon: CalendarClock },
+      { href: '/admin', label: 'Overview', icon: Home },
+      { href: '/admin/students', label: 'Students', icon: Users },
     ],
   },
   {
-    label: 'Periodic',
+    label: 'Finance',
     items: [
-      { href: '/parent/fees', label: 'Fees', icon: CreditCard, badge: 2 },
-      { href: '/parent/reports', label: 'Reports', icon: FileText },
-      { href: '/parent/calendar', label: 'Calendar', icon: Calendar },
+      { href: '/admin/fees', label: 'Fees Ledger', icon: CreditCard },
+      { href: '/admin/slips', label: 'Slip Queue', icon: FileSearch, badge: 3 },
+      { href: '/admin/receipts', label: 'Receipts', icon: Receipt },
     ],
   },
   {
     label: 'Communication',
     items: [
-      { href: '/parent/messages', label: 'Messages', icon: MessageSquare, badge: 2 },
-      { href: '/parent/announcements', label: 'Announcements', icon: Megaphone, badge: 1 },
-      { href: '/parent/meetings', label: 'Meetings', icon: HandCoins },
+      { href: '/admin/announcements', label: 'Announcements', icon: Megaphone },
+      { href: '/admin/calendar', label: 'Calendar', icon: Calendar },
+    ],
+  },
+  {
+    label: 'Compliance',
+    items: [
+      { href: '/admin/reports', label: 'Reports', icon: BarChart3 },
+      { href: '/admin/audit', label: 'Audit Log', icon: Shield },
     ],
   },
 ];
 
 function isActive(pathname: string, href: string): boolean {
-  if (href === '/parent') return pathname === '/parent';
+  if (href === '/admin') return pathname === '/admin';
   return pathname === href || pathname.startsWith(href + '/');
 }
 
-export function ParentSidebar({
+export function AdminSidebar({
   accountName,
   accountMeta,
   mobileOpen,
@@ -93,7 +90,6 @@ export function ParentSidebar({
   onMobileClose?: () => void;
 }) {
   const pathname = usePathname();
-  const { selectedId, setSelectedId, allSelected, setAllSelected } = useSelectedChild();
 
   return (
     <>
@@ -101,24 +97,27 @@ export function ParentSidebar({
         <div
           aria-hidden
           onClick={onMobileClose}
-          className="fixed inset-0 z-40 bg-ink/40 lg:hidden"
+          className="fixed inset-0 z-40 bg-ink/60 lg:hidden"
         />
       ) : null}
 
       <aside
         className={[
-          'fixed inset-y-0 left-0 z-50 flex w-[240px] flex-col bg-obsidian text-fog',
+          'fixed inset-y-0 left-0 z-50 flex w-[260px] flex-col bg-obsidian text-fog',
           'transition-transform duration-120 ease-out-soft lg:static lg:translate-x-0',
           mobileOpen ? 'translate-x-0' : '-translate-x-full lg:translate-x-0',
         ].join(' ')}
       >
         <div className="flex items-center justify-between border-b border-graphite px-5 py-5">
-          <Link href="/parent" className="flex items-center gap-3" aria-label="HHA parent portal">
+          <Link href="/admin" className="flex items-center gap-3" aria-label="HHA admin">
             <LandingCrest size={32} variant="cream" />
             <span className="leading-tight">
               <span className="block font-display text-[15px] font-medium text-snow">HHA Portal</span>
-              <span className="block font-mono text-[10px] font-medium uppercase tracking-[0.14em] text-steel">
-                Parent
+              <span
+                className="block font-mono text-[10px] font-medium uppercase tracking-[0.14em]"
+                style={{ color: 'rgb(var(--accent))' }}
+              >
+                Admin · Bursar
               </span>
             </span>
           </Link>
@@ -134,27 +133,9 @@ export function ParentSidebar({
           ) : null}
         </div>
 
-        {/* Child switcher */}
-        <div className="px-3 py-3">
-          <ChildSwitcher
-            selectedId={selectedId}
-            allSelected={allSelected}
-            showAllOption={pathname === '/parent'}
-            onSelect={(id) => {
-              setAllSelected(false);
-              setSelectedId(id);
-              onMobileClose?.();
-            }}
-            onSelectAll={() => {
-              setAllSelected(true);
-              onMobileClose?.();
-            }}
-          />
-        </div>
-
-        <nav aria-label="Parent navigation" className="flex-1 overflow-y-auto px-3 pb-3">
-          {PARENT_NAV.map((group) => (
-            <div key={group.label} className="mb-4 last:mb-0">
+        <nav aria-label="Admin navigation" className="flex-1 overflow-y-auto px-3 py-4">
+          {ADMIN_NAV.map((group) => (
+            <div key={group.label} className="mb-5 last:mb-0">
               <p className="mb-1 px-3 font-mono text-[10px] font-medium uppercase tracking-[0.14em] text-steel">
                 {group.label}
               </p>
@@ -206,6 +187,36 @@ export function ParentSidebar({
           ))}
         </nav>
 
+        {/* Quick actions */}
+        <div className="border-t border-graphite px-3 py-4">
+          <p className="mb-2 px-3 font-mono text-[10px] font-medium uppercase tracking-[0.14em] text-steel">
+            Quick actions
+          </p>
+          <div className="space-y-1.5">
+            <Link
+              href="/admin/slips"
+              className="flex items-center gap-2 rounded border border-graphite bg-graphite/40 px-3 py-2 font-sans text-[13px] font-medium text-fog transition-colors duration-120 hover:border-slate hover:text-snow"
+            >
+              <FileSearch className="h-3.5 w-3.5" strokeWidth={1.5} aria-hidden />
+              Review slips
+            </Link>
+            <Link
+              href="/admin/announcements"
+              className="flex items-center gap-2 rounded border border-graphite bg-graphite/40 px-3 py-2 font-sans text-[13px] font-medium text-fog transition-colors duration-120 hover:border-slate hover:text-snow"
+            >
+              <Megaphone className="h-3.5 w-3.5" strokeWidth={1.5} aria-hidden />
+              Post notice
+            </Link>
+            <Link
+              href="/admin/receipts"
+              className="flex items-center gap-2 rounded border border-graphite bg-graphite/40 px-3 py-2 font-sans text-[13px] font-medium text-fog transition-colors duration-120 hover:border-slate hover:text-snow"
+            >
+              <Banknote className="h-3.5 w-3.5" strokeWidth={1.5} aria-hidden />
+              New receipt
+            </Link>
+          </div>
+        </div>
+
         {/* Profile compact + sign out */}
         <div className="border-t border-graphite p-4">
           <div className="flex items-center gap-3 rounded-sm px-2 py-2">
@@ -214,7 +225,9 @@ export function ParentSidebar({
               <span className="block truncate font-sans text-[14px] font-medium text-snow">
                 {accountName}
               </span>
-              <span className="block truncate font-mono text-[11px] uppercase tracking-[0.08em] text-steel">{accountMeta}</span>
+              <span className="block truncate font-mono text-[11px] uppercase tracking-[0.08em] text-steel">
+                {accountMeta}
+              </span>
             </span>
           </div>
           <form action={signOutAction} className="mt-3">

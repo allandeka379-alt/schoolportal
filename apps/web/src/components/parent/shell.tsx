@@ -26,7 +26,7 @@ export function ParentShell({
 
   return (
     <SelectedChildProvider>
-      <div className="min-h-screen bg-cream">
+      <div className="portal-parent min-h-screen bg-snow">
         <div className="flex min-h-screen">
           <ParentSidebar
             accountName={accountName}
