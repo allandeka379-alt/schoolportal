@@ -2,14 +2,80 @@
 
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import type { LucideIcon } from 'lucide-react';
+import {
+  BarChart3,
+  Banknote,
+  BookOpen,
+  BookOpenCheck,
+  CalendarClock,
+  CalendarDays,
+  ClipboardCheck,
+  ClipboardList,
+  CreditCard,
+  FileSearch,
+  GraduationCap,
+  Home,
+  Library,
+  Megaphone,
+  MessageSquare,
+  Receipt,
+  Shield,
+  Users,
+  type LucideIcon,
+} from 'lucide-react';
 
 import { cn } from '@hha/ui';
+
+/**
+ * Items cross the server → client boundary via string keys (not function
+ * references), because React Server Components cannot serialise functions
+ * in props. The sidebar looks up the actual Lucide icon internally.
+ */
+export type SidebarIconKey =
+  | 'home'
+  | 'clipboard-list'
+  | 'clipboard-check'
+  | 'library'
+  | 'book-open'
+  | 'book-open-check'
+  | 'calendar-clock'
+  | 'calendar-days'
+  | 'graduation-cap'
+  | 'credit-card'
+  | 'message-square'
+  | 'megaphone'
+  | 'users'
+  | 'bar-chart'
+  | 'banknote'
+  | 'file-search'
+  | 'receipt'
+  | 'shield';
+
+const ICONS: Record<SidebarIconKey, LucideIcon> = {
+  home: Home,
+  'clipboard-list': ClipboardList,
+  'clipboard-check': ClipboardCheck,
+  library: Library,
+  'book-open': BookOpen,
+  'book-open-check': BookOpenCheck,
+  'calendar-clock': CalendarClock,
+  'calendar-days': CalendarDays,
+  'graduation-cap': GraduationCap,
+  'credit-card': CreditCard,
+  'message-square': MessageSquare,
+  megaphone: Megaphone,
+  users: Users,
+  'bar-chart': BarChart3,
+  banknote: Banknote,
+  'file-search': FileSearch,
+  receipt: Receipt,
+  shield: Shield,
+};
 
 export interface SidebarItem {
   href: string;
   label: string;
-  icon: LucideIcon;
+  iconKey: SidebarIconKey;
   badge?: string | number;
 }
 
@@ -19,7 +85,7 @@ export function PortalSidebar({ items }: { items: readonly SidebarItem[] }) {
     <>
       {items.map((item) => {
         const active = pathname === item.href || pathname.startsWith(item.href + '/');
-        const Icon = item.icon;
+        const Icon = ICONS[item.iconKey];
         return (
           <Link
             key={item.href}

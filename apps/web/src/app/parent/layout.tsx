@@ -1,23 +1,22 @@
 import type { ReactNode } from 'react';
-import { BookOpen, CalendarDays, CreditCard, GraduationCap, Home, MessageSquare, Users } from 'lucide-react';
 
 import { PortalShell } from '@hha/ui';
 
 import { PortalHeader } from '@/components/portal-header';
-import { PortalSidebar } from '@/components/portal-sidebar';
+import { PortalSidebar, type SidebarItem } from '@/components/portal-sidebar';
 import { requirePortal } from '@/lib/auth/session';
 
 export default async function ParentLayout({ children }: { children: ReactNode }) {
   const account = await requirePortal('parent');
-  const items = [
-    { href: '/parent', label: 'Overview', icon: Home },
-    { href: '/parent/children', label: 'Children', icon: Users },
-    { href: '/parent/progress', label: 'Progress', icon: GraduationCap },
-    { href: '/parent/attendance', label: 'Attendance', icon: CalendarDays },
-    { href: '/parent/fees', label: 'Fees', icon: CreditCard, badge: '!' },
-    { href: '/parent/messages', label: 'Messages', icon: MessageSquare, badge: 3 },
-    { href: '/parent/calendar', label: 'Calendar', icon: BookOpen },
-  ] as const;
+  const items: readonly SidebarItem[] = [
+    { href: '/parent', label: 'Overview', iconKey: 'home' },
+    { href: '/parent/children', label: 'Children', iconKey: 'users' },
+    { href: '/parent/progress', label: 'Progress', iconKey: 'graduation-cap' },
+    { href: '/parent/attendance', label: 'Attendance', iconKey: 'calendar-days' },
+    { href: '/parent/fees', label: 'Fees', iconKey: 'credit-card', badge: '!' },
+    { href: '/parent/messages', label: 'Messages', iconKey: 'message-square', badge: 3 },
+    { href: '/parent/calendar', label: 'Calendar', iconKey: 'book-open' },
+  ];
 
   return (
     <PortalShell

@@ -1,25 +1,24 @@
 import type { ReactNode } from 'react';
-import { BarChart3, CalendarClock, CreditCard, FileSearch, Home, Megaphone, Receipt, Shield, Users } from 'lucide-react';
 
 import { PortalShell } from '@hha/ui';
 
 import { PortalHeader } from '@/components/portal-header';
-import { PortalSidebar } from '@/components/portal-sidebar';
+import { PortalSidebar, type SidebarItem } from '@/components/portal-sidebar';
 import { requirePortal } from '@/lib/auth/session';
 
 export default async function AdminLayout({ children }: { children: ReactNode }) {
   const account = await requirePortal('admin');
-  const items = [
-    { href: '/admin', label: 'Overview', icon: Home },
-    { href: '/admin/students', label: 'Students', icon: Users },
-    { href: '/admin/fees', label: 'Fees Ledger', icon: CreditCard },
-    { href: '/admin/slips', label: 'Slip Queue', icon: FileSearch, badge: 3 },
-    { href: '/admin/receipts', label: 'Receipts', icon: Receipt },
-    { href: '/admin/announcements', label: 'Announcements', icon: Megaphone },
-    { href: '/admin/calendar', label: 'Calendar', icon: CalendarClock },
-    { href: '/admin/reports', label: 'Reports', icon: BarChart3 },
-    { href: '/admin/audit', label: 'Audit Log', icon: Shield },
-  ] as const;
+  const items: readonly SidebarItem[] = [
+    { href: '/admin', label: 'Overview', iconKey: 'home' },
+    { href: '/admin/students', label: 'Students', iconKey: 'users' },
+    { href: '/admin/fees', label: 'Fees Ledger', iconKey: 'credit-card' },
+    { href: '/admin/slips', label: 'Slip Queue', iconKey: 'file-search', badge: 3 },
+    { href: '/admin/receipts', label: 'Receipts', iconKey: 'receipt' },
+    { href: '/admin/announcements', label: 'Announcements', iconKey: 'megaphone' },
+    { href: '/admin/calendar', label: 'Calendar', iconKey: 'calendar-clock' },
+    { href: '/admin/reports', label: 'Reports', iconKey: 'bar-chart' },
+    { href: '/admin/audit', label: 'Audit Log', iconKey: 'shield' },
+  ];
 
   return (
     <PortalShell
