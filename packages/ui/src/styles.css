@@ -1,0 +1,51 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    --heritage-primary: 15 29 58;
+    --savanna-primary: 217 149 31;
+    --msasa-primary: 200 85 73;
+    --granite-ink: 32 36 43;
+    --granite-muted: 102 116 135;
+    --surface: 247 248 249;
+  }
+
+  html {
+    @apply antialiased;
+    font-feature-settings: 'ss01', 'cv11';
+    text-rendering: optimizeLegibility;
+  }
+
+  body {
+    @apply bg-granite-50 text-granite-900 font-sans;
+  }
+
+  ::selection {
+    @apply bg-heritage-200 text-heritage-950;
+  }
+
+  :focus-visible {
+    @apply outline-none shadow-focus rounded;
+  }
+
+  h1, h2, h3, h4 {
+    @apply font-display text-heritage-950;
+  }
+
+  h1 { @apply text-display-md tracking-tight; }
+  h2 { @apply text-display-sm tracking-tight; }
+  h3 { @apply text-2xl; }
+  h4 { @apply text-xl; }
+}
+
+@layer components {
+  .hha-card-surface {
+    @apply bg-white border border-granite-200 rounded-lg shadow-card;
+  }
+
+  .hha-label {
+    @apply text-xs font-medium uppercase tracking-wider text-granite-600;
+  }
+}

@@ -1,0 +1,33 @@
+{
+  "name": "@hha/shared",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Framework-agnostic domain types, DTOs, validators, and Zimbabwe-specific utilities shared between the API and the web/mobile clients.",
+  "license": "UNLICENSED",
+  "type": "module",
+  "main": "./src/index.ts",
+  "types": "./src/index.ts",
+  "exports": {
+    ".": "./src/index.ts",
+    "./domain": "./src/domain/index.ts",
+    "./dto": "./src/dto/index.ts",
+    "./zw": "./src/zw/index.ts",
+    "./errors": "./src/errors/index.ts",
+    "./i18n": "./src/i18n/index.ts",
+    "./permissions": "./src/permissions/index.ts"
+  },
+  "scripts": {
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run",
+    "lint": "eslint src --ext .ts",
+    "clean": "rm -rf dist .turbo"
+  },
+  "dependencies": {
+    "zod": "^3.23.8"
+  },
+  "devDependencies": {
+    "@hha/config": "workspace:*",
+    "typescript": "^5.6.2",
+    "vitest": "^2.1.1"
+  }
+}

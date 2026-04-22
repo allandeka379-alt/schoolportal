@@ -1,0 +1,65 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  html {
+    font-feature-settings: 'ss01', 'cv11';
+    text-rendering: optimizeLegibility;
+  }
+
+  body {
+    @apply bg-granite-50 text-granite-900 font-sans;
+  }
+
+  h1, h2, h3, h4 {
+    @apply font-display text-heritage-950;
+  }
+
+  h1 { @apply text-display-md tracking-tight; }
+  h2 { @apply text-display-sm tracking-tight; }
+  h3 { @apply text-2xl; }
+  h4 { @apply text-xl; }
+
+  ::selection {
+    @apply bg-heritage-200 text-heritage-950;
+  }
+
+  :focus-visible {
+    @apply outline-none shadow-focus rounded;
+  }
+}
+
+@layer components {
+  .hha-card-surface {
+    @apply bg-white border border-granite-200 rounded-lg shadow-card;
+  }
+
+  .hha-label {
+    @apply text-xs font-medium uppercase tracking-wider text-granite-600;
+  }
+
+  .hha-nav-link {
+    @apply flex items-center gap-3 px-3 py-2 rounded text-sm font-medium text-granite-700 hover:bg-granite-100 hover:text-heritage-950 transition-colors;
+  }
+
+  .hha-nav-link-active {
+    @apply bg-heritage-50 text-heritage-900 hover:bg-heritage-100;
+  }
+
+  .hha-table {
+    @apply w-full text-sm;
+  }
+
+  .hha-table thead th {
+    @apply text-left text-xs font-medium uppercase tracking-wider text-granite-600 px-4 py-2 border-b border-granite-200 bg-granite-50;
+  }
+
+  .hha-table tbody td {
+    @apply px-4 py-3 border-b border-granite-100;
+  }
+
+  .hha-table tbody tr:hover {
+    @apply bg-granite-50/60;
+  }
+}
