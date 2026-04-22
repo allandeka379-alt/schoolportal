@@ -56,3 +56,5 @@ secrets/
 # Local scratch
 tmp/
 .scratch/
+
+.vercel
