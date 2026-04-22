@@ -1,195 +1,183 @@
-import { Badge, Button, Card, CardContent, CardHeader, CardTitle, Money } from '@hha/ui';
-import { Banknote, CreditCard, FileDown, Smartphone, Upload } from 'lucide-react';
+import Link from 'next/link';
+import { ArrowRight, Banknote, CreditCard, FileDown, Smartphone, Upload } from 'lucide-react';
 
 import { INVOICES, PAYMENTS } from '@/lib/mock/fixtures';
+import { FEES_SUMMARY } from '@/lib/mock/student-extras';
+
+import { EditorialCard, SectionEyebrow, StatusPill } from '@/components/student/primitives';
 
 const PAYMENT_METHODS = [
-  { name: 'EcoCash', icon: Smartphone, tone: 'bg-emerald-50 text-emerald-800 border-emerald-200', settle: 'Real-time' },
-  { name: 'OneMoney', icon: Smartphone, tone: 'bg-heritage-50 text-heritage-800 border-heritage-200', settle: 'Real-time' },
-  { name: 'InnBucks', icon: Smartphone, tone: 'bg-savanna-50 text-savanna-800 border-savanna-200', settle: 'Real-time' },
-  { name: 'ZIPIT', icon: Banknote, tone: 'bg-heritage-50 text-heritage-800 border-heritage-200', settle: 'Real-time' },
-  { name: 'CBZ Transfer', icon: Banknote, tone: 'bg-granite-100 text-granite-800 border-granite-200', settle: 'Same day' },
-  { name: 'Stanbic Transfer', icon: Banknote, tone: 'bg-granite-100 text-granite-800 border-granite-200', settle: 'Same day' },
-  { name: 'ZB Transfer', icon: Banknote, tone: 'bg-granite-100 text-granite-800 border-granite-200', settle: 'Same day' },
-  { name: 'Steward Transfer', icon: Banknote, tone: 'bg-granite-100 text-granite-800 border-granite-200', settle: 'Same day' },
-  { name: 'Visa / Mastercard', icon: CreditCard, tone: 'bg-heritage-50 text-heritage-800 border-heritage-200', settle: 'Real-time' },
-  { name: 'Upload bank slip', icon: Upload, tone: 'bg-savanna-50 text-savanna-800 border-savanna-200', settle: 'Reconciled' },
+  { name: 'EcoCash', icon: Smartphone, settle: 'Real-time' },
+  { name: 'OneMoney', icon: Smartphone, settle: 'Real-time' },
+  { name: 'InnBucks', icon: Smartphone, settle: 'Real-time' },
+  { name: 'ZIPIT', icon: Banknote, settle: 'Instant' },
+  { name: 'CBZ / Stanbic / ZB', icon: Banknote, settle: 'Same-day' },
+  { name: 'Visa / Mastercard', icon: CreditCard, settle: 'Real-time' },
+  { name: 'Upload slip', icon: Upload, settle: 'Reconciled' },
 ];
 
+/**
+ * Fees — §11 of the spec (student view is informational; full pay flow shared
+ * with the parent portal).
+ */
 export default function FeesPage() {
   const invoices = INVOICES.filter((i) => i.studentId === 's-farai');
-  const outstanding = invoices.find((i) => i.status !== 'PAID');
   const payments = PAYMENTS.filter((p) => p.studentId === 's-farai');
 
   return (
-    <div className="space-y-6">
-      <div>
-        <h2 className="font-display text-2xl text-heritage-950">Fees</h2>
-        <p className="text-sm text-granite-600 mt-1">
-          Invoices, payments, and payment options. Pay the way that works for your family.
-        </p>
+    <div className="space-y-8">
+      <header>
+        <SectionEyebrow>Fees</SectionEyebrow>
+        <h1 className="mt-2 font-display text-[clamp(1.75rem,3vw,2.25rem)] text-ink">
+          {FEES_SUMMARY.termLabel}
+          <span className="text-terracotta">.</span>
+        </h1>
+      </header>
+
+      {/* Summary tiles */}
+      <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
+        <SummaryStat label="Total due" value={FEES_SUMMARY.totalDue} tone="neutral" />
+        <SummaryStat label="Paid" value={FEES_SUMMARY.paid} tone="ok" />
+        <SummaryStat label="Outstanding" value={FEES_SUMMARY.outstanding} tone={FEES_SUMMARY.status === 'PAID' ? 'ok' : 'warn'} />
       </div>
 
-      {outstanding ? (
-        <Card>
-          <CardContent className="flex flex-wrap items-center justify-between gap-4">
-            <div>
-              <p className="hha-label">Outstanding balance</p>
-              <p className="mt-1 font-display text-display-sm text-heritage-950">
-                <Money amount={outstanding.balance} currency="USD" bold />
-              </p>
-              <p className="mt-1 text-sm text-granite-600">
-                {outstanding.term} · due{' '}
-                {new Date(outstanding.dueDate).toLocaleDateString('en-ZW', {
-                  weekday: 'long',
-                  day: 'numeric',
-                  month: 'long',
-                })}
-              </p>
-            </div>
-            <div className="flex gap-2">
-              <Button variant="secondary">
-                <FileDown className="h-4 w-4" /> Statement
-              </Button>
-              <Button>Pay now</Button>
-            </div>
-          </CardContent>
-        </Card>
-      ) : null}
-
-      <Card>
-        <CardHeader>
-          <CardTitle>Payment methods</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <p className="text-sm text-granite-600 mb-4">
-            Ten methods, one workflow. Mobile money and ZIPIT settle in real time; EFTs reconcile
-            the same day; bank-slip uploads are read automatically.
+      {/* Pay now */}
+      <EditorialCard className="flex flex-wrap items-center justify-between gap-4 px-6 py-5">
+        <div className="flex items-center gap-3">
+          <StatusPill state={FEES_SUMMARY.status === 'PAID' ? 'paid' : 'partial'} />
+          <p className="font-serif text-[15px] text-stone">
+            Due by <span className="text-ink">Friday 9 May</span>
           </p>
-          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3">
-            {PAYMENT_METHODS.map((m) => {
-              const Icon = m.icon;
-              return (
-                <button
-                  key={m.name}
-                  className={`flex flex-col items-start gap-2 rounded-lg border px-4 py-3 text-left transition-colors hover:border-heritage-400 ${m.tone}`}
-                >
-                  <Icon className="h-5 w-5" aria-hidden />
-                  <p className="text-sm font-semibold">{m.name}</p>
-                  <p className="text-[11px] font-medium uppercase tracking-wider opacity-70">
-                    {m.settle}
-                  </p>
-                </button>
-              );
-            })}
-          </div>
-        </CardContent>
-      </Card>
+        </div>
+        <div className="flex gap-2">
+          <button
+            type="button"
+            className="btn-ghost"
+          >
+            <FileDown className="h-4 w-4" strokeWidth={1.5} aria-hidden />
+            Statement
+          </button>
+          <Link href="#" className="btn-terracotta">
+            Pay now
+            <ArrowRight className="h-4 w-4" strokeWidth={1.5} aria-hidden />
+          </Link>
+        </div>
+      </EditorialCard>
 
-      <Card>
-        <CardHeader>
-          <CardTitle>Invoices</CardTitle>
-        </CardHeader>
-        <CardContent className="p-0">
-          <table className="hha-table">
+      {/* Payment methods */}
+      <EditorialCard>
+        <div className="border-b border-sand px-6 py-4">
+          <SectionEyebrow>Payment methods</SectionEyebrow>
+          <p className="mt-1 font-sans text-[13px] text-stone">
+            Seven options, one workflow. Mobile money and ZIPIT settle in real time.
+          </p>
+        </div>
+        <ul className="grid grid-cols-2 gap-3 p-5 sm:grid-cols-3 lg:grid-cols-4">
+          {PAYMENT_METHODS.map((m) => {
+            const Icon = m.icon;
+            return (
+              <li
+                key={m.name}
+                className="group flex flex-col gap-2 rounded border border-sand bg-sand-light/40 px-4 py-3 transition-all hover:border-terracotta hover:bg-sand-light"
+              >
+                <Icon className="h-5 w-5 text-earth" strokeWidth={1.5} aria-hidden />
+                <p className="font-sans text-[13px] font-semibold text-ink">{m.name}</p>
+                <p className="font-sans text-[11px] font-semibold uppercase tracking-[0.14em] text-stone">
+                  {m.settle}
+                </p>
+              </li>
+            );
+          })}
+        </ul>
+      </EditorialCard>
+
+      {/* Breakdown */}
+      <EditorialCard className="overflow-hidden">
+        <div className="border-b border-sand px-6 py-4">
+          <SectionEyebrow>Breakdown</SectionEyebrow>
+        </div>
+        <div className="overflow-x-auto">
+          <table className="w-full text-[14px]">
             <thead>
-              <tr>
-                <th>Invoice</th>
-                <th>Term</th>
-                <th className="text-right">Total</th>
-                <th className="text-right">Balance</th>
-                <th>Status</th>
-                <th className="text-right">Due</th>
-                <th />
+              <tr className="bg-sand-light/40">
+                <th className="px-6 py-3 text-left font-sans text-[11px] font-semibold uppercase tracking-[0.14em] text-stone">
+                  Item
+                </th>
+                <th className="px-4 py-3 text-right font-sans text-[11px] font-semibold uppercase tracking-[0.14em] text-stone">
+                  Due
+                </th>
+                <th className="px-4 py-3 text-right font-sans text-[11px] font-semibold uppercase tracking-[0.14em] text-stone">
+                  Paid
+                </th>
+                <th className="px-4 py-3 text-right font-sans text-[11px] font-semibold uppercase tracking-[0.14em] text-stone">
+                  Balance
+                </th>
               </tr>
             </thead>
             <tbody>
-              {invoices.map((inv) => (
-                <tr key={inv.id}>
-                  <td className="font-mono text-xs text-granite-700">{inv.invoiceNumber}</td>
-                  <td>{inv.term}</td>
-                  <td className="text-right">
-                    <Money amount={inv.subtotal} currency="USD" />
+              {FEES_SUMMARY.breakdown.map((row) => (
+                <tr key={row.label} className="border-t border-sand-light">
+                  <td className="px-6 py-3 font-sans font-medium text-ink">{row.label}</td>
+                  <td className="px-4 py-3 text-right font-mono tabular-nums text-ink">
+                    {FEES_SUMMARY.currency} {row.due}
                   </td>
-                  <td className="text-right">
-                    <Money
-                      amount={inv.balance}
-                      currency="USD"
-                      tone={inv.balance === '0.00' ? 'positive' : 'negative'}
-                    />
+                  <td className="px-4 py-3 text-right font-mono tabular-nums text-stone">
+                    {FEES_SUMMARY.currency} {row.paid}
                   </td>
-                  <td>
-                    <Badge
-                      tone={
-                        inv.status === 'PAID'
-                          ? 'success'
-                          : inv.status === 'PARTIALLY_PAID'
-                          ? 'warning'
-                          : inv.status === 'OVERDUE'
-                          ? 'danger'
-                          : 'info'
-                      }
-                    >
-                      {inv.status.replace('_', ' ').toLowerCase()}
-                    </Badge>
-                  </td>
-                  <td className="text-right text-xs text-granite-600">
-                    {new Date(inv.dueDate).toLocaleDateString('en-ZW', {
-                      day: 'numeric',
-                      month: 'short',
-                    })}
-                  </td>
-                  <td className="text-right">
-                    <button className="text-xs text-heritage-700 hover:underline">Receipt</button>
+                  <td className="px-4 py-3 text-right font-mono tabular-nums font-semibold text-ink">
+                    {FEES_SUMMARY.currency} {row.balance}
                   </td>
                 </tr>
               ))}
             </tbody>
           </table>
-        </CardContent>
-      </Card>
+        </div>
+      </EditorialCard>
 
-      <Card>
-        <CardHeader>
-          <CardTitle>Payment history</CardTitle>
-        </CardHeader>
-        <CardContent className="p-0">
-          <table className="hha-table">
-            <thead>
-              <tr>
-                <th>Reference</th>
-                <th>Method</th>
-                <th className="text-right">Amount</th>
-                <th>Status</th>
-                <th className="text-right">Paid</th>
-              </tr>
-            </thead>
-            <tbody>
-              {payments.map((p) => (
-                <tr key={p.id}>
-                  <td className="font-mono text-xs text-granite-700">{p.reference}</td>
-                  <td>{p.method}</td>
-                  <td className="text-right">
-                    <Money amount={p.amount} currency="USD" />
-                  </td>
-                  <td>
-                    <Badge tone={p.status === 'RECONCILED' ? 'success' : 'info'}>
-                      {p.status.replace('_', ' ').toLowerCase()}
-                    </Badge>
-                  </td>
-                  <td className="text-right text-xs text-granite-600">
-                    {new Date(p.paidAt).toLocaleDateString('en-ZW', {
-                      day: 'numeric',
-                      month: 'short',
-                      year: 'numeric',
-                    })}
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </CardContent>
-      </Card>
+      {/* Payment history */}
+      <EditorialCard className="overflow-hidden">
+        <div className="border-b border-sand px-6 py-4">
+          <SectionEyebrow>Payment history</SectionEyebrow>
+        </div>
+        <ul className="divide-y divide-sand-light">
+          {payments.map((p) => (
+            <li key={p.id} className="flex items-center gap-4 px-6 py-4">
+              <div className="min-w-0 flex-1">
+                <p className="font-sans font-medium text-ink">{p.method}</p>
+                <p className="mt-0.5 font-mono text-[12px] text-stone">{p.reference}</p>
+              </div>
+              <span className="font-mono tabular-nums text-ink">USD {p.amount}</span>
+              <StatusPill state={p.status === 'RECONCILED' ? 'verified' : 'pending'}>
+                {p.status.toLowerCase().replace('_', ' ')}
+              </StatusPill>
+              <span className="w-24 text-right font-sans text-[12px] text-stone">
+                {new Date(p.paidAt).toLocaleDateString('en-ZW', { day: 'numeric', month: 'short' })}
+              </span>
+            </li>
+          ))}
+        </ul>
+      </EditorialCard>
     </div>
+  );
+}
+
+function SummaryStat({
+  label,
+  value,
+  tone,
+}: {
+  label: string;
+  value: string;
+  tone: 'neutral' | 'ok' | 'warn';
+}) {
+  const colour = tone === 'ok' ? 'text-ok' : tone === 'warn' ? 'text-danger' : 'text-ink';
+  return (
+    <EditorialCard className="px-6 py-6">
+      <p className="hha-eyebrow-earth">{label}</p>
+      <p className={`mt-2 font-display text-[42px] leading-none tabular-nums ${colour}`}>
+        <span className="text-[18px] text-stone">{FEES_SUMMARY.currency} </span>
+        {value}
+      </p>
+    </EditorialCard>
   );
 }
