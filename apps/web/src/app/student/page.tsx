@@ -1,8 +1,26 @@
 import Link from 'next/link';
-import { ArrowRight, Flame, Heart } from 'lucide-react';
+import {
+  AlertTriangle,
+  ArrowRight,
+  BookOpen,
+  Calendar,
+  CheckCircle2,
+  ChevronRight,
+  CreditCard,
+  FileBadge2,
+  GraduationCap,
+  Library,
+  MessageSquare,
+  NotebookPen,
+  Search,
+  TrendingUp,
+  Users,
+} from 'lucide-react';
 
+import { Badge } from '@/components/ui/badge';
+import { ProgressRing } from '@/components/student/progress-ring';
 import { currentAccount } from '@/lib/auth/session';
-import { ASSIGNMENTS_FOR_FARAI } from '@/lib/mock/fixtures';
+import { ASSIGNMENTS_FOR_FARAI, GRADEBOOK_FARAI } from '@/lib/mock/fixtures';
 import {
   CURRENT_TERM,
   dueLabel,
@@ -15,23 +33,15 @@ import {
   TODAY_SLOTS,
 } from '@/lib/mock/student-extras';
 
-import {
-  EditorialCard,
-  SectionEyebrow,
-  StatusPill,
-  StudentEmptyState,
-} from '@/components/student/primitives';
-
 /**
- * Dashboard — §05 of the spec.
+ * Student dashboard — civic-light card redesign.
  *
- * Answers four questions in the first glance (before any scroll):
- *   1. What is due?       (Zone 2 — Due Soon)
- *   2. What is new?       (Zone 4 — Announcements)
- *   3. How am I doing?    (Zone 5 — Recent Marks)
- *   4. What is today?     (Zone 3 — Today's timetable)
- *
- * Plus Zone 1 (Welcome Hero) and Zone 6 (Fees at a Glance).
+ * The page is organised visually rather than editorially:
+ *   • Greeting band with one headline stat on the right
+ *   • Alert row for anything overdue
+ *   • "Your subjects" grid with circular progress rings
+ *   • Quick-actions strip of big tiles
+ *   • Recent activity list on the left, today's timetable on the right
  */
 export default async function StudentDashboard() {
   const account = await currentAccount();
@@ -41,314 +51,584 @@ export default async function StudentDashboard() {
   const now = new Date();
   const weekday = now.toLocaleDateString('en-ZW', { weekday: 'long' });
   const dateLabel = now.toLocaleDateString('en-ZW', { day: 'numeric', month: 'long' });
-  const isBirthday = false; // would compare ME_STUDENT.dateOfBirth
 
-  // Next three assignments that aren't marked/returned.
-  const dueSoon = ASSIGNMENTS_FOR_FARAI.filter(
+  const openAssignments = ASSIGNMENTS_FOR_FARAI.filter(
     (a) => a.status === 'OPEN' || a.status === 'LATE',
-  )
-    .slice()
+  );
+  const overdue = openAssignments.filter((a) => new Date(a.dueAt).getTime() < now.getTime());
+  const dueSoon = [...openAssignments]
     .sort((a, b) => new Date(a.dueAt).getTime() - new Date(b.dueAt).getTime())
     .slice(0, 3);
 
-  const announcements = STUDENT_ANNOUNCEMENTS.slice(0, 2);
+  // Subject data — grade book fused with coloured tones per subject.
+  const SUBJECT_TONES: Record<string, { bg: string; text: string; ring: 'brand' | 'success' | 'warning' | 'danger' }> = {
+    MATH: { bg: 'bg-info/10',          text: 'text-info',          ring: 'brand' },
+    ENGL: { bg: 'bg-success/10',       text: 'text-success',       ring: 'success' },
+    SHON: { bg: 'bg-warning/10',       text: 'text-warning',       ring: 'warning' },
+    CHEM: { bg: 'bg-danger/10',        text: 'text-danger',        ring: 'danger' },
+    PHYS: { bg: 'bg-brand-primary/10', text: 'text-brand-primary', ring: 'brand' },
+    BIO:  { bg: 'bg-success/10',       text: 'text-success',       ring: 'success' },
+    HIST: { bg: 'bg-brand-accent/15',  text: 'text-brand-accent',  ring: 'brand' },
+    GEOG: { bg: 'bg-info/10',          text: 'text-info',          ring: 'brand' },
+  };
+
+  const termAverage = Math.round(
+    GRADEBOOK_FARAI.reduce((s, r) => s + r.total, 0) / GRADEBOOK_FARAI.length,
+  );
+
+  const attendance = 96;
 
   return (
     <div className="space-y-8">
-      {/* Zone 1 — Welcome Hero */}
-      <section className="rounded border border-sand bg-sand-light px-6 py-8 md:px-10 md:py-10">
-        <p className="hha-eyebrow-earth">
-          {greeting}
-        </p>
-        <h1 className="mt-3 font-display text-[clamp(2rem,4vw,2.75rem)] leading-tight text-ink">
-          {greeting}, {firstName}
-          {isBirthday ? (
-            <Heart className="ml-3 inline-block h-6 w-6 fill-terracotta text-terracotta" aria-label="birthday" />
-          ) : (
-            <span className="text-terracotta">.</span>
-          )}
-        </h1>
-        <p className="mt-3 font-serif text-body-lg text-stone">
-          {weekday}, {dateLabel} · {ME_STUDENT.form} {ME_STUDENT.stream} · {CURRENT_TERM.label} · Week {CURRENT_TERM.weekNumber}
-        </p>
-        <div className="mt-5 flex flex-wrap items-center gap-6 text-[13px] text-stone">
-          <span className="inline-flex items-center gap-2">
-            <Flame className="h-4 w-4 text-ochre" strokeWidth={1.5} aria-hidden />
-            <span className="font-medium text-ink">14-day</span> study streak
-          </span>
-          <span className="inline-flex items-center gap-2">
-            <span className="font-medium text-ink">Savanna House</span> · 3 points this week
-          </span>
-          {CURRENT_TERM.classPositionOptedIn ? (
-            <span className="inline-flex items-center gap-2">
-              <span className="font-medium text-ink">{CURRENT_TERM.classPosition} of {CURRENT_TERM.classSize}</span> in class
+      {/* Top search bar */}
+      <div className="flex items-center gap-4">
+        <div className="relative flex-1 max-w-[560px]">
+          <Search className="pointer-events-none absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-muted" strokeWidth={1.75} aria-hidden />
+          <input
+            type="search"
+            placeholder="Search assignments, subjects, library…"
+            className="h-11 w-full rounded-full border border-line bg-card pl-10 pr-4 text-small text-ink placeholder-muted/80 transition-colors focus:border-brand-primary focus:outline-none focus:ring-4 focus:ring-brand-primary/10"
+          />
+        </div>
+      </div>
+
+      {/* Hero greeting + headline stat */}
+      <section className="grid grid-cols-1 items-start gap-4 lg:grid-cols-[1fr_280px]">
+        <div>
+          <p className="text-small text-muted">{greeting} {firstName}.</p>
+          <h1 className="mt-1 text-[clamp(1.75rem,3vw,2.25rem)] font-bold leading-tight tracking-tight text-ink">
+            Your term, at a glance.
+          </h1>
+          <p className="mt-2 flex flex-wrap items-center gap-2 text-small text-muted">
+            <span>{weekday}, {dateLabel}</span>
+            <span className="h-1 w-1 rounded-full bg-line" aria-hidden />
+            <span>{ME_STUDENT.form} {ME_STUDENT.stream}</span>
+            <span className="h-1 w-1 rounded-full bg-line" aria-hidden />
+            <span>{CURRENT_TERM.label} · Week {CURRENT_TERM.weekNumber}</span>
+          </p>
+        </div>
+        <div className="rounded-lg border border-line bg-card p-4 shadow-card-sm">
+          <p className="text-micro font-semibold uppercase tracking-[0.12em] text-muted">
+            Term average
+          </p>
+          <div className="mt-1 flex items-baseline gap-2">
+            <span className="text-[2rem] font-bold leading-none tabular-nums text-ink">
+              {termAverage}%
             </span>
-          ) : null}
+            <span className="inline-flex items-center gap-1 text-small font-semibold text-success">
+              <TrendingUp className="h-3.5 w-3.5" strokeWidth={2} aria-hidden />
+              +4
+            </span>
+          </div>
+          <p className="mt-2 text-micro text-muted">up from last term · {CURRENT_TERM.classPosition} of {CURRENT_TERM.classSize} in class</p>
         </div>
       </section>
 
-      {/* Main grid — 3 cols on desktop.
-          Left (2 cols): Due Soon + Announcements + Recent Marks
-          Right (1 col): Today + Fees + Quiet Room */}
-      <div className="grid grid-cols-1 gap-6 lg:grid-cols-3">
-        {/* Left column */}
-        <div className="space-y-6 lg:col-span-2">
-          {/* Zone 2 — Due Soon */}
-          <EditorialCard className="overflow-hidden">
-            <div className="flex items-center justify-between border-b border-sand px-6 py-4">
-              <SectionEyebrow>Due soon</SectionEyebrow>
-              <Link
-                href="/student/assignments"
-                className="landing-link font-sans text-[13px] font-medium text-terracotta"
-              >
-                View all assignments
-                <ArrowRight className="h-3.5 w-3.5" strokeWidth={1.5} aria-hidden />
-              </Link>
-            </div>
-            {dueSoon.length === 0 ? (
-              <StudentEmptyState
-                heading="Nothing due right now. Well done."
-                body="Your assignment page is clear. Check back tomorrow."
-              />
-            ) : (
-              <ul className="divide-y divide-sand-light">
-                {dueSoon.map((a) => {
-                  const due = dueLabel(a.dueAt);
-                  return (
-                    <li key={a.id}>
-                      <Link
-                        href={`/student/assignments/${a.id}`}
-                        className="group flex items-center gap-5 px-6 py-5 transition-colors hover:bg-sand-light/40"
-                      >
-                        <DueBar tone={due.tone} />
-                        <div className="min-w-0 flex-1">
-                          <p className="font-display text-[18px] leading-snug text-ink group-hover:text-earth">
-                            {a.title}
-                          </p>
-                          <p className="mt-1 font-sans text-[13px] text-stone">
-                            {subjectNameByCode(a.subjectCode)} · {a.teacher}
-                          </p>
-                        </div>
-                        <div className="flex-none text-right">
-                          <DueTag tone={due.tone} label={due.label} />
-                        </div>
-                        <ArrowRight
-                          className="h-4 w-4 flex-none text-stone transition-transform group-hover:translate-x-1 group-hover:text-terracotta"
-                          strokeWidth={1.5}
-                          aria-hidden
-                        />
-                      </Link>
-                    </li>
-                  );
-                })}
-              </ul>
-            )}
-          </EditorialCard>
+      {/* Alert band */}
+      {overdue.length > 0 ? (
+        <AlertBand
+          tone="warning"
+          icon={<AlertTriangle className="h-5 w-5" strokeWidth={1.75} />}
+          title={`${overdue.length} ${overdue.length === 1 ? 'assignment' : 'assignments'} overdue`}
+          body="Submit today to keep your pass streak."
+          actionLabel="Go to assignments"
+          actionHref="/student/assignments"
+        />
+      ) : (
+        <AlertBand
+          tone="success"
+          icon={<CheckCircle2 className="h-5 w-5" strokeWidth={1.75} />}
+          title="You are all caught up."
+          body={`${openAssignments.length} open, all on schedule. Keep it going.`}
+          actionLabel="See what's due"
+          actionHref="/student/assignments"
+        />
+      )}
 
-          {/* Zone 4 — Announcements */}
-          <EditorialCard className="overflow-hidden">
-            <div className="flex items-center justify-between border-b border-sand px-6 py-4">
-              <SectionEyebrow>Announcements</SectionEyebrow>
-              <Link
-                href="/student/announcements"
-                className="landing-link font-sans text-[13px] font-medium text-terracotta"
-              >
-                View all announcements
-                <ArrowRight className="h-3.5 w-3.5" strokeWidth={1.5} aria-hidden />
-              </Link>
-            </div>
-            <ul className="divide-y divide-sand-light">
-              {announcements.map((a) => (
-                <li
-                  key={a.id}
-                  className={`relative px-6 py-5 ${
-                    a.pinned ? 'border-t-[3px] border-terracotta bg-sand-light/40' : ''
-                  }`}
+      {/* Your subjects */}
+      <section>
+        <div className="mb-4 flex items-center justify-between">
+          <h2 className="text-h3 text-ink">Your subjects</h2>
+          <Link
+            href="/student/grades"
+            className="inline-flex items-center gap-1 text-small font-semibold text-brand-primary hover:text-brand-primary/80"
+          >
+            View all grades
+            <ArrowRight className="h-3.5 w-3.5" strokeWidth={1.75} aria-hidden />
+          </Link>
+        </div>
+        <ul className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4">
+          {GRADEBOOK_FARAI.slice(0, 8).map((row) => {
+            const tone = SUBJECT_TONES[row.subjectCode] ?? {
+              bg: 'bg-brand-primary/10',
+              text: 'text-brand-primary',
+              ring: 'brand' as const,
+            };
+            const ringTone: 'brand' | 'success' | 'warning' | 'danger' =
+              row.total >= 80 ? 'success' : row.total >= 60 ? tone.ring : 'danger';
+            const trendIcon =
+              row.trend === 'up' ? (
+                <TrendingUp className="h-3 w-3 text-success" strokeWidth={2} aria-hidden />
+              ) : row.trend === 'down' ? (
+                <TrendingUp className="h-3 w-3 rotate-180 text-danger" strokeWidth={2} aria-hidden />
+              ) : null;
+            return (
+              <li key={row.subjectCode}>
+                <Link
+                  href={`/student/grades/${row.subjectCode.toLowerCase()}`}
+                  className="hover-lift group flex h-full flex-col gap-4 rounded-lg border border-line bg-card p-5"
                 >
-                  <p className="flex items-center gap-2 font-sans text-[11px] font-semibold uppercase tracking-[0.16em]">
-                    {a.category === 'Urgent' ? (
-                      <span className="rounded-sm bg-terracotta px-1.5 py-0.5 text-cream">URGENT</span>
-                    ) : (
-                      <span className="text-earth">{a.category.toUpperCase()}</span>
-                    )}
-                    <span className="text-stone">· {a.publishedAgo} · {a.author}</span>
-                  </p>
-                  <h3 className="mt-2 font-display text-[20px] leading-snug text-ink">{a.title}</h3>
-                  <p className="mt-1 line-clamp-2 font-serif text-[15px] text-stone">
-                    {a.body}
-                  </p>
-                </li>
-              ))}
-            </ul>
-          </EditorialCard>
-
-          {/* Zone 5 — Recent Marks */}
-          <EditorialCard className="overflow-hidden">
-            <div className="flex items-center justify-between border-b border-sand px-6 py-4">
-              <SectionEyebrow>Recent marks</SectionEyebrow>
-              <Link
-                href="/student/grades"
-                className="landing-link font-sans text-[13px] font-medium text-terracotta"
-              >
-                View all grades
-                <ArrowRight className="h-3.5 w-3.5" strokeWidth={1.5} aria-hidden />
-              </Link>
-            </div>
-            <ul className="divide-y divide-sand-light">
-              {RECENT_MARKS.map((m) => {
-                const pct = (m.mark / m.outOf) * 100;
-                const tone = pct >= 80 ? 'text-ok' : pct >= 50 ? 'text-ink' : 'text-warn';
-                return (
-                  <li key={m.id} className="flex items-center justify-between gap-4 px-6 py-5">
-                    <div className="min-w-0 flex-1">
-                      <p className="font-sans text-[11px] font-semibold uppercase tracking-[0.14em] text-stone">
-                        {m.subjectName}
-                      </p>
-                      <p className="mt-1 truncate font-display text-[17px] text-ink">{m.title}</p>
-                      <p className="mt-0.5 font-sans text-[12px] text-stone">returned {m.returnedAgo}</p>
+                  <div className="flex items-center justify-between gap-3">
+                    <div
+                      className={[
+                        'inline-flex items-center gap-1.5 rounded-full px-2.5 py-0.5 text-micro font-semibold',
+                        tone.bg,
+                        tone.text,
+                      ].join(' ')}
+                    >
+                      <BookOpen className="h-3 w-3" strokeWidth={2} aria-hidden />
+                      {row.subjectCode}
                     </div>
-                    <div className="flex-none text-right">
-                      <span className={`font-display text-[28px] tabular-nums leading-none ${tone}`}>
-                        {m.mark}
+                    <ProgressRing value={row.total} tone={ringTone} size={52} stroke={5} />
+                  </div>
+                  <div>
+                    <p className="text-small font-semibold text-ink group-hover:text-brand-primary">
+                      {row.subjectName}
+                    </p>
+                    <p className="mt-0.5 text-micro text-muted">Position {row.position}</p>
+                  </div>
+                  <div className="mt-auto flex items-center justify-between border-t border-line pt-3">
+                    <span className="inline-flex items-center gap-1.5 text-micro font-semibold text-muted">
+                      Grade{' '}
+                      <span
+                        className={[
+                          'inline-flex h-5 items-center justify-center rounded-full px-1.5 text-micro font-bold',
+                          row.grade === 'A'
+                            ? 'bg-success/10 text-success'
+                            : row.grade === 'B'
+                            ? 'bg-info/10 text-info'
+                            : row.grade === 'C'
+                            ? 'bg-warning/10 text-warning'
+                            : 'bg-danger/10 text-danger',
+                        ].join(' ')}
+                      >
+                        {row.grade}
                       </span>
-                      <span className="font-sans text-[13px] text-stone"> /{m.outOf}</span>
-                    </div>
+                    </span>
+                    <span className="inline-flex items-center gap-1 text-micro text-muted">
+                      {trendIcon}
+                      this term
+                    </span>
+                  </div>
+                </Link>
+              </li>
+            );
+          })}
+        </ul>
+      </section>
+
+      {/* Quick actions */}
+      <section>
+        <h2 className="mb-4 text-h3 text-ink">Quick actions</h2>
+        <ul className="stagger-children grid grid-cols-2 gap-3 sm:grid-cols-4">
+          <QuickTile
+            icon={<NotebookPen className="h-5 w-5" strokeWidth={1.75} aria-hidden />}
+            label="Submit an assignment"
+            sub={`${openAssignments.length} open`}
+            href="/student/assignments"
+            tone="brand"
+          />
+          <QuickTile
+            icon={<Library className="h-5 w-5" strokeWidth={1.75} aria-hidden />}
+            label="Open the library"
+            sub="Past papers · notes"
+            href="/student/library"
+            tone="info"
+          />
+          <QuickTile
+            icon={<MessageSquare className="h-5 w-5" strokeWidth={1.75} aria-hidden />}
+            label="Message a teacher"
+            sub="Moderated channel"
+            href="/student/messages"
+            tone="success"
+          />
+          <QuickTile
+            icon={<Calendar className="h-5 w-5" strokeWidth={1.75} aria-hidden />}
+            label="Timetable"
+            sub={`${TODAY_SLOTS.length} classes today`}
+            href="/student/timetable"
+            tone="gold"
+          />
+        </ul>
+      </section>
+
+      {/* Main grid — left: due + activity; right: today + fees */}
+      <div className="grid grid-cols-1 gap-6 lg:grid-cols-[1.4fr_1fr]">
+        <div className="space-y-6">
+          {/* Due soon */}
+          <Panel
+            title="Due soon"
+            href="/student/assignments"
+            hrefLabel="View all assignments"
+          >
+            <ul className="divide-y divide-line">
+              {dueSoon.map((a) => {
+                const due = dueLabel(a.dueAt);
+                const tone: 'danger' | 'warning' | 'info' =
+                  due.tone === 'overdue' || due.tone === 'due-today'
+                    ? 'danger'
+                    : due.tone === 'soon'
+                    ? 'warning'
+                    : 'info';
+                return (
+                  <li key={a.id}>
+                    <Link
+                      href={`/student/assignments/${a.id}`}
+                      className="group flex items-center gap-4 px-5 py-4 transition-colors hover:bg-surface"
+                    >
+                      <span
+                        className={[
+                          'inline-flex h-10 w-10 flex-none items-center justify-center rounded-md',
+                          tone === 'danger'
+                            ? 'bg-danger/10 text-danger'
+                            : tone === 'warning'
+                            ? 'bg-warning/10 text-warning'
+                            : 'bg-info/10 text-info',
+                        ].join(' ')}
+                      >
+                        <FileBadge2 className="h-4 w-4" strokeWidth={1.75} aria-hidden />
+                      </span>
+                      <div className="min-w-0 flex-1">
+                        <p className="truncate text-small font-semibold text-ink group-hover:text-brand-primary">
+                          {a.title}
+                        </p>
+                        <p className="text-micro text-muted">
+                          {subjectNameByCode(a.subjectCode)} · {a.teacher}
+                        </p>
+                      </div>
+                      <Badge tone={tone} dot>
+                        {due.label}
+                      </Badge>
+                      <ChevronRight
+                        className="h-4 w-4 flex-none text-muted transition-transform group-hover:translate-x-0.5 group-hover:text-brand-primary"
+                        strokeWidth={1.75}
+                        aria-hidden
+                      />
+                    </Link>
                   </li>
                 );
               })}
             </ul>
-          </EditorialCard>
-        </div>
+          </Panel>
 
-        {/* Right column */}
-        <div className="space-y-6">
-          {/* Zone 3 — Today */}
-          <EditorialCard className="overflow-hidden">
-            <div className="border-b border-sand px-6 py-4">
-              <SectionEyebrow>Today</SectionEyebrow>
-              <p className="mt-1 font-sans text-[13px] text-stone">{weekday}, {dateLabel}</p>
-            </div>
-            {TODAY_SLOTS.length === 0 ? (
-              <StudentEmptyState
-                heading="No classes today."
-                body="Enjoy your Saturday."
-              />
-            ) : (
-              <ul className="divide-y divide-sand-light">
-                {TODAY_SLOTS.map((s) => (
+          {/* Recent activity */}
+          <Panel
+            title="Recent activity"
+            href="/student/grades"
+            hrefLabel="See all grades"
+          >
+            <ul className="divide-y divide-line">
+              {RECENT_MARKS.map((m) => {
+                const pct = (m.mark / m.outOf) * 100;
+                const tone: 'success' | 'info' | 'warning' =
+                  pct >= 80 ? 'success' : pct >= 60 ? 'info' : 'warning';
+                return (
                   <li
-                    key={s.start}
-                    className={`relative flex items-center gap-3 px-6 py-3 ${
-                      s.current ? 'bg-sand-light/60' : ''
-                    }`}
+                    key={m.id}
+                    className="flex items-center gap-4 px-5 py-4"
                   >
-                    {s.current ? (
-                      <span
-                        aria-hidden
-                        className="absolute inset-y-2 left-0 w-[2px] rounded-r-sm bg-terracotta"
-                      />
-                    ) : null}
-                    <span className="w-14 flex-none font-mono text-[13px] tabular-nums text-stone">
-                      {s.start}
+                    <span
+                      className={[
+                        'inline-flex h-10 w-10 flex-none items-center justify-center rounded-md',
+                        tone === 'success'
+                          ? 'bg-success/10 text-success'
+                          : tone === 'info'
+                          ? 'bg-info/10 text-info'
+                          : 'bg-warning/10 text-warning',
+                      ].join(' ')}
+                    >
+                      <GraduationCap className="h-4 w-4" strokeWidth={1.75} aria-hidden />
                     </span>
                     <div className="min-w-0 flex-1">
-                      {s.kind === 'class' ? (
-                        <>
-                          <p className="font-display text-[16px] text-ink">{s.subject}</p>
-                          <p className="font-sans text-[12px] text-stone">
-                            {[s.teacher, s.room].filter(Boolean).join(' · ')}
-                          </p>
-                        </>
-                      ) : (
-                        <p className="font-serif italic text-[15px] text-stone">{s.subject}</p>
-                      )}
+                      <p className="truncate text-small font-semibold text-ink">{m.title}</p>
+                      <p className="text-micro text-muted">
+                        {m.subjectName} · returned {m.returnedAgo}
+                      </p>
                     </div>
+                    <Badge tone={tone}>{pct.toFixed(0)}%</Badge>
+                    <span className="hidden text-small font-bold tabular-nums text-ink sm:inline-block">
+                      {m.mark}
+                      <span className="text-micro text-muted"> / {m.outOf}</span>
+                    </span>
                   </li>
-                ))}
-              </ul>
-            )}
-          </EditorialCard>
+                );
+              })}
+            </ul>
+          </Panel>
 
-          {/* Zone 6 — Fees at a Glance */}
-          <EditorialCard className="overflow-hidden">
-            <div className="border-b border-sand px-6 py-4">
-              <SectionEyebrow>Fees at a glance</SectionEyebrow>
-            </div>
-            <div className="px-6 py-5">
-              {FEES_SUMMARY.status === 'PAID' ? (
-                <>
-                  <p className="font-display text-[22px] text-ink">Paid in full this term.</p>
-                  <div className="mt-3">
-                    <StatusPill state="paid" />
+          {/* Announcements — compact */}
+          <Panel
+            title="Announcements"
+            href="/student/announcements"
+            hrefLabel="View all announcements"
+          >
+            <ul className="divide-y divide-line">
+              {STUDENT_ANNOUNCEMENTS.slice(0, 2).map((a) => (
+                <li key={a.id} className="px-5 py-4">
+                  <div className="flex flex-wrap items-center gap-2">
+                    {a.category === 'Urgent' ? (
+                      <Badge tone="danger">Urgent</Badge>
+                    ) : (
+                      <Badge tone="brand">{a.category}</Badge>
+                    )}
+                    <span className="text-micro text-muted">· {a.publishedAgo}</span>
+                    <span className="text-micro text-muted">· {a.author}</span>
                   </div>
-                </>
-              ) : (
-                <>
-                  <p className="font-sans text-[12px] uppercase tracking-[0.16em] text-stone">
-                    You owe this term
-                  </p>
-                  <p className="mt-1 font-display text-[38px] leading-none text-ink tabular-nums">
-                    <span className="text-[22px] text-stone">{FEES_SUMMARY.currency} </span>
-                    {FEES_SUMMARY.outstanding}
-                  </p>
-                  <div className="mt-3">
-                    <StatusPill state={FEES_SUMMARY.status === 'PARTIAL' ? 'partial' : 'outstanding'} />
-                  </div>
-                </>
-              )}
-              <div className="mt-5 flex flex-wrap gap-2">
-                <Link
-                  href="/student/fees"
-                  className="inline-flex h-10 items-center justify-center rounded bg-terracotta px-4 font-sans text-[13px] font-semibold text-cream hover:bg-terracotta-hover"
+                  <p className="mt-2 text-small font-semibold text-ink">{a.title}</p>
+                  <p className="mt-1 line-clamp-2 text-small text-muted">{a.body}</p>
+                </li>
+              ))}
+            </ul>
+          </Panel>
+        </div>
+
+        {/* Right column: today + fees + attendance */}
+        <div className="space-y-6">
+          {/* Today */}
+          <Panel title="Today" sub={`${weekday}, ${dateLabel}`}>
+            <ul className="divide-y divide-line">
+              {TODAY_SLOTS.slice(0, 6).map((s) => (
+                <li
+                  key={s.start}
+                  className={[
+                    'relative flex items-center gap-3 px-5 py-3',
+                    s.current ? 'bg-brand-primary/5' : '',
+                  ].join(' ')}
                 >
-                  {FEES_SUMMARY.status === 'PAID' ? 'View history' : 'Pay now'}
-                  <ArrowRight className="ml-1.5 h-3.5 w-3.5" strokeWidth={1.5} aria-hidden />
-                </Link>
-              </div>
-            </div>
-          </EditorialCard>
+                  {s.current ? (
+                    <span
+                      aria-hidden
+                      className="absolute inset-y-2 left-0 w-[3px] rounded-r-sm bg-brand-primary"
+                    />
+                  ) : null}
+                  <span
+                    className={[
+                      'w-14 flex-none text-micro font-mono tabular-nums',
+                      s.current ? 'font-semibold text-brand-primary' : 'text-muted',
+                    ].join(' ')}
+                  >
+                    {s.start}
+                  </span>
+                  <div className="min-w-0 flex-1">
+                    {s.kind === 'class' ? (
+                      <>
+                        <p
+                          className={[
+                            'text-small font-semibold',
+                            s.current ? 'text-brand-primary' : 'text-ink',
+                          ].join(' ')}
+                        >
+                          {s.subject}
+                        </p>
+                        <p className="text-micro text-muted">
+                          {[s.teacher, s.room].filter(Boolean).join(' · ')}
+                        </p>
+                      </>
+                    ) : (
+                      <p className="text-small italic text-muted">{s.subject}</p>
+                    )}
+                  </div>
+                  {s.current ? <Badge tone="brand">Now</Badge> : null}
+                </li>
+              ))}
+            </ul>
+          </Panel>
 
-          {/* Quiet Room — well-being channel */}
-          <EditorialCard className="bg-sand-light/70">
-            <div className="px-6 py-5">
-              <SectionEyebrow>The quiet room</SectionEyebrow>
-              <p className="mt-2 font-serif text-[14px] leading-relaxed text-stone">
-                If you&rsquo;d like to speak to the school counsellor in confidence, you can leave a
-                message anonymously.
+          {/* Fees */}
+          <div className="rounded-lg border border-line bg-card p-5 shadow-card-sm">
+            <div className="flex items-center justify-between">
+              <p className="text-micro font-semibold uppercase tracking-[0.12em] text-muted">
+                Fees this term
               </p>
-              <Link
-                href="#"
-                className="mt-3 landing-link inline-flex font-sans text-[13px] font-medium text-terracotta"
-              >
-                Open the Quiet Room
-                <ArrowRight className="h-3.5 w-3.5" strokeWidth={1.5} aria-hidden />
-              </Link>
+              <Badge tone={FEES_SUMMARY.status === 'PAID' ? 'success' : 'warning'} dot>
+                {FEES_SUMMARY.status === 'PAID' ? 'Paid up' : 'Due soon'}
+              </Badge>
             </div>
-          </EditorialCard>
+            {FEES_SUMMARY.status === 'PAID' ? (
+              <p className="mt-3 text-h2 text-success">Settled in full.</p>
+            ) : (
+              <>
+                <p className="mt-3 flex items-baseline gap-1">
+                  <span className="text-micro text-muted">{FEES_SUMMARY.currency}</span>
+                  <span className="text-[2rem] font-bold leading-none tabular-nums text-ink">
+                    {FEES_SUMMARY.outstanding}
+                  </span>
+                </p>
+                <p className="mt-1 text-micro text-muted">outstanding · next bill due 30 Apr</p>
+                <div className="mt-3 h-1.5 w-full overflow-hidden rounded-full bg-surface">
+                  <div
+                    className="h-full rounded-full bg-brand-primary transition-all"
+                    style={{ width: `62%` }}
+                  />
+                </div>
+                <p className="mt-1.5 text-micro text-muted">62% of term paid</p>
+              </>
+            )}
+            <Link
+              href="/parent/fees/upload"
+              className="mt-4 inline-flex h-11 w-full items-center justify-center gap-2 rounded-full bg-brand-primary px-5 text-small font-semibold text-white shadow-card-sm transition hover:bg-brand-primary/90 hover:shadow-card-md"
+            >
+              <CreditCard className="h-4 w-4" strokeWidth={1.75} aria-hidden />
+              {FEES_SUMMARY.status === 'PAID' ? 'View history' : 'Pay now'}
+            </Link>
+          </div>
+
+          {/* Attendance mini-card */}
+          <div className="rounded-lg border border-line bg-card p-5 shadow-card-sm">
+            <div className="flex items-center justify-between">
+              <p className="text-micro font-semibold uppercase tracking-[0.12em] text-muted">
+                Attendance this term
+              </p>
+              <ProgressRing value={attendance} size={48} stroke={5} tone="success" />
+            </div>
+            <div className="mt-4 flex items-center gap-2 text-small">
+              <Users className="h-4 w-4 text-success" strokeWidth={1.75} aria-hidden />
+              <span className="font-semibold text-ink">{attendance}% present</span>
+              <span className="text-muted">· Savanna House</span>
+            </div>
+            <Link
+              href="/parent/attendance"
+              className="mt-3 inline-flex items-center gap-1 text-small font-semibold text-brand-primary hover:text-brand-primary/80"
+            >
+              View register
+              <ArrowRight className="h-3.5 w-3.5" strokeWidth={1.75} aria-hidden />
+            </Link>
+          </div>
         </div>
       </div>
     </div>
   );
 }
 
-function DueBar({ tone }: { tone: 'due-today' | 'soon' | 'later' | 'overdue' }) {
-  const bg = {
-    'overdue': 'bg-danger',
-    'due-today': 'bg-terracotta',
-    soon: 'bg-ochre',
-    later: 'bg-earth/40',
-  }[tone];
-  return <span className={`block h-12 w-[3px] rounded-full ${bg}`} aria-hidden />;
-}
+/* ------------------------------------------------------------------ */
+/*  Local primitives                                                   */
+/* ------------------------------------------------------------------ */
 
-function DueTag({ tone, label }: { tone: 'due-today' | 'soon' | 'later' | 'overdue'; label: string }) {
-  const classes = {
-    overdue: 'text-danger',
-    'due-today': 'text-terracotta',
-    soon: 'text-ochre',
-    later: 'text-stone',
+function AlertBand({
+  tone,
+  icon,
+  title,
+  body,
+  actionLabel,
+  actionHref,
+}: {
+  tone: 'success' | 'warning' | 'danger' | 'info';
+  icon: React.ReactNode;
+  title: string;
+  body: string;
+  actionLabel: string;
+  actionHref: string;
+}) {
+  const surface = {
+    success: 'bg-success/8 border-success/25 text-success',
+    warning: 'bg-warning/8 border-warning/25 text-warning',
+    danger:  'bg-danger/8 border-danger/25 text-danger',
+    info:    'bg-info/8 border-info/25 text-info',
   }[tone];
   return (
-    <span className={`font-sans text-[13px] font-medium ${classes}`}>{label}</span>
+    <div className={`flex flex-wrap items-center gap-4 rounded-lg border px-5 py-4 ${surface}`}>
+      <span className="inline-flex h-10 w-10 flex-none items-center justify-center rounded-full bg-white shadow-card-sm">
+        {icon}
+      </span>
+      <div className="min-w-0 flex-1">
+        <p className="text-small font-semibold text-ink">{title}</p>
+        <p className="text-small text-muted">{body}</p>
+      </div>
+      <Link
+        href={actionHref}
+        className="inline-flex h-10 items-center gap-1 rounded-full bg-white px-4 text-small font-semibold text-ink shadow-card-sm transition hover:shadow-card-md"
+      >
+        {actionLabel}
+        <ArrowRight className="h-3.5 w-3.5" strokeWidth={1.75} aria-hidden />
+      </Link>
+    </div>
+  );
+}
+
+function QuickTile({
+  icon,
+  label,
+  sub,
+  href,
+  tone,
+}: {
+  icon: React.ReactNode;
+  label: string;
+  sub: string;
+  href: string;
+  tone: 'brand' | 'success' | 'info' | 'gold' | 'warning';
+}) {
+  const toneStyles = {
+    brand:   'bg-brand-primary/10 text-brand-primary',
+    info:    'bg-info/10 text-info',
+    success: 'bg-success/10 text-success',
+    gold:    'bg-brand-accent/15 text-brand-accent',
+    warning: 'bg-warning/10 text-warning',
+  }[tone];
+  return (
+    <li>
+      <Link
+        href={href}
+        className="hover-lift group flex h-full items-start gap-3 rounded-lg border border-line bg-card p-4"
+      >
+        <span className={`inline-flex h-10 w-10 flex-none items-center justify-center rounded-md ${toneStyles}`}>
+          {icon}
+        </span>
+        <div className="min-w-0 flex-1">
+          <p className="text-small font-semibold text-ink group-hover:text-brand-primary">{label}</p>
+          <p className="mt-0.5 text-micro text-muted">{sub}</p>
+        </div>
+        <ChevronRight
+          className="h-4 w-4 flex-none text-muted transition-transform group-hover:translate-x-0.5 group-hover:text-brand-primary"
+          strokeWidth={1.75}
+          aria-hidden
+        />
+      </Link>
+    </li>
+  );
+}
+
+function Panel({
+  title,
+  sub,
+  href,
+  hrefLabel,
+  children,
+}: {
+  title: string;
+  sub?: string;
+  href?: string;
+  hrefLabel?: string;
+  children: React.ReactNode;
+}) {
+  return (
+    <section className="overflow-hidden rounded-lg border border-line bg-card shadow-card-sm">
+      <header className="flex flex-wrap items-center justify-between gap-3 border-b border-line px-5 py-3.5">
+        <div>
+          <h3 className="text-small font-semibold text-ink">{title}</h3>
+          {sub ? <p className="text-micro text-muted">{sub}</p> : null}
+        </div>
+        {href && hrefLabel ? (
+          <Link
+            href={href}
+            className="inline-flex items-center gap-1 text-micro font-semibold text-brand-primary hover:text-brand-primary/80"
+          >
+            {hrefLabel}
+            <ArrowRight className="h-3 w-3" strokeWidth={2} aria-hidden />
+          </Link>
+        ) : null}
+      </header>
+      {children}
+    </section>
   );
 }
