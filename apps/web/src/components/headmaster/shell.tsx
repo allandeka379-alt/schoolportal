@@ -6,12 +6,10 @@ import { HeadmasterSidebar } from './sidebar';
 import { HeadmasterTopBar } from './top-bar';
 
 /**
- * The Headmaster's Bridge — portal shell.
+ * Administrator portal shell.
  *
- * Dark 260px Earth-filled sidebar (visually distinct from the role-based
- * portals, which use Cream). 64px top bar with breadcrumbs, command
- * palette, security indicators, alerts bell. Dense executive workspace
- * below.
+ * Obsidian 260px sidebar, 64px top bar with breadcrumbs + command palette +
+ * security chip + alerts bell, chart-dense executive workspace below.
  */
 export function HeadmasterShell({
   accountName,

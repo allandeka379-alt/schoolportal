@@ -44,7 +44,7 @@ export const ACCOUNTS: readonly DemoAccount[] = [
     portal: 'headmaster',
     roles: ['HEAD_TEACHER'],
     avatarInitials: 'TM',
-    position: 'Headmaster',
+    position: 'Administrator',
     staffId: 'sp-head',
   },
   {

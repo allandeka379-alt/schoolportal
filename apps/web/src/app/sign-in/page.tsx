@@ -39,7 +39,7 @@ export default async function SignInPage({ searchParams }: PageProps) {
             </h1>
             <p className="font-sans text-[15px] leading-relaxed text-fog/80">
               One portal. Every stakeholder. Precise, fast, and built for how
-              teachers, students, parents, and the Headmaster actually work.
+              teachers, students, parents, and the administrator actually work.
             </p>
             <ul className="space-y-3 font-sans text-[14px] text-fog/80">
               {[
@@ -100,7 +100,7 @@ export default async function SignInPage({ searchParams }: PageProps) {
                   ['teacher@hha.ac.zw', 'Teacher · emerald'],
                   ['parent@hha.ac.zw',  'Parent · coral'],
                   ['bursar@hha.ac.zw',  'Admin · bursar'],
-                  ['head@hha.ac.zw',    'Headmaster · amber'],
+                  ['head@hha.ac.zw',    'Administrator · amber'],
                 ].map(([email, tag]) => (
                   <div key={email} className="flex justify-between gap-4">
                     <dt className="text-obsidian">{email}</dt>

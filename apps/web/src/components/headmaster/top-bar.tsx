@@ -8,10 +8,10 @@ import { Bell, Lock, Menu, Search, ShieldCheck } from 'lucide-react';
 import { HEADMASTER_NAV } from './sidebar';
 
 const CRUMB_LABELS: Record<string, string> = {
-  '/headmaster': 'The Bridge',
+  '/headmaster': 'Overview',
 };
 
-HEADMASTER_NAV.flatMap((g) => g.items).forEach((item) => {
+HEADMASTER_NAV.forEach((item) => {
   CRUMB_LABELS[item.href] = item.label;
 });
 
@@ -23,7 +23,7 @@ function buildCrumbs(pathname: string): { label: string; href: string }[] {
   const parts = pathname.split('/').filter(Boolean);
   if (parts.length <= 1) return [];
   const crumbs: { label: string; href: string }[] = [
-    { label: 'The Bridge', href: '/headmaster' },
+    { label: 'Overview', href: '/headmaster' },
   ];
   let cursor = '';
   for (let i = 0; i < parts.length; i += 1) {
@@ -110,7 +110,6 @@ export function HeadmasterTopBar({ onOpenMobileNav }: { onOpenMobileNav: () => v
 }
 
 function CommandPalette({ onClose }: { onClose: () => void }) {
-  const all = HEADMASTER_NAV.flatMap((g) => g.items);
   return (
     <div
       role="dialog"
@@ -127,7 +126,7 @@ function CommandPalette({ onClose }: { onClose: () => void }) {
           <input
             autoFocus
             type="search"
-            placeholder="Go to… teachers, subjects, at-risk students, approvals"
+            placeholder="Go to… students, teachers, fees, alerts, reports"
             className="h-9 flex-1 border-0 bg-transparent text-[14px] text-ink placeholder-stone focus:outline-none"
           />
           <kbd className="rounded bg-sand px-1 py-px font-mono text-[10px] text-earth">Esc</kbd>
@@ -137,7 +136,7 @@ function CommandPalette({ onClose }: { onClose: () => void }) {
             Jump to
           </p>
           <ul>
-            {all.map((item) => (
+            {HEADMASTER_NAV.map((item) => (
               <li key={item.href}>
                 <Link
                   href={item.href}

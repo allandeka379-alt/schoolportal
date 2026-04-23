@@ -3,20 +3,14 @@
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import {
-  AlertTriangle,
-  Anchor,
   Bell,
-  ClipboardList,
+  CreditCard,
   FileText,
-  Gauge,
-  Grid3x3,
-  Layers,
+  GraduationCap,
+  LayoutDashboard,
   LogOut,
-  PieChart,
-  Shield,
-  Target,
-  UserCog,
   Users,
+  UserSquare2,
   X,
   type LucideIcon,
 } from 'lucide-react';
@@ -26,14 +20,10 @@ import { EditorialAvatar } from '@/components/student/primitives';
 import { signOutAction } from '@/lib/auth/actions';
 
 /**
- * Headmaster's Bridge sidebar — §03.
+ * Headmaster sidebar — executive register.
  *
- * Dark Earth-filled sidebar. Visually distinct from the role-based portals
- * — a psychological cue that this is a decision-making workspace focused
- * on academic leadership. 260px wide.
- *
- * Eleven destinations — all academic. Grouped visually into three blocks
- * (daily / oversight / governance) to reinforce the cadence of use.
+ * Seven destinations. One job per page. No branded concept name,
+ * no "Cohort", no overlapping features.
  */
 
 interface NavItem {
@@ -43,39 +33,14 @@ interface NavItem {
   badge?: number | string;
 }
 
-interface Group {
-  label: string;
-  items: readonly NavItem[];
-}
-
-export const HEADMASTER_NAV: readonly Group[] = [
-  {
-    label: 'Daily',
-    items: [
-      { href: '/headmaster',              label: 'The Bridge',         icon: Anchor },
-      { href: '/headmaster/approvals',    label: 'Approvals',          icon: ClipboardList, badge: 9 },
-      { href: '/headmaster/alerts',       label: 'Alerts',             icon: Bell,          badge: 5 },
-    ],
-  },
-  {
-    label: 'Oversight',
-    items: [
-      { href: '/headmaster/academic',     label: 'Academic Intelligence', icon: Gauge },
-      { href: '/headmaster/subjects',     label: 'Subjects & Classes',    icon: Grid3x3 },
-      { href: '/headmaster/at-risk',      label: 'At-Risk Register',      icon: AlertTriangle, badge: 18 },
-      { href: '/headmaster/teaching',     label: 'Teaching Quality',      icon: Users },
-    ],
-  },
-  {
-    label: 'Governance',
-    items: [
-      { href: '/headmaster/reports',      label: 'Reports',            icon: FileText,   badge: '14/32' },
-      { href: '/headmaster/safeguarding', label: 'Safeguarding',       icon: Shield,     badge: 3 },
-      { href: '/headmaster/strategic',    label: 'Strategic Goals',    icon: Target },
-      { href: '/headmaster/board',        label: 'Board Reporting',    icon: PieChart },
-      { href: '/headmaster/profile',      label: 'Delegation',         icon: UserCog },
-    ],
-  },
+export const HEADMASTER_NAV: readonly NavItem[] = [
+  { href: '/headmaster',          label: 'Overview',  icon: LayoutDashboard },
+  { href: '/headmaster/students', label: 'Students',  icon: GraduationCap, badge: 18 },
+  { href: '/headmaster/teachers', label: 'Teachers',  icon: UserSquare2 },
+  { href: '/headmaster/fees',     label: 'Fees',      icon: CreditCard },
+  { href: '/headmaster/academic', label: 'Academic',  icon: Users },
+  { href: '/headmaster/alerts',   label: 'Alerts',    icon: Bell,          badge: 5 },
+  { href: '/headmaster/reports',  label: 'Reports',   icon: FileText,      badge: '14/32' },
 ];
 
 function isActive(pathname: string, href: string): boolean {
@@ -115,7 +80,7 @@ export function HeadmasterSidebar({
           <Link
             href="/headmaster"
             className="flex items-center gap-3"
-            aria-label="Headmaster's Bridge"
+            aria-label="HHA Administrator"
           >
             <LandingCrest size={32} variant="cream" />
             <span className="leading-tight">
@@ -124,7 +89,7 @@ export function HeadmasterSidebar({
                 className="block font-mono text-[10px] font-medium uppercase tracking-[0.14em]"
                 style={{ color: 'rgb(var(--accent))' }}
               >
-                The Bridge
+                Administrator
               </span>
             </span>
           </Link>
@@ -140,68 +105,51 @@ export function HeadmasterSidebar({
           ) : null}
         </div>
 
-        {/* Command palette hint */}
-        <div className="px-4 py-3">
-          <div className="flex items-center gap-2 rounded border border-graphite bg-charcoal px-3 py-2 font-sans text-[12px] text-steel">
-            <span>Search · subjects · teachers</span>
-            <kbd className="ml-auto rounded border border-graphite bg-graphite px-1 py-px font-mono text-[10px] text-fog">
-              ⌘K
-            </kbd>
-          </div>
-        </div>
-
-        <nav aria-label="Headmaster navigation" className="flex-1 overflow-y-auto px-3 pb-3">
-          {HEADMASTER_NAV.map((group) => (
-            <div key={group.label} className="mb-5 last:mb-0">
-              <p className="mb-1 px-3 font-mono text-[10px] font-medium uppercase tracking-[0.14em] text-steel">
-                {group.label}
-              </p>
-              <ul className="space-y-0.5">
-                {group.items.map((item) => {
-                  const active = isActive(pathname, item.href);
-                  const Icon = item.icon;
-                  return (
-                    <li key={item.href}>
-                      <Link
-                        href={item.href}
-                        onClick={onMobileClose}
-                        aria-current={active ? 'page' : undefined}
+        <nav aria-label="Headmaster navigation" className="flex-1 overflow-y-auto px-3 py-4">
+          <ul className="space-y-0.5">
+            {HEADMASTER_NAV.map((item) => {
+              const active = isActive(pathname, item.href);
+              const Icon = item.icon;
+              return (
+                <li key={item.href}>
+                  <Link
+                    href={item.href}
+                    onClick={onMobileClose}
+                    aria-current={active ? 'page' : undefined}
+                    className={[
+                      'relative flex items-center gap-3 rounded px-3 py-2 font-sans text-[14px] transition-colors duration-120',
+                      active
+                        ? 'bg-graphite font-medium text-snow'
+                        : 'text-steel hover:bg-graphite/60 hover:text-fog',
+                    ].join(' ')}
+                  >
+                    {active ? (
+                      <span
+                        aria-hidden
+                        className="absolute inset-y-1 left-0 w-[2px] rounded-r-sm sidebar-active-accent"
+                      />
+                    ) : null}
+                    <Icon
+                      className="h-4 w-4"
+                      style={active ? { color: 'rgb(var(--accent))' } : undefined}
+                      strokeWidth={1.5}
+                    />
+                    <span className="flex-1">{item.label}</span>
+                    {item.badge !== undefined ? (
+                      <span
                         className={[
-                          'relative flex items-center gap-3 rounded px-3 py-2 font-sans text-[14px] transition-colors duration-120',
-                          active
-                            ? 'bg-graphite font-medium text-snow'
-                            : 'text-steel hover:bg-graphite/60 hover:text-fog',
+                          'rounded-sm px-1.5 py-0.5 font-mono text-[10px] font-medium tabular-nums',
+                          active ? 'bg-snow/10 text-snow' : 'bg-graphite text-steel',
                         ].join(' ')}
                       >
-                        {active ? (
-                          <span
-                            aria-hidden
-                            className="absolute inset-y-1 left-0 w-[2px] rounded-r-sm sidebar-active-accent"
-                          />
-                        ) : null}
-                        <Icon
-                          className="h-4 w-4"
-                          style={active ? { color: 'rgb(var(--accent))' } : undefined}
-                          strokeWidth={1.5}
-                        />
-                        <span className="flex-1">{item.label}</span>
-                        {item.badge !== undefined ? (
-                          <span
-                            className={[
-                              'rounded-sm px-1.5 py-0.5 font-mono text-[10px] font-medium tabular-nums',
-                              active ? 'bg-snow/10 text-snow' : 'bg-graphite text-steel',
-                            ].join(' ')}
-                          >
-                            {item.badge}
-                          </span>
-                        ) : null}
-                      </Link>
-                    </li>
-                  );
-                })}
-              </ul>
-            </div>
-          ))}
+                        {item.badge}
+                      </span>
+                    ) : null}
+                  </Link>
+                </li>
+              );
+            })}
+          </ul>
         </nav>
 
         {/* Profile + sign out */}
@@ -213,7 +161,7 @@ export function HeadmasterSidebar({
                 {accountName}
               </span>
               <span className="block truncate font-mono text-[11px] uppercase tracking-[0.08em] text-steel">
-                Headmaster
+                Administrator
               </span>
             </span>
           </div>
