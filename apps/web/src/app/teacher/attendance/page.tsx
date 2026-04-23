@@ -1,7 +1,16 @@
 'use client';
 
-import { useState } from 'react';
-import { CheckCircle2, Clock, Info, MinusCircle, Save, XCircle } from 'lucide-react';
+import { useEffect, useState } from 'react';
+import {
+  Check,
+  CheckCircle2,
+  Clock,
+  Info,
+  Loader2,
+  MinusCircle,
+  Save,
+  XCircle,
+} from 'lucide-react';
 
 import { Badge } from '@/components/ui/badge';
 import { ProgressRing } from '@/components/student/progress-ring';
@@ -36,9 +45,34 @@ const INITIAL: Row[] = STUDENTS.filter((s) => s.form === 'Form 3' && s.stream ==
  */
 export default function AttendancePage() {
   const [rows, setRows] = useState<Row[]>(INITIAL);
+  const [saving, setSaving] = useState(false);
+  const [savedAt, setSavedAt] = useState<number | null>(null);
+  const [toast, setToast] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (!toast) return;
+    const t = setTimeout(() => setToast(null), 2600);
+    return () => clearTimeout(t);
+  }, [toast]);
 
   function setStatus(id: string, status: Status) {
     setRows((prev) => prev.map((r) => (r.id === id ? { ...r, status } : r)));
+    // Clear saved state on edit
+    setSavedAt(null);
+  }
+
+  function saveRegister() {
+    setSaving(true);
+    setTimeout(() => {
+      setSaving(false);
+      setSavedAt(Date.now());
+      const absentCount = rows.filter((r) => r.status === 'absent').length;
+      setToast(
+        absentCount > 0
+          ? `Register submitted · ${absentCount} parent SMS sent`
+          : 'Register submitted · all present',
+      );
+    }, 900);
   }
 
   const present = rows.filter((r) => r.status === 'present').length;
@@ -71,10 +105,22 @@ export default function AttendancePage() {
           <ClassChip form="4" stream="A" subjectTone="ochre" />
           <button
             type="button"
-            className="inline-flex h-11 items-center gap-2 rounded-full bg-brand-primary px-5 text-small font-semibold text-white shadow-card-sm transition hover:bg-brand-primary/90 hover:shadow-card-md"
+            onClick={saveRegister}
+            disabled={saving}
+            className="inline-flex h-11 items-center gap-2 rounded-full bg-brand-primary px-5 text-small font-semibold text-white shadow-card-sm transition hover:bg-brand-primary/90 hover:shadow-card-md disabled:opacity-60"
           >
-            <Save className="h-4 w-4" strokeWidth={1.75} aria-hidden />
-            Save register
+            {saving ? (
+              <Loader2 className="h-4 w-4 animate-spin" strokeWidth={1.75} aria-hidden />
+            ) : savedAt ? (
+              <Check className="h-4 w-4" strokeWidth={2} aria-hidden />
+            ) : (
+              <Save className="h-4 w-4" strokeWidth={1.75} aria-hidden />
+            )}
+            {saving
+              ? 'Saving…'
+              : savedAt
+              ? `Saved ${new Date(savedAt).toLocaleTimeString('en-ZW', { hour: '2-digit', minute: '2-digit' })}`
+              : 'Save register'}
           </button>
         </div>
       </header>
@@ -155,6 +201,16 @@ export default function AttendancePage() {
           a weekly pattern notification to the form teacher.
         </span>
       </div>
+
+      {toast ? (
+        <div
+          role="status"
+          className="fixed bottom-6 left-1/2 z-40 -translate-x-1/2 rounded-full bg-ink px-4 py-2 text-micro font-semibold text-white shadow-card-md"
+        >
+          <Check className="mr-1 inline-block h-3.5 w-3.5" strokeWidth={2} aria-hidden />
+          {toast}
+        </div>
+      ) : null}
     </div>
   );
 }
