@@ -13,8 +13,9 @@ import {
   X,
 } from 'lucide-react';
 
-import { EditorialCard, SectionEyebrow } from '@/components/student/primitives';
-import { ClassChip, TeacherPageHeader, TeacherStatusPill } from '@/components/teacher/primitives';
+import { Badge } from '@/components/ui/badge';
+import { ProgressRing } from '@/components/student/progress-ring';
+import { ClassChip } from '@/components/teacher/primitives';
 
 interface Plan {
   id: string;
@@ -60,6 +61,12 @@ const INITIAL_CPD: Cpd[] = [
   { id: 'c3', title: 'Pearson webinar — Year 11 progression strategies', when: '8 May 2026', hours: 2, status: 'upcoming' },
 ];
 
+function statusBadge(s: Plan['status']): { tone: 'success' | 'brand' | 'warning'; label: string } {
+  if (s === 'active') return { tone: 'success', label: 'Active' };
+  if (s === 'scheduled') return { tone: 'brand', label: 'Scheduled' };
+  return { tone: 'warning', label: 'Draft' };
+}
+
 export default function LessonPlansPage() {
   const [plans, setPlans] = useState<Plan[]>(INITIAL_MY_PLANS);
   const [cpd, setCpd] = useState<Cpd[]>(INITIAL_CPD);
@@ -72,6 +79,7 @@ export default function LessonPlansPage() {
     () => cpd.filter((c) => c.status === 'completed').reduce((s, c) => s + c.hours, 0),
     [cpd],
   );
+  const cpdPct = Math.min(100, Math.round((hoursThisYear / 30) * 100));
 
   function addPlan(p: Omit<Plan, 'id'>) {
     setPlans((curr) => [{ ...p, id: `lp-${Date.now()}` }, ...curr]);
@@ -108,81 +116,123 @@ export default function LessonPlansPage() {
     });
   }
 
+  const activeCount = plans.filter((p) => p.status === 'active').length;
+  const draftCount = plans.filter((p) => p.status === 'draft').length;
+  const scheduledCount = plans.filter((p) => p.status === 'scheduled').length;
+
   return (
     <div className="space-y-8">
-      <TeacherPageHeader
-        eyebrow="Lesson plans &amp; CPD"
-        title="Your plans,"
-        accent="the department's memory."
-        right={
-          <button
-            type="button"
-            onClick={() => setNewPlanOpen(true)}
-            className="btn-terracotta"
-          >
-            <Plus className="h-4 w-4" strokeWidth={1.5} aria-hidden />
-            New lesson plan
-          </button>
-        }
-      />
+      {/* Header */}
+      <header className="flex flex-wrap items-end justify-between gap-4">
+        <div>
+          <p className="text-small text-muted">Lesson plans &amp; CPD</p>
+          <h1 className="mt-1 text-[clamp(1.75rem,3vw,2.25rem)] font-bold leading-tight tracking-tight text-ink">
+            Your plans, the department&rsquo;s memory
+          </h1>
+          <p className="mt-2 text-small text-muted">
+            {plans.length} lesson plans · {hoursThisYear} CPD hours this year
+          </p>
+        </div>
+        <button
+          type="button"
+          onClick={() => setNewPlanOpen(true)}
+          className="inline-flex h-11 items-center gap-2 rounded-full bg-brand-primary px-5 text-small font-semibold text-white shadow-card-sm transition hover:bg-brand-primary/90 hover:shadow-card-md"
+        >
+          <Plus className="h-4 w-4" strokeWidth={1.75} aria-hidden />
+          New lesson plan
+        </button>
+      </header>
+
+      {/* KPI tiles */}
+      <ul className="grid grid-cols-2 gap-3 sm:grid-cols-4">
+        <KpiTile label="Active" value={String(activeCount)} tone="success" />
+        <KpiTile label="Scheduled" value={String(scheduledCount)} tone="brand" />
+        <KpiTile
+          label="Drafts"
+          value={String(draftCount)}
+          tone={draftCount > 0 ? 'warning' : undefined}
+        />
+        <KpiTile
+          label="CPD hours"
+          value={`${hoursThisYear}/30`}
+          ring={cpdPct}
+          ringTone={cpdPct >= 50 ? 'success' : 'brand'}
+        />
+      </ul>
 
       <div className="grid grid-cols-1 gap-6 lg:grid-cols-12">
         {/* Mine */}
-        <EditorialCard className="overflow-hidden lg:col-span-7">
-          <div className="flex items-center justify-between border-b border-sand px-6 py-4">
-            <SectionEyebrow>My lesson plans</SectionEyebrow>
-            <span className="font-sans text-[12px] text-stone">{plans.length} this week</span>
-          </div>
-          <ul className="divide-y divide-sand-light">
-            {plans.map((p) => (
-              <li key={p.id}>
-                <button
-                  type="button"
-                  onClick={() => setEditing(p)}
-                  className="group flex w-full items-center gap-4 px-6 py-4 text-left hover:bg-sand-light/40"
-                >
-                  <NotebookPen className="h-5 w-5 flex-none text-earth" strokeWidth={1.5} aria-hidden />
-                  <div className="min-w-0 flex-1">
-                    <p className="font-display text-[17px] leading-snug text-ink group-hover:text-earth">
-                      {p.title}
-                    </p>
-                    <p className="mt-0.5 flex items-center gap-2 font-sans text-[12px] text-stone">
-                      <CalendarClock className="h-3 w-3" strokeWidth={1.5} aria-hidden />
-                      {p.date}
-                      <span className="text-sand">·</span>
-                      <span>{p.syllabus}</span>
-                    </p>
-                  </div>
-                  <ClassChip form={p.form} stream={p.stream} subjectTone="ochre" />
-                  <TeacherStatusPill state={p.status} />
-                </button>
-              </li>
-            ))}
+        <section className="overflow-hidden rounded-lg border border-line bg-card shadow-card-sm lg:col-span-7">
+          <header className="flex items-center justify-between border-b border-line px-5 py-3.5">
+            <div>
+              <h2 className="text-small font-semibold text-ink">My lesson plans</h2>
+              <p className="text-micro text-muted">{plans.length} this week</p>
+            </div>
+          </header>
+          <ul className="divide-y divide-line">
+            {plans.map((p) => {
+              const badge = statusBadge(p.status);
+              return (
+                <li key={p.id}>
+                  <button
+                    type="button"
+                    onClick={() => setEditing(p)}
+                    className="group flex w-full items-center gap-4 px-5 py-4 text-left transition-colors hover:bg-surface/60"
+                  >
+                    <span className="inline-flex h-10 w-10 flex-none items-center justify-center rounded-md bg-brand-primary/10 text-brand-primary">
+                      <NotebookPen className="h-4 w-4" strokeWidth={1.75} aria-hidden />
+                    </span>
+                    <div className="min-w-0 flex-1">
+                      <p className="text-small font-semibold leading-snug text-ink transition-colors group-hover:text-brand-primary">
+                        {p.title}
+                      </p>
+                      <p className="mt-0.5 flex flex-wrap items-center gap-2 text-micro text-muted">
+                        <CalendarClock className="h-3 w-3" strokeWidth={1.75} aria-hidden />
+                        {p.date}
+                        <span className="text-line">·</span>
+                        <span>{p.syllabus}</span>
+                      </p>
+                    </div>
+                    <ClassChip form={p.form} stream={p.stream} subjectTone="ochre" />
+                    <Badge tone={badge.tone} dot>
+                      {badge.label}
+                    </Badge>
+                  </button>
+                </li>
+              );
+            })}
             {plans.length === 0 ? (
-              <li className="px-6 py-10 text-center font-sans text-[13px] text-stone">
+              <li className="px-6 py-10 text-center text-small text-muted">
                 No plans yet — tap the button above to start one.
               </li>
             ) : null}
           </ul>
-        </EditorialCard>
+        </section>
 
         {/* Department library */}
-        <EditorialCard className="overflow-hidden lg:col-span-5">
-          <div className="flex items-center justify-between border-b border-sand px-6 py-4">
-            <SectionEyebrow>Department library</SectionEyebrow>
-            <span className="font-sans text-[12px] text-stone">Curated by HOD</span>
-          </div>
-          <ul className="divide-y divide-sand-light">
+        <section className="overflow-hidden rounded-lg border border-line bg-card shadow-card-sm lg:col-span-5">
+          <header className="flex items-center justify-between border-b border-line px-5 py-3.5">
+            <div>
+              <h2 className="text-small font-semibold text-ink">Department library</h2>
+              <p className="text-micro text-muted">Curated by HOD</p>
+            </div>
+          </header>
+          <ul className="divide-y divide-line">
             {DEPT.map((d) => {
               const done = duplicated.has(d.id);
               return (
-                <li key={d.id} className="group flex items-start gap-3 px-6 py-4 hover:bg-sand-light/40">
-                  <BookOpenText className="h-5 w-5 flex-none text-earth" strokeWidth={1.5} aria-hidden />
+                <li
+                  key={d.id}
+                  className="group flex items-start gap-3 px-5 py-4 transition-colors hover:bg-surface/60"
+                >
+                  <span className="inline-flex h-10 w-10 flex-none items-center justify-center rounded-md bg-brand-accent/15 text-brand-accent">
+                    <BookOpenText className="h-4 w-4" strokeWidth={1.75} aria-hidden />
+                  </span>
                   <div className="min-w-0 flex-1">
-                    <p className="font-display text-[16px] leading-snug text-ink group-hover:text-earth">
+                    <p className="text-small font-semibold leading-snug text-ink">
                       {d.title}
                     </p>
-                    <p className="mt-0.5 font-sans text-[12px] text-stone">
+                    <p className="mt-0.5 text-micro text-muted">
                       {d.author} · ♥ {d.hearts}
                     </p>
                   </div>
@@ -191,10 +241,10 @@ export default function LessonPlansPage() {
                     onClick={() => duplicate(d)}
                     disabled={done}
                     className={[
-                      'inline-flex items-center gap-1 rounded border px-2 py-1 font-sans text-[11px] font-medium transition-colors',
+                      'inline-flex items-center gap-1 rounded-full border px-3 py-1 text-micro font-semibold transition-colors',
                       done
-                        ? 'border-ok/40 bg-[#F0F6F2] text-ok cursor-not-allowed'
-                        : 'border-sand bg-white text-earth hover:bg-sand-light',
+                        ? 'cursor-not-allowed border-success/30 bg-success/5 text-success'
+                        : 'border-line bg-card text-ink hover:bg-surface',
                     ].join(' ')}
                   >
                     {done ? (
@@ -204,7 +254,7 @@ export default function LessonPlansPage() {
                       </>
                     ) : (
                       <>
-                        <Copy className="h-3 w-3" strokeWidth={1.5} aria-hidden />
+                        <Copy className="h-3 w-3" strokeWidth={1.75} aria-hidden />
                         Duplicate
                       </>
                     )}
@@ -213,58 +263,62 @@ export default function LessonPlansPage() {
               );
             })}
           </ul>
-        </EditorialCard>
+        </section>
       </div>
 
       {/* CPD */}
-      <EditorialCard className="overflow-hidden">
-        <div className="flex flex-wrap items-center justify-between gap-3 border-b border-sand px-6 py-4">
+      <section className="overflow-hidden rounded-lg border border-line bg-card shadow-card-sm">
+        <header className="flex flex-wrap items-center justify-between gap-3 border-b border-line px-5 py-3.5">
           <div>
-            <SectionEyebrow>CPD logbook</SectionEyebrow>
-            <p className="mt-1 font-sans text-[13px] text-stone">
+            <h2 className="text-small font-semibold text-ink">CPD logbook</h2>
+            <p className="mt-0.5 text-micro text-muted">
               {hoursThisYear} of 30 hours completed this appraisal year
             </p>
           </div>
           <button
             type="button"
             onClick={() => setNewCpdOpen(true)}
-            className="inline-flex h-9 items-center gap-1.5 rounded border border-sand bg-white px-3 font-sans text-[12px] font-medium text-earth hover:bg-sand-light"
+            className="inline-flex h-9 items-center gap-1.5 rounded-full border border-line bg-card px-4 text-micro font-semibold text-ink transition-colors hover:bg-surface"
           >
-            <Plus className="h-3.5 w-3.5" strokeWidth={1.5} aria-hidden />
+            <Plus className="h-3.5 w-3.5" strokeWidth={1.75} aria-hidden />
             Log CPD
           </button>
-        </div>
+        </header>
 
-        <div className="px-6 py-4">
-          <div className="h-2 overflow-hidden rounded-full bg-sand">
+        <div className="px-5 py-4">
+          <div className="h-2 overflow-hidden rounded-full bg-surface">
             <div
-              className="h-full bg-terracotta transition-[width] duration-300"
-              style={{ width: `${Math.min(100, (hoursThisYear / 30) * 100)}%` }}
+              className="h-full bg-brand-primary transition-[width] duration-300"
+              style={{ width: `${cpdPct}%` }}
             />
           </div>
         </div>
 
-        <ul className="divide-y divide-sand-light">
+        <ul className="divide-y divide-line">
           {cpd.map((c) => (
-            <li key={c.id} className="flex items-center gap-4 px-6 py-4">
+            <li key={c.id} className="flex items-center gap-4 px-5 py-4">
               {c.status === 'completed' ? (
-                <FileCheck2 className="h-5 w-5 flex-none text-ok" strokeWidth={1.5} aria-hidden />
+                <span className="inline-flex h-10 w-10 flex-none items-center justify-center rounded-md bg-success/10 text-success">
+                  <FileCheck2 className="h-4 w-4" strokeWidth={1.75} aria-hidden />
+                </span>
               ) : (
-                <Award className="h-5 w-5 flex-none text-ochre" strokeWidth={1.5} aria-hidden />
+                <span className="inline-flex h-10 w-10 flex-none items-center justify-center rounded-md bg-warning/10 text-warning">
+                  <Award className="h-4 w-4" strokeWidth={1.75} aria-hidden />
+                </span>
               )}
               <div className="min-w-0 flex-1">
-                <p className="font-sans text-[14px] font-medium text-ink">{c.title}</p>
-                <p className="mt-0.5 font-sans text-[12px] text-stone">
+                <p className="text-small font-semibold text-ink">{c.title}</p>
+                <p className="mt-0.5 text-micro text-muted">
                   {c.when} · {c.hours} hours
                 </p>
               </div>
-              <TeacherStatusPill state={c.status === 'completed' ? 'marked' : 'scheduled'}>
-                {c.status === 'completed' ? 'logged' : 'upcoming'}
-              </TeacherStatusPill>
+              <Badge tone={c.status === 'completed' ? 'success' : 'warning'} dot>
+                {c.status === 'completed' ? 'Logged' : 'Upcoming'}
+              </Badge>
             </li>
           ))}
         </ul>
-      </EditorialCard>
+      </section>
 
       {newPlanOpen ? (
         <PlanModal
@@ -287,6 +341,34 @@ export default function LessonPlansPage() {
         <CpdModal onClose={() => setNewCpdOpen(false)} onSave={addCpd} />
       ) : null}
     </div>
+  );
+}
+
+function KpiTile({
+  label,
+  value,
+  tone,
+  ring,
+  ringTone,
+}: {
+  label: string;
+  value: string;
+  tone?: 'brand' | 'success' | 'warning';
+  ring?: number;
+  ringTone?: 'success' | 'brand' | 'warning' | 'danger';
+}) {
+  const valueColor =
+    tone === 'warning' ? 'text-warning' : tone === 'success' ? 'text-success' : tone === 'brand' ? 'text-brand-primary' : 'text-ink';
+  return (
+    <li className="rounded-lg border border-line bg-card p-5 shadow-card-sm">
+      <div className="flex items-center justify-between">
+        <p className="text-micro font-semibold uppercase tracking-[0.12em] text-muted">{label}</p>
+        {ring !== undefined && ringTone ? (
+          <ProgressRing value={ring} size={44} stroke={5} tone={ringTone} />
+        ) : null}
+      </div>
+      <p className={`mt-3 text-h2 tabular-nums ${valueColor}`}>{value}</p>
+    </li>
   );
 }
 
@@ -326,23 +408,23 @@ function PlanModal({
       <form
         onSubmit={save}
         onClick={(e) => e.stopPropagation()}
-        className="relative flex max-h-[88vh] w-full max-w-xl flex-col overflow-hidden rounded bg-white shadow-e3"
+        className="relative flex max-h-[88vh] w-full max-w-xl flex-col overflow-hidden rounded-lg border border-line bg-card shadow-card-md"
       >
-        <div className="flex items-center justify-between border-b border-sand px-6 py-4">
-          <h2 className="font-display text-[20px] text-ink">{title}</h2>
+        <div className="flex items-center justify-between border-b border-line px-6 py-4">
+          <h2 className="text-h3 text-ink">{title}</h2>
           <button
             type="button"
             onClick={onClose}
             aria-label="Close"
-            className="rounded p-2 text-stone transition-colors hover:bg-sand-light hover:text-ink"
+            className="rounded-full p-2 text-muted transition-colors hover:bg-surface hover:text-ink"
           >
-            <X className="h-5 w-5" strokeWidth={1.5} />
+            <X className="h-5 w-5" strokeWidth={1.75} />
           </button>
         </div>
         <div className="space-y-4 overflow-y-auto p-6">
           <Field label="Title">
             <input
-              className="input-boxed"
+              className={inputClass}
               value={form.title}
               onChange={(e) => setForm((f) => ({ ...f, title: e.target.value }))}
               placeholder="e.g. Form 4A — Quadratic Equations · Lesson 8"
@@ -351,7 +433,7 @@ function PlanModal({
           </Field>
           <Field label="When">
             <input
-              className="input-boxed"
+              className={inputClass}
               value={form.date}
               onChange={(e) => setForm((f) => ({ ...f, date: e.target.value }))}
               placeholder="Friday 24 Apr · 09:10"
@@ -361,7 +443,7 @@ function PlanModal({
           <div className="grid grid-cols-2 gap-3">
             <Field label="Form">
               <select
-                className="input-boxed"
+                className={inputClass}
                 value={form.form}
                 onChange={(e) => setForm((f) => ({ ...f, form: e.target.value }))}
               >
@@ -373,7 +455,7 @@ function PlanModal({
             </Field>
             <Field label="Stream">
               <select
-                className="input-boxed"
+                className={inputClass}
                 value={form.stream}
                 onChange={(e) => setForm((f) => ({ ...f, stream: e.target.value }))}
               >
@@ -387,7 +469,7 @@ function PlanModal({
           </div>
           <Field label="Syllabus reference">
             <input
-              className="input-boxed"
+              className={inputClass}
               value={form.syllabus}
               onChange={(e) => setForm((f) => ({ ...f, syllabus: e.target.value }))}
               placeholder="ZIMSEC 4004 · §3.4"
@@ -395,7 +477,7 @@ function PlanModal({
           </Field>
           <Field label="Status">
             <select
-              className="input-boxed"
+              className={inputClass}
               value={form.status}
               onChange={(e) => setForm((f) => ({ ...f, status: e.target.value as Plan['status'] }))}
             >
@@ -405,15 +487,18 @@ function PlanModal({
             </select>
           </Field>
         </div>
-        <div className="flex items-center justify-end gap-2 border-t border-sand bg-white px-6 py-4">
+        <div className="flex items-center justify-end gap-2 border-t border-line bg-card px-6 py-4">
           <button
             type="button"
             onClick={onClose}
-            className="inline-flex h-10 items-center gap-2 rounded border border-sand bg-white px-3 font-sans text-[13px] font-medium text-stone hover:bg-sand-light"
+            className="inline-flex h-10 items-center gap-2 rounded-full border border-line bg-card px-4 text-small font-semibold text-ink transition-colors hover:bg-surface"
           >
             Cancel
           </button>
-          <button type="submit" className="btn-terracotta">
+          <button
+            type="submit"
+            className="inline-flex h-10 items-center gap-2 rounded-full bg-brand-primary px-4 text-small font-semibold text-white shadow-card-sm transition hover:bg-brand-primary/90 hover:shadow-card-md"
+          >
             {initial ? 'Save changes' : 'Create plan'}
           </button>
         </div>
@@ -452,23 +537,23 @@ function CpdModal({
       <form
         onSubmit={save}
         onClick={(e) => e.stopPropagation()}
-        className="relative flex w-full max-w-md flex-col overflow-hidden rounded bg-white shadow-e3"
+        className="relative flex w-full max-w-md flex-col overflow-hidden rounded-lg border border-line bg-card shadow-card-md"
       >
-        <div className="flex items-center justify-between border-b border-sand px-6 py-4">
-          <h2 className="font-display text-[20px] text-ink">Log CPD</h2>
+        <div className="flex items-center justify-between border-b border-line px-6 py-4">
+          <h2 className="text-h3 text-ink">Log CPD</h2>
           <button
             type="button"
             onClick={onClose}
             aria-label="Close"
-            className="rounded p-2 text-stone transition-colors hover:bg-sand-light hover:text-ink"
+            className="rounded-full p-2 text-muted transition-colors hover:bg-surface hover:text-ink"
           >
-            <X className="h-5 w-5" strokeWidth={1.5} />
+            <X className="h-5 w-5" strokeWidth={1.75} />
           </button>
         </div>
         <div className="space-y-4 p-6">
           <Field label="Activity">
             <input
-              className="input-boxed"
+              className={inputClass}
               value={form.title}
               onChange={(e) => setForm((f) => ({ ...f, title: e.target.value }))}
               placeholder="e.g. ZIMTA curriculum workshop"
@@ -478,7 +563,7 @@ function CpdModal({
           <div className="grid grid-cols-2 gap-3">
             <Field label="When">
               <input
-                className="input-boxed"
+                className={inputClass}
                 value={form.when}
                 onChange={(e) => setForm((f) => ({ ...f, when: e.target.value }))}
                 placeholder="12 May 2026"
@@ -490,7 +575,7 @@ function CpdModal({
                 type="number"
                 min={0.5}
                 step={0.5}
-                className="input-boxed"
+                className={inputClass}
                 value={form.hours}
                 onChange={(e) => setForm((f) => ({ ...f, hours: Number(e.target.value) }))}
                 required
@@ -499,7 +584,7 @@ function CpdModal({
           </div>
           <Field label="Status">
             <select
-              className="input-boxed"
+              className={inputClass}
               value={form.status}
               onChange={(e) => setForm((f) => ({ ...f, status: e.target.value as Cpd['status'] }))}
             >
@@ -508,15 +593,18 @@ function CpdModal({
             </select>
           </Field>
         </div>
-        <div className="flex items-center justify-end gap-2 border-t border-sand bg-white px-6 py-4">
+        <div className="flex items-center justify-end gap-2 border-t border-line bg-card px-6 py-4">
           <button
             type="button"
             onClick={onClose}
-            className="inline-flex h-10 items-center gap-2 rounded border border-sand bg-white px-3 font-sans text-[13px] font-medium text-stone hover:bg-sand-light"
+            className="inline-flex h-10 items-center gap-2 rounded-full border border-line bg-card px-4 text-small font-semibold text-ink transition-colors hover:bg-surface"
           >
             Cancel
           </button>
-          <button type="submit" className="btn-terracotta">
+          <button
+            type="submit"
+            className="inline-flex h-10 items-center gap-2 rounded-full bg-brand-primary px-4 text-small font-semibold text-white shadow-card-sm transition hover:bg-brand-primary/90 hover:shadow-card-md"
+          >
             Add to log
           </button>
         </div>
@@ -525,10 +613,13 @@ function CpdModal({
   );
 }
 
+const inputClass =
+  'h-11 w-full rounded-md border border-line bg-card px-3 text-small text-ink placeholder:text-muted focus:border-brand-primary focus:outline-none focus:ring-2 focus:ring-brand-primary/20';
+
 function Field({ label, children }: { label: string; children: React.ReactNode }) {
   return (
     <label className="block">
-      <span className="mb-2 block font-mono text-[11px] font-medium uppercase tracking-[0.14em] text-stone">
+      <span className="mb-2 block text-micro font-semibold uppercase tracking-[0.12em] text-muted">
         {label}
       </span>
       {children}

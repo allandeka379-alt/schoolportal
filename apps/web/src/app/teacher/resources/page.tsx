@@ -13,8 +13,7 @@ import {
   X,
 } from 'lucide-react';
 
-import { EditorialCard } from '@/components/student/primitives';
-import { TeacherPageHeader, TeacherStatusPill } from '@/components/teacher/primitives';
+import { Badge } from '@/components/ui/badge';
 
 type Tab = 'mine' | 'department' | 'class';
 type Kind = 'Notes' | 'Past Paper' | 'Video' | 'Worksheet' | 'Interactive';
@@ -47,12 +46,20 @@ const DEPARTMENT: readonly Resource[] = [
   { id: 'r-dep-5', title: 'ZIMSEC 2023 · Video walkthrough', kind: 'Video', size: '380 MB', visibility: 'department', contributor: 'Mr Phiri', form: '4' },
 ];
 
-const KIND_ICON: Record<Kind, React.ElementType> = {
-  Notes: FileText,
-  'Past Paper': FileText,
-  Video: PlayCircle,
-  Worksheet: FileText,
-  Interactive: PlayCircle,
+const KIND_META: Record<Kind, { icon: React.ElementType; tone: 'brand' | 'success' | 'warning' | 'info' | 'gold' }> = {
+  Notes: { icon: FileText, tone: 'brand' },
+  'Past Paper': { icon: FileText, tone: 'warning' },
+  Video: { icon: PlayCircle, tone: 'info' },
+  Worksheet: { icon: FileText, tone: 'success' },
+  Interactive: { icon: PlayCircle, tone: 'gold' },
+};
+
+const TONE_BG: Record<'brand' | 'success' | 'warning' | 'info' | 'gold', string> = {
+  brand: 'bg-brand-primary/10 text-brand-primary',
+  success: 'bg-success/10 text-success',
+  info: 'bg-info/10 text-info',
+  warning: 'bg-warning/10 text-warning',
+  gold: 'bg-brand-accent/15 text-brand-accent',
 };
 
 const KIND_FILTERS: readonly ('All' | Kind)[] = [
@@ -119,76 +126,90 @@ export default function TeacherResourcesPage() {
     setTimeout(() => setFlash(null), 2000);
   }
 
+  const publishedCount = mine.filter((r) => r.visibility === 'class').length;
+  const examReleaseCount = mine.filter((r) => r.visibility === 'exam-release').length;
+
   return (
     <div className="space-y-8">
-      <TeacherPageHeader
-        eyebrow="Resources"
-        title="Your library,"
-        accent="and the department&rsquo;s."
-        subtitle={`${mine.length} items in your library · ${mine.filter((r) => r.visibility === 'class').length} published to students`}
-        right={
-          <button type="button" className="btn-terracotta">
-            <Upload className="h-4 w-4" strokeWidth={1.5} aria-hidden />
-            Upload
-          </button>
-        }
-      />
+      {/* Header */}
+      <header className="flex flex-wrap items-end justify-between gap-4">
+        <div>
+          <p className="text-small text-muted">Resources</p>
+          <h1 className="mt-1 text-[clamp(1.75rem,3vw,2.25rem)] font-bold leading-tight tracking-tight text-ink">
+            Your library, and the department&rsquo;s
+          </h1>
+          <p className="mt-2 text-small text-muted">
+            {mine.length} items in your library · {publishedCount} published to students
+          </p>
+        </div>
+        <button
+          type="button"
+          className="inline-flex h-11 items-center gap-2 rounded-full bg-brand-primary px-5 text-small font-semibold text-white shadow-card-sm transition hover:bg-brand-primary/90 hover:shadow-card-md"
+        >
+          <Upload className="h-4 w-4" strokeWidth={1.75} aria-hidden />
+          Upload
+        </button>
+      </header>
+
+      {/* KPI tiles */}
+      <ul className="grid grid-cols-2 gap-3 sm:grid-cols-4">
+        <KpiTile label="Your library" value={String(mine.length)} sub="Items on file" />
+        <KpiTile label="Published" value={String(publishedCount)} sub="Class resources" tone="success" />
+        <KpiTile label="Exam releases" value={String(examReleaseCount)} sub="Scheduled drop" tone="warning" />
+        <KpiTile label="Department" value={String(DEPARTMENT.length)} sub="Shared items" tone="brand" />
+      </ul>
 
       {flash ? (
-        <div className="rounded border border-ok/40 bg-[#F0F6F2] px-4 py-2 font-sans text-[13px] text-ok">
+        <div className="rounded-lg border border-success/30 bg-success/[0.04] px-4 py-2.5 text-small text-ink">
+          <Check className="mr-2 inline-block h-3.5 w-3.5 text-success" strokeWidth={2} aria-hidden />
           {flash}
         </div>
       ) : null}
 
       {/* Tabs */}
-      <nav aria-label="Resources tabs" className="border-b border-sand">
-        <ul className="flex flex-wrap gap-0">
-          {(
-            [
-              { key: 'mine' as const, label: 'Mine', count: mine.length },
-              { key: 'department' as const, label: 'Department library', count: DEPARTMENT.length },
-              {
-                key: 'class' as const,
-                label: 'Class resources',
-                count: mine.filter((r) => r.visibility === 'class' || r.visibility === 'exam-release').length,
-              },
-            ]
-          ).map((t) => {
-            const active = t.key === tab;
-            return (
-              <li key={t.key}>
-                <button
-                  type="button"
-                  onClick={() => setTab(t.key)}
-                  className={[
-                    'inline-flex h-11 items-center gap-2 border-b-[2px] px-4 font-sans text-[14px] transition-colors',
-                    active
-                      ? 'border-terracotta font-semibold text-ink'
-                      : 'border-transparent text-stone hover:text-ink',
-                  ].join(' ')}
-                >
-                  {t.label}
-                  <span
-                    className={[
-                      'rounded-sm px-1.5 py-0.5 font-sans text-[11px] font-semibold tabular-nums',
-                      active ? 'bg-sand text-earth' : 'bg-sand-light text-stone',
-                    ].join(' ')}
-                  >
-                    {t.count}
-                  </span>
-                </button>
-              </li>
-            );
-          })}
-        </ul>
+      <nav aria-label="Resources tabs" className="inline-flex gap-1 rounded-full bg-surface p-1">
+        {(
+          [
+            { key: 'mine' as const, label: 'Mine', count: mine.length },
+            { key: 'department' as const, label: 'Department library', count: DEPARTMENT.length },
+            {
+              key: 'class' as const,
+              label: 'Class resources',
+              count: mine.filter((r) => r.visibility === 'class' || r.visibility === 'exam-release').length,
+            },
+          ]
+        ).map((t) => {
+          const active = t.key === tab;
+          return (
+            <button
+              key={t.key}
+              type="button"
+              onClick={() => setTab(t.key)}
+              className={[
+                'inline-flex h-10 items-center gap-2 rounded-full px-4 text-small font-semibold transition-colors',
+                active ? 'bg-card text-ink shadow-card-sm' : 'text-muted hover:text-ink',
+              ].join(' ')}
+            >
+              {t.label}
+              <span
+                className={[
+                  'rounded-full px-1.5 py-0.5 text-micro tabular-nums',
+                  active ? 'bg-brand-primary/10 text-brand-primary' : 'bg-card/60 text-muted',
+                ].join(' ')}
+              >
+                {t.count}
+              </span>
+            </button>
+          );
+        })}
       </nav>
 
       {/* Search + filters */}
-      <div className="flex flex-wrap items-center gap-3">
-        <div className="relative flex-1 min-w-[260px]">
+      <div className="flex flex-wrap items-center gap-2">
+        <div className="relative min-w-[260px] flex-1 sm:max-w-sm">
           <Search
-            className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-stone"
-            strokeWidth={1.5}
+            className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted"
+            strokeWidth={1.75}
             aria-hidden
           />
           <input
@@ -196,16 +217,16 @@ export default function TeacherResourcesPage() {
             value={query}
             onChange={(e) => setQuery(e.target.value)}
             placeholder="Search resources…"
-            className="h-10 w-full rounded border border-sand bg-white pl-9 pr-9 font-sans text-[13px] text-ink placeholder-stone focus:border-terracotta focus:outline-none"
+            className="h-11 w-full rounded-full border border-line bg-card pl-9 pr-9 text-small text-ink placeholder:text-muted focus:border-brand-primary focus:outline-none focus:ring-2 focus:ring-brand-primary/20"
           />
           {query ? (
             <button
               type="button"
               onClick={() => setQuery('')}
               aria-label="Clear"
-              className="absolute right-2 top-1/2 -translate-y-1/2 rounded p-1 text-stone hover:bg-sand-light hover:text-ink"
+              className="absolute right-2 top-1/2 -translate-y-1/2 rounded-full p-1 text-muted transition-colors hover:bg-surface hover:text-ink"
             >
-              <X className="h-3.5 w-3.5" strokeWidth={1.5} />
+              <X className="h-3.5 w-3.5" strokeWidth={1.75} />
             </button>
           ) : null}
         </div>
@@ -217,10 +238,10 @@ export default function TeacherResourcesPage() {
               type="button"
               onClick={() => setKindFilter(k)}
               className={[
-                'inline-flex h-9 items-center rounded-full px-3 font-sans text-[12px] font-medium transition-colors',
+                'inline-flex h-9 items-center rounded-full px-3 text-micro font-semibold transition-colors',
                 kindFilter === k
-                  ? 'bg-ink text-cream'
-                  : 'border border-sand bg-white text-stone hover:bg-sand-light',
+                  ? 'bg-brand-primary text-white shadow-card-sm'
+                  : 'border border-line bg-card text-ink hover:bg-surface',
               ].join(' ')}
             >
               {k}
@@ -231,7 +252,7 @@ export default function TeacherResourcesPage() {
         <select
           value={formFilter}
           onChange={(e) => setFormFilter(e.target.value as (typeof FORMS)[number])}
-          className="h-9 rounded border border-sand bg-white px-3 font-sans text-[13px] font-medium text-earth hover:bg-sand-light focus:border-terracotta focus:outline-none"
+          className="h-10 rounded-full border border-line bg-card px-3 text-small font-semibold text-ink transition-colors hover:bg-surface focus:border-brand-primary focus:outline-none focus:ring-2 focus:ring-brand-primary/20"
         >
           {FORMS.map((f) => (
             <option key={f} value={f}>
@@ -242,49 +263,56 @@ export default function TeacherResourcesPage() {
       </div>
 
       {/* Resource list */}
-      <EditorialCard className="overflow-hidden">
+      <section className="overflow-hidden rounded-lg border border-line bg-card shadow-card-sm">
         {filtered.length === 0 ? (
           <div className="p-10 text-center">
-            <p className="font-display text-[18px] text-ink">No matches.</p>
-            <p className="mt-2 font-sans text-[13px] text-stone">
+            <p className="text-h3 text-ink">No matches.</p>
+            <p className="mt-2 text-small text-muted">
               Try clearing a filter or uploading something new.
             </p>
           </div>
         ) : (
-          <ul className="divide-y divide-sand-light">
+          <ul className="divide-y divide-line">
             {filtered.map((r) => {
-              const Icon = KIND_ICON[r.kind] ?? FileText;
+              const meta = KIND_META[r.kind];
+              const Icon = meta.icon;
               const isAdded = added.has(r.id) || mine.some((m) => m.id === r.id);
               const isDownloaded = downloaded.has(r.id);
               return (
                 <li
                   key={r.id}
-                  className="group flex items-center gap-4 px-6 py-4 hover:bg-sand-light/40"
+                  className="group flex items-center gap-4 px-5 py-4 transition-colors hover:bg-surface/40"
                 >
-                  <div className="flex h-10 w-10 flex-none items-center justify-center rounded bg-sand-light">
-                    <Icon className="h-5 w-5 text-earth" strokeWidth={1.5} aria-hidden />
-                  </div>
+                  <span className={`inline-flex h-10 w-10 flex-none items-center justify-center rounded-md ${TONE_BG[meta.tone]}`}>
+                    <Icon className="h-4 w-4" strokeWidth={1.75} aria-hidden />
+                  </span>
                   <div className="min-w-0 flex-1">
-                    <p className="flex items-center gap-2 font-sans text-[11px] font-semibold uppercase tracking-[0.14em] text-stone">
-                      {r.kind}
+                    <div className="flex flex-wrap items-center gap-2">
+                      <Badge tone={meta.tone} dot>
+                        {r.kind}
+                      </Badge>
                       {r.visibility === 'private' ? (
-                        <TeacherStatusPill state="draft" />
+                        <Badge tone="neutral" dot>
+                          Private
+                        </Badge>
                       ) : r.visibility === 'exam-release' ? (
-                        <TeacherStatusPill state="scheduled">Exam release</TeacherStatusPill>
+                        <Badge tone="warning" dot>
+                          Exam release
+                        </Badge>
                       ) : null}
-                    </p>
-                    <p className="mt-1 truncate font-display text-[17px] text-ink group-hover:text-earth">
+                    </div>
+                    <p className="mt-1 truncate text-small font-semibold text-ink transition-colors group-hover:text-brand-primary">
                       {r.title}
                     </p>
-                    <p className="mt-0.5 font-sans text-[12px] text-stone">
+                    <p className="mt-0.5 text-micro text-muted">
                       {r.size}
                       {r.publishedTo ? ` · Published to ${r.publishedTo}` : ''}
                       {r.contributor ? ` · ${r.contributor}` : ''}
                       {r.form ? ` · Form ${r.form}` : ''}
                     </p>
                     {r.openedBy !== undefined && r.outOf !== undefined ? (
-                      <p className="mt-1 flex items-center gap-1.5 font-sans text-[11px] text-ok">
-                        <Eye className="h-3 w-3" strokeWidth={1.5} aria-hidden />
+                      <p className="mt-1 flex items-center gap-1.5 text-micro text-success">
+                        <Eye className="h-3 w-3" strokeWidth={1.75} aria-hidden />
                         Opened by {r.openedBy} / {r.outOf} in your class
                       </p>
                     ) : null}
@@ -295,21 +323,21 @@ export default function TeacherResourcesPage() {
                       onClick={() => download(r.id, r.title)}
                       aria-label="Download"
                       className={[
-                        'rounded p-2 transition-colors',
+                        'rounded-full p-2 transition-colors',
                         isDownloaded
-                          ? 'text-ok hover:bg-[#E6F0E9]'
-                          : 'text-stone hover:bg-sand hover:text-ink',
+                          ? 'bg-success/10 text-success'
+                          : 'text-muted hover:bg-surface hover:text-ink',
                       ].join(' ')}
                     >
                       {isDownloaded ? (
                         <Check className="h-4 w-4" strokeWidth={2} />
                       ) : (
-                        <Download className="h-4 w-4" strokeWidth={1.5} />
+                        <Download className="h-4 w-4" strokeWidth={1.75} />
                       )}
                     </button>
                     {tab === 'department' ? (
                       isAdded ? (
-                        <span className="inline-flex h-8 items-center gap-1 rounded bg-[#E6F0E9] px-3 font-sans text-[12px] font-medium text-ok">
+                        <span className="inline-flex h-8 items-center gap-1 rounded-full border border-success/30 bg-success/5 px-3 text-micro font-semibold text-success">
                           <Check className="h-3.5 w-3.5" strokeWidth={2} aria-hidden />
                           In your library
                         </span>
@@ -317,9 +345,9 @@ export default function TeacherResourcesPage() {
                         <button
                           type="button"
                           onClick={() => addToMine(r)}
-                          className="inline-flex h-8 items-center rounded bg-sand px-3 font-sans text-[12px] font-medium text-earth hover:bg-sand-light"
+                          className="inline-flex h-8 items-center gap-1 rounded-full border border-line bg-card px-3 text-micro font-semibold text-ink transition-colors hover:bg-surface"
                         >
-                          <Plus className="h-3.5 w-3.5" strokeWidth={1.5} aria-hidden />
+                          <Plus className="h-3.5 w-3.5" strokeWidth={1.75} aria-hidden />
                           Add to mine
                         </button>
                       )
@@ -330,7 +358,29 @@ export default function TeacherResourcesPage() {
             })}
           </ul>
         )}
-      </EditorialCard>
+      </section>
     </div>
+  );
+}
+
+function KpiTile({
+  label,
+  value,
+  sub,
+  tone,
+}: {
+  label: string;
+  value: string;
+  sub?: string;
+  tone?: 'brand' | 'success' | 'warning';
+}) {
+  const valueColor =
+    tone === 'warning' ? 'text-warning' : tone === 'success' ? 'text-success' : tone === 'brand' ? 'text-brand-primary' : 'text-ink';
+  return (
+    <li className="rounded-lg border border-line bg-card p-5 shadow-card-sm">
+      <p className="text-micro font-semibold uppercase tracking-[0.12em] text-muted">{label}</p>
+      <p className={`mt-2 text-h2 tabular-nums ${valueColor}`}>{value}</p>
+      {sub ? <p className="mt-1 text-micro text-muted">{sub}</p> : null}
+    </li>
   );
 }

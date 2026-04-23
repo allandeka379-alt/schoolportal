@@ -1,10 +1,12 @@
 'use client';
 
 import { useState } from 'react';
-import { CheckCircle2, Clock, MinusCircle, Save, XCircle } from 'lucide-react';
+import { CheckCircle2, Clock, Info, MinusCircle, Save, XCircle } from 'lucide-react';
 
-import { EditorialAvatar, EditorialCard, SectionEyebrow } from '@/components/student/primitives';
-import { ClassChip, TeacherPageHeader } from '@/components/teacher/primitives';
+import { Badge } from '@/components/ui/badge';
+import { ProgressRing } from '@/components/student/progress-ring';
+import { EditorialAvatar } from '@/components/student/primitives';
+import { ClassChip } from '@/components/teacher/primitives';
 import { STUDENTS } from '@/lib/mock/fixtures';
 
 type Status = 'present' | 'absent' | 'late' | 'excused';
@@ -25,13 +27,12 @@ const INITIAL: Row[] = STUDENTS.filter((s) => s.form === 'Form 3' && s.stream ==
 );
 
 /**
- * Attendance register — §11.
+ * Teacher attendance register — card-dense redesign.
  *
- *   - 48px rows (48px+ tap target on mobile)
- *   - Default: every student Present (absences are the exception)
- *   - Four statuses: Present · Absent · Late · Excused
- *   - Excused status reveals an optional reason field
- *   - Auto-save on every change
+ *   - KPI tile row (Attendance ring / Present / Late / Excused / Absent)
+ *   - 48-px tappable rows grouped into a civic card
+ *   - 4-state pill picker (Present/Late/Excused/Absent)
+ *   - Auto-save helper text
  */
 export default function AttendancePage() {
   const [rows, setRows] = useState<Row[]>(INITIAL);
@@ -44,53 +45,74 @@ export default function AttendancePage() {
   const absent = rows.filter((r) => r.status === 'absent').length;
   const late = rows.filter((r) => r.status === 'late').length;
   const excused = rows.filter((r) => r.status === 'excused').length;
+  const attendancePct = Math.round((present / Math.max(rows.length, 1)) * 100);
+  const ringTone: 'success' | 'brand' | 'warning' | 'danger' =
+    attendancePct >= 95 ? 'success' : attendancePct >= 85 ? 'brand' : attendancePct >= 75 ? 'warning' : 'danger';
 
   return (
-    <div className="space-y-6">
-      <TeacherPageHeader
-        eyebrow="Register"
-        title="Form 4A · Mathematics,"
-        accent="07:30."
-        subtitle={new Date().toLocaleDateString('en-ZW', {
-          weekday: 'long',
-          day: 'numeric',
-          month: 'long',
-          year: 'numeric',
-        })}
-        right={
-          <>
-            <ClassChip form="4" stream="A" subjectTone="ochre" />
-            <button type="button" className="btn-terracotta">
-              <Save className="h-4 w-4" strokeWidth={1.5} aria-hidden />
-              Save register
-            </button>
-          </>
-        }
-      />
-
-      {/* Stats strip */}
-      <div className="grid grid-cols-2 gap-3 md:grid-cols-4">
-        <Stat label="Present" value={present} tone="ok" />
-        <Stat label="Late" value={late} tone="warn" />
-        <Stat label="Excused" value={excused} tone="neutral" />
-        <Stat label="Absent" value={absent} tone="danger" />
-      </div>
-
-      {/* Register */}
-      <EditorialCard className="overflow-hidden">
-        <div className="flex items-center justify-between border-b border-sand px-6 py-3">
-          <SectionEyebrow>Roll call</SectionEyebrow>
-          <p className="font-sans text-[12px] text-stone">
-            Default is <strong className="text-ink">Present</strong> — override exceptions only. Saves
-            automatically.
+    <div className="space-y-8">
+      {/* Header */}
+      <header className="flex flex-wrap items-end justify-between gap-4">
+        <div>
+          <p className="text-small text-muted">Register</p>
+          <h1 className="mt-1 text-[clamp(1.75rem,3vw,2.25rem)] font-bold leading-tight tracking-tight text-ink">
+            Form 4A · Mathematics, 07:30
+          </h1>
+          <p className="mt-2 text-small text-muted">
+            {new Date().toLocaleDateString('en-ZW', {
+              weekday: 'long',
+              day: 'numeric',
+              month: 'long',
+              year: 'numeric',
+            })}
           </p>
         </div>
-        <ul className="divide-y divide-sand-light">
+        <div className="flex flex-wrap items-center gap-2">
+          <ClassChip form="4" stream="A" subjectTone="ochre" />
+          <button
+            type="button"
+            className="inline-flex h-11 items-center gap-2 rounded-full bg-brand-primary px-5 text-small font-semibold text-white shadow-card-sm transition hover:bg-brand-primary/90 hover:shadow-card-md"
+          >
+            <Save className="h-4 w-4" strokeWidth={1.75} aria-hidden />
+            Save register
+          </button>
+        </div>
+      </header>
+
+      {/* Stats strip */}
+      <ul className="grid grid-cols-2 gap-3 sm:grid-cols-5">
+        <KpiTile
+          label="Attendance"
+          value={`${attendancePct}%`}
+          ring={attendancePct}
+          ringTone={ringTone}
+        />
+        <KpiTile label="Present" value={String(present)} tone="success" />
+        <KpiTile label="Late" value={String(late)} tone={late > 0 ? 'warning' : undefined} />
+        <KpiTile label="Excused" value={String(excused)} />
+        <KpiTile label="Absent" value={String(absent)} tone={absent > 0 ? 'danger' : undefined} />
+      </ul>
+
+      {/* Register */}
+      <section className="overflow-hidden rounded-lg border border-line bg-card shadow-card-sm">
+        <header className="flex items-center justify-between border-b border-line px-5 py-3.5">
+          <div>
+            <h2 className="text-small font-semibold text-ink">Roll call</h2>
+            <p className="text-micro text-muted">
+              Default is <strong className="text-ink">Present</strong> — override exceptions only. Saves
+              automatically.
+            </p>
+          </div>
+          <Badge tone="success" dot>
+            Auto-saving
+          </Badge>
+        </header>
+        <ul className="divide-y divide-line">
           {rows.map((r) => (
-            <li key={r.id} className="flex min-h-[48px] items-center gap-3 px-6 py-2.5">
+            <li key={r.id} className="flex min-h-[56px] items-center gap-3 px-5 py-2.5">
               <EditorialAvatar name={r.name} size="sm" />
-              <p className="flex-1 font-sans text-[14px] font-medium text-ink">{r.name}</p>
-              <div className="flex overflow-hidden rounded border border-sand bg-white">
+              <p className="flex-1 text-small font-semibold text-ink">{r.name}</p>
+              <div className="flex overflow-hidden rounded-full border border-line bg-card">
                 <StatusButton
                   selected={r.status === 'present'}
                   tone="ok"
@@ -123,41 +145,51 @@ export default function AttendancePage() {
             </li>
           ))}
         </ul>
-      </EditorialCard>
+      </section>
 
-      <p className="rounded border border-sand bg-sand-light/40 px-4 py-3 font-sans text-[12px] text-stone">
-        Parents of unexcused absences receive an SMS + in-app notification within 10 minutes of register
-        submission. &ldquo;Late&rdquo; does not trigger an alert — repeat lateness triggers a
-        weekly pattern notification to the form teacher.
-      </p>
+      <div className="flex items-start gap-3 rounded-lg border border-info/25 bg-info/[0.04] px-4 py-3 text-small text-ink">
+        <Info className="mt-0.5 h-4 w-4 flex-none text-info" strokeWidth={1.75} aria-hidden />
+        <span>
+          Parents of unexcused absences receive an SMS + in-app notification within 10 minutes of
+          register submission. &ldquo;Late&rdquo; does not trigger an alert — repeat lateness triggers
+          a weekly pattern notification to the form teacher.
+        </span>
+      </div>
     </div>
   );
 }
 
-function Stat({
+function KpiTile({
   label,
   value,
   tone,
+  ring,
+  ringTone,
 }: {
   label: string;
-  value: number;
-  tone: 'ok' | 'warn' | 'neutral' | 'danger';
+  value: string;
+  tone?: 'success' | 'warning' | 'danger';
+  ring?: number;
+  ringTone?: 'success' | 'brand' | 'warning' | 'danger';
 }) {
-  const colour =
-    tone === 'ok'
-      ? 'text-ok'
-      : tone === 'warn'
-      ? 'text-ochre'
+  const valueColor =
+    tone === 'warning'
+      ? 'text-warning'
+      : tone === 'success'
+      ? 'text-success'
       : tone === 'danger'
       ? 'text-danger'
       : 'text-ink';
   return (
-    <EditorialCard className="px-5 py-4">
-      <p className="font-sans text-[10px] font-semibold uppercase tracking-[0.14em] text-stone">
-        {label}
-      </p>
-      <p className={`mt-1 font-display text-[28px] leading-none tabular-nums ${colour}`}>{value}</p>
-    </EditorialCard>
+    <li className="rounded-lg border border-line bg-card p-5 shadow-card-sm">
+      <div className="flex items-center justify-between">
+        <p className="text-micro font-semibold uppercase tracking-[0.12em] text-muted">{label}</p>
+        {ring !== undefined && ringTone ? (
+          <ProgressRing value={ring} size={40} stroke={4} tone={ringTone} />
+        ) : null}
+      </div>
+      <p className={`mt-3 text-h2 tabular-nums ${valueColor}`}>{value}</p>
+    </li>
   );
 }
 
@@ -175,10 +207,10 @@ function StatusButton({
   label: string;
 }) {
   const toneClasses: Record<string, string> = {
-    ok: 'bg-ok text-cream',
-    warn: 'bg-ochre text-ink',
-    info: 'bg-earth text-cream',
-    danger: 'bg-danger text-cream',
+    ok: 'bg-success text-white',
+    warn: 'bg-warning text-white',
+    info: 'bg-info text-white',
+    danger: 'bg-danger text-white',
   };
   return (
     <button
@@ -187,13 +219,13 @@ function StatusButton({
       aria-pressed={selected}
       aria-label={label}
       className={[
-        'inline-flex h-9 items-center justify-center gap-1.5 px-3 font-sans text-[12px] font-semibold transition-colors',
+        'inline-flex h-10 items-center justify-center gap-1.5 px-3 text-micro font-semibold transition-colors',
         selected
           ? toneClasses[tone]
-          : 'border-l border-sand text-stone first:border-l-0 hover:bg-sand-light',
+          : 'border-l border-line text-muted first:border-l-0 hover:bg-surface hover:text-ink',
       ].join(' ')}
     >
-      <Icon className="h-3.5 w-3.5" strokeWidth={1.5} aria-hidden />
+      <Icon className="h-3.5 w-3.5" strokeWidth={1.75} aria-hidden />
       <span className="hidden sm:inline">{label}</span>
     </button>
   );
