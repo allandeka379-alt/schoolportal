@@ -1,20 +1,20 @@
 'use client';
 
 import Link from 'next/link';
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import {
   ArrowLeft,
   CheckCircle2,
   ChevronRight,
   Circle,
   CircleDot,
-  Filter,
   Flag,
   Highlighter,
   Mic,
   MinusSquare,
   PenSquare,
   Save,
+  Send,
   Shapes,
   Sparkles,
   Type,
@@ -32,8 +32,10 @@ import { TeacherStatusPill } from './primitives';
  *   Centre (flex): annotated submission viewer (PDF / image / text)
  *   Right (220px): marker — total, rubric sliders, comment, save-and-next
  *
- * A full keyboard motion is simulated. "Save & next" is the primary action.
- * Auto-save every 20s (simulated by state).
+ * Per-student rubric + comment state persists when you switch between
+ * submissions in the session, so the ergonomics feel real. Auto-save
+ * every 20s simulated via a timestamp. Keyboard shortcut ⌘+→ / Ctrl+→
+ * advances with save.
  */
 
 interface Props {
@@ -42,6 +44,11 @@ interface Props {
   classLabel: string;
   maxMarks: number;
   rubricTemplate: { criterion: string; max: number }[];
+}
+
+interface DraftState {
+  rubric: number[];
+  comment: string;
 }
 
 export function MarkingWorkspace({
@@ -54,29 +61,106 @@ export function MarkingWorkspace({
   const [currentIdx, setCurrentIdx] = useState(0);
   const [submissions, setSubmissions] = useState<Submission[]>([...SUBMISSIONS_PS7]);
   const [filter, setFilter] = useState<'all' | 'to-mark' | 'late' | 'marked' | 'flagged'>('all');
-  const [rubricScores, setRubricScores] = useState<number[]>(
-    rubricTemplate.map((r) => Math.round(r.max * 0.75)),
-  );
-  const [comment, setComment] = useState('');
+  const [drafts, setDrafts] = useState<Record<string, DraftState>>({});
+  const [published, setPublished] = useState(false);
+  const [autoSavedAt, setAutoSavedAt] = useState<number>(Date.now());
+  const [flash, setFlash] = useState<string | null>(null);
 
   const filtered = useMemo(() => {
     if (filter === 'all') return submissions;
-    return submissions.filter((s) => s.status === filter || (filter === 'to-mark' && (s.status === 'to-mark' || s.status === 'late')));
+    if (filter === 'to-mark')
+      return submissions.filter((s) => s.status === 'to-mark' || s.status === 'late');
+    return submissions.filter((s) => s.status === filter);
   }, [submissions, filter]);
 
-  const current = filtered[currentIdx] ?? submissions[0];
-  const total = rubricScores.reduce((sum, s) => sum + s, 0);
-  const markedCount = submissions.filter((s) => s.status === 'marked' || s.status === 'flagged').length;
+  const current = filtered[currentIdx] ?? filtered[0] ?? submissions[0];
 
-  function saveAndNext() {
+  // Ensure a draft exists for the current submission, pre-filled from its mark
+  // if it has one — so reopening a marked student restores their scores.
+  useEffect(() => {
+    if (!current) return;
+    if (drafts[current.id]) return;
+    const seed = seedDraft(current, rubricTemplate);
+    setDrafts((d) => ({ ...d, [current.id]: seed }));
+  }, [current, drafts, rubricTemplate]);
+
+  const draft = current ? drafts[current.id] : undefined;
+  const rubricScores = draft?.rubric ?? rubricTemplate.map((r) => Math.round(r.max * 0.75));
+  const comment = draft?.comment ?? '';
+  const total = rubricScores.reduce((sum, s) => sum + s, 0);
+
+  const markedCount = submissions.filter(
+    (s) => s.status === 'marked' || s.status === 'flagged',
+  ).length;
+  const allMarked = markedCount === submissions.filter((s) => s.status !== 'not-submitted').length;
+
+  // Simulated auto-save every 20s if there's any local draft change.
+  useEffect(() => {
+    const t = setInterval(() => setAutoSavedAt(Date.now()), 20_000);
+    return () => clearInterval(t);
+  }, []);
+
+  // Keyboard ⌘+→ / Ctrl+→ saves & advances.
+  useEffect(() => {
+    function onKey(e: KeyboardEvent) {
+      if ((e.metaKey || e.ctrlKey) && e.key === 'ArrowRight') {
+        e.preventDefault();
+        saveAndNext();
+      }
+    }
+    window.addEventListener('keydown', onKey);
+    return () => window.removeEventListener('keydown', onKey);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [current, rubricScores, comment, filtered]);
+
+  function updateRubric(i: number, v: number) {
+    if (!current) return;
+    setDrafts((d) => ({
+      ...d,
+      [current.id]: {
+        rubric: (d[current.id]?.rubric ?? rubricScores).map((x, j) => (j === i ? v : x)),
+        comment: d[current.id]?.comment ?? comment,
+      },
+    }));
+  }
+
+  function updateComment(v: string) {
+    if (!current) return;
+    setDrafts((d) => ({
+      ...d,
+      [current.id]: {
+        rubric: d[current.id]?.rubric ?? rubricScores,
+        comment: v,
+      },
+    }));
+  }
+
+  function saveOnly(asFlagged = false) {
+    if (!current || published) return;
     setSubmissions((prev) =>
       prev.map((s) =>
-        s.id === current?.id ? { ...s, status: 'marked', mark: total } : s,
+        s.id === current.id
+          ? { ...s, status: asFlagged ? 'flagged' : 'marked', mark: total }
+          : s,
       ),
     );
-    setComment('');
-    setRubricScores(rubricTemplate.map((r) => Math.round(r.max * 0.75)));
-    if (currentIdx < filtered.length - 1) setCurrentIdx(currentIdx + 1);
+    setAutoSavedAt(Date.now());
+    setFlash(asFlagged ? 'Flagged for moderation' : 'Saved');
+    setTimeout(() => setFlash(null), 1800);
+  }
+
+  function saveAndNext() {
+    if (!current || published) return;
+    saveOnly(false);
+    if (currentIdx < filtered.length - 1) {
+      setCurrentIdx(currentIdx + 1);
+    }
+  }
+
+  function releaseAll() {
+    setPublished(true);
+    setFlash('Released · parents and students notified');
+    setTimeout(() => setFlash(null), 2600);
   }
 
   return (
@@ -99,15 +183,44 @@ export function MarkingWorkspace({
           </div>
         </div>
         <div className="flex items-center gap-2">
+          {flash ? (
+            <span className="inline-flex h-8 items-center rounded-full bg-ink px-3 font-sans text-[11px] font-semibold text-cream">
+              {flash}
+            </span>
+          ) : (
+            <span className="font-sans text-[12px] text-stone">
+              Auto-saved{' '}
+              {new Date(autoSavedAt).toLocaleTimeString('en-ZW', {
+                hour: '2-digit',
+                minute: '2-digit',
+              })}
+            </span>
+          )}
           <span className="font-sans text-[12px] text-stone">
-            {markedCount} of {submissions.length} marked
+            · {markedCount} of {submissions.length} marked
           </span>
-          <button
-            type="button"
-            className="inline-flex h-9 items-center rounded border border-sand bg-white px-3 font-sans text-[12px] font-medium text-earth hover:bg-sand-light"
-          >
-            Before releasing…
-          </button>
+          {published ? (
+            <span className="inline-flex h-9 items-center gap-2 rounded border border-ok/40 bg-[#F0F6F2] px-3 font-sans text-[12px] font-semibold text-ok">
+              <CheckCircle2 className="h-4 w-4" strokeWidth={1.5} aria-hidden />
+              Released
+            </span>
+          ) : (
+            <button
+              type="button"
+              onClick={releaseAll}
+              disabled={!allMarked}
+              title={allMarked ? undefined : 'Finish marking every submission before release'}
+              className={[
+                'inline-flex h-9 items-center gap-2 rounded border px-3 font-sans text-[12px] font-semibold transition-colors',
+                allMarked
+                  ? 'border-terracotta bg-terracotta text-cream hover:bg-[#A74627]'
+                  : 'border-sand bg-white text-stone cursor-not-allowed',
+              ].join(' ')}
+            >
+              <Send className="h-3.5 w-3.5" strokeWidth={1.5} aria-hidden />
+              Release to students
+            </button>
+          )}
         </div>
       </div>
 
@@ -118,12 +231,8 @@ export function MarkingWorkspace({
             <p className="font-sans text-[11px] font-semibold uppercase tracking-[0.18em] text-earth">
               Queue
             </p>
-            <div className="mt-2 flex items-center gap-1">
-              <FilterChip
-                active={filter === 'all'}
-                onClick={() => setFilter('all')}
-                label="All"
-              />
+            <div className="mt-2 flex flex-wrap items-center gap-1">
+              <FilterChip active={filter === 'all'} onClick={() => setFilter('all')} label="All" />
               <FilterChip
                 active={filter === 'to-mark'}
                 onClick={() => setFilter('to-mark')}
@@ -165,26 +274,53 @@ export function MarkingWorkspace({
                       <p className="truncate font-sans text-[13px] font-medium text-ink">
                         {s.studentName}
                       </p>
-                      <p className="font-sans text-[11px] text-stone">{s.submittedAgo}</p>
+                      <p className="font-sans text-[11px] text-stone">
+                        {s.submittedAgo}
+                        {s.mark !== undefined ? ` · ${s.mark}/${s.outOf}` : ''}
+                      </p>
                     </div>
                     {s.status === 'marked' ? (
-                      <CheckCircle2 className="h-4 w-4 text-ok" strokeWidth={1.5} aria-label="Marked" />
+                      <CheckCircle2
+                        className="h-4 w-4 text-ok"
+                        strokeWidth={1.5}
+                        aria-label="Marked"
+                      />
                     ) : s.status === 'flagged' ? (
-                      <Flag className="h-4 w-4 text-danger" strokeWidth={1.5} aria-label="Flagged" />
+                      <Flag
+                        className="h-4 w-4 text-danger"
+                        strokeWidth={1.5}
+                        aria-label="Flagged"
+                      />
                     ) : s.status === 'late' ? (
                       <span className="rounded-sm bg-[#FDF4E3] px-1.5 py-0.5 font-sans text-[10px] font-semibold uppercase tracking-[0.14em] text-[#92650B]">
                         late
                       </span>
                     ) : s.status === 'not-submitted' ? (
-                      <MinusSquare className="h-4 w-4 text-stone" strokeWidth={1.5} aria-label="Not submitted" />
+                      <MinusSquare
+                        className="h-4 w-4 text-stone"
+                        strokeWidth={1.5}
+                        aria-label="Not submitted"
+                      />
                     ) : (
-                      <CircleDot className="h-4 w-4 text-earth" strokeWidth={1.5} aria-label="To mark" />
+                      <CircleDot
+                        className="h-4 w-4 text-earth"
+                        strokeWidth={1.5}
+                        aria-label="To mark"
+                      />
                     )}
                   </button>
                 </li>
               );
             })}
           </ul>
+          <div className="border-t border-sand px-4 py-3">
+            <p className="font-sans text-[11px] text-stone">
+              <kbd className="rounded bg-sand px-1 font-mono text-[10px] text-earth">⌘</kbd>
+              {' + '}
+              <kbd className="rounded bg-sand px-1 font-mono text-[10px] text-earth">→</kbd>{' '}
+              save &amp; advance
+            </p>
+          </div>
         </aside>
 
         {/* Viewer panel */}
@@ -196,6 +332,7 @@ export function MarkingWorkspace({
               </p>
               <p className="mt-0.5 font-sans text-[13px] font-medium text-ink">
                 {current?.studentName} · {current?.submittedAgo}
+                {current ? ` · ${current.files[0]?.name ?? 'no attachment'}` : ''}
               </p>
             </div>
             <div className="flex items-center gap-1">
@@ -207,7 +344,6 @@ export function MarkingWorkspace({
           </div>
 
           <div className="relative h-[540px] overflow-hidden bg-sand-light/40">
-            {/* Mock paper sheet */}
             <div className="absolute inset-6 rounded bg-white shadow-screenshot">
               <div className="border-b border-sand px-6 py-4">
                 <p className="font-display text-[20px] text-ink">{current?.studentName}</p>
@@ -274,6 +410,11 @@ export function MarkingWorkspace({
                 {total}
               </span>
               <span className="pb-1 font-sans text-[14px] text-stone">/ {maxMarks}</span>
+              <span className="ml-auto">
+                <TeacherStatusPill state={pillForStatus(current?.status)}>
+                  {labelForStatus(current?.status)}
+                </TeacherStatusPill>
+              </span>
             </div>
           </div>
 
@@ -299,12 +440,9 @@ export function MarkingWorkspace({
                     min={0}
                     max={r.max}
                     value={rubricScores[i]}
-                    onChange={(e) =>
-                      setRubricScores((prev) =>
-                        prev.map((v, j) => (j === i ? Number(e.target.value) : v)),
-                      )
-                    }
-                    className="mt-1 w-full accent-terracotta"
+                    onChange={(e) => updateRubric(i, Number(e.target.value))}
+                    disabled={published}
+                    className="mt-1 w-full accent-terracotta disabled:opacity-60"
                   />
                 </li>
               ))}
@@ -318,6 +456,13 @@ export function MarkingWorkspace({
               </p>
               <button
                 type="button"
+                onClick={() =>
+                  updateComment(
+                    comment
+                      ? `${comment} Keep the working clear and check your signs.`
+                      : 'Good grasp overall. Keep the working clear and check your signs.',
+                  )
+                }
                 className="inline-flex items-center gap-1 font-sans text-[11px] font-medium text-terracotta hover:underline"
               >
                 <Sparkles className="h-3 w-3" strokeWidth={1.5} aria-hidden />
@@ -327,17 +472,19 @@ export function MarkingWorkspace({
             <textarea
               rows={4}
               value={comment}
-              onChange={(e) => setComment(e.target.value)}
+              onChange={(e) => updateComment(e.target.value)}
+              disabled={published}
               placeholder="Specific, warm, actionable."
-              className="mt-2 w-full rounded border border-sand bg-white p-2.5 font-serif text-[13px] leading-relaxed text-ink placeholder-stone focus:border-terracotta focus:outline-none"
+              className="mt-2 w-full rounded border border-sand bg-white p-2.5 font-serif text-[13px] leading-relaxed text-ink placeholder-stone focus:border-terracotta focus:outline-none disabled:opacity-60"
             />
             <div className="mt-2 flex flex-wrap gap-1">
               {['Strong working', 'Watch signs', 'Try factoring', 'Well set out'].map((p) => (
                 <button
                   key={p}
                   type="button"
-                  onClick={() => setComment((c) => (c ? `${c} ${p}.` : `${p}.`))}
-                  className="rounded border border-sand bg-cream px-1.5 py-0.5 font-sans text-[11px] text-stone hover:border-terracotta hover:text-earth"
+                  disabled={published}
+                  onClick={() => updateComment(comment ? `${comment} ${p}.` : `${p}.`)}
+                  className="rounded border border-sand bg-cream px-1.5 py-0.5 font-sans text-[11px] text-stone hover:border-terracotta hover:text-earth disabled:opacity-60"
                 >
                   {p}
                 </button>
@@ -345,47 +492,104 @@ export function MarkingWorkspace({
             </div>
             <button
               type="button"
-              className="mt-3 inline-flex items-center gap-1.5 font-sans text-[12px] font-medium text-stone hover:text-terracotta"
+              disabled={published}
+              className="mt-3 inline-flex items-center gap-1.5 font-sans text-[12px] font-medium text-stone hover:text-terracotta disabled:opacity-60"
             >
               <Mic className="h-3.5 w-3.5" strokeWidth={1.5} aria-hidden />
               Record audio feedback
             </button>
           </div>
 
-          <div className="border-t border-sand px-5 py-4 space-y-2">
+          <div className="space-y-2 border-t border-sand px-5 py-4">
             <button
               type="button"
               onClick={saveAndNext}
-              className="btn-terracotta w-full"
+              disabled={published}
+              className="btn-terracotta w-full disabled:cursor-not-allowed disabled:opacity-60"
             >
               <Save className="h-4 w-4" strokeWidth={1.5} aria-hidden />
               Save &amp; next
             </button>
-            <button
-              type="button"
-              className="flex w-full items-center justify-center gap-1 rounded border border-sand bg-white px-3 py-2 font-sans text-[12px] font-medium text-earth hover:bg-sand-light"
-            >
-              <Circle className="h-3.5 w-3.5" strokeWidth={1.5} aria-hidden />
-              Save only
-            </button>
+            <div className="grid grid-cols-2 gap-2">
+              <button
+                type="button"
+                onClick={() => saveOnly(false)}
+                disabled={published}
+                className="inline-flex items-center justify-center gap-1 rounded border border-sand bg-white px-3 py-2 font-sans text-[12px] font-medium text-earth hover:bg-sand-light disabled:opacity-60"
+              >
+                <Circle className="h-3.5 w-3.5" strokeWidth={1.5} aria-hidden />
+                Save only
+              </button>
+              <button
+                type="button"
+                onClick={() => saveOnly(true)}
+                disabled={published}
+                className="inline-flex items-center justify-center gap-1 rounded border border-sand bg-white px-3 py-2 font-sans text-[12px] font-medium text-danger hover:bg-[#FBEBEA] disabled:opacity-60"
+              >
+                <Flag className="h-3.5 w-3.5" strokeWidth={1.5} aria-hidden />
+                Flag
+              </button>
+            </div>
           </div>
 
-          <div className="border-t border-sand px-5 py-3">
-            <p className="font-sans text-[11px] text-stone">
-              <kbd className="rounded bg-sand px-1 font-mono text-[10px] text-earth">
-                ⌘
-              </kbd>{' '}
-              +{' '}
-              <kbd className="rounded bg-sand px-1 font-mono text-[10px] text-earth">
-                →
-              </kbd>{' '}
-              to save &amp; advance
-            </p>
-          </div>
+          {published ? (
+            <div className="border-t border-sand bg-[#F0F6F2] px-5 py-3">
+              <p className="flex items-center gap-2 font-sans text-[11px] text-ok">
+                <CheckCircle2 className="h-3.5 w-3.5" strokeWidth={1.5} aria-hidden />
+                Grades released · {submissions.filter((s) => s.mark !== undefined).length} students
+                notified
+              </p>
+            </div>
+          ) : null}
         </aside>
       </div>
     </div>
   );
+}
+
+function seedDraft(
+  submission: Submission,
+  template: { criterion: string; max: number }[],
+): DraftState {
+  if (submission.mark !== undefined) {
+    // Distribute the existing mark across rubric criteria proportionally.
+    const total = template.reduce((s, r) => s + r.max, 0);
+    return {
+      rubric: template.map((r) => Math.round((submission.mark! / total) * r.max)),
+      comment: '',
+    };
+  }
+  return { rubric: template.map((r) => Math.round(r.max * 0.75)), comment: '' };
+}
+
+function pillForStatus(status: Submission['status'] | undefined) {
+  switch (status) {
+    case 'marked':
+      return 'marked';
+    case 'flagged':
+      return 'flagged';
+    case 'late':
+      return 'to-mark';
+    case 'not-submitted':
+      return 'draft';
+    default:
+      return 'to-mark';
+  }
+}
+
+function labelForStatus(status: Submission['status'] | undefined): string {
+  switch (status) {
+    case 'marked':
+      return 'marked';
+    case 'flagged':
+      return 'flagged';
+    case 'late':
+      return 'late';
+    case 'not-submitted':
+      return 'not submitted';
+    default:
+      return 'to mark';
+  }
 }
 
 function FilterChip({
