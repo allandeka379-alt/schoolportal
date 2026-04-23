@@ -1,6 +1,6 @@
-import { Badge, Button, Card, CardContent, CardHeader, CardTitle, Money, Stepper } from '@hha/ui';
-import { CheckCircle2, FileSearch, XCircle } from 'lucide-react';
+import { CheckCircle2, FileSearch, RefreshCw, Upload, XCircle } from 'lucide-react';
 
+import { Badge } from '@/components/ui/badge';
 import { SLIPS, STUDENTS } from '@/lib/mock/fixtures';
 
 const STEP_LABELS = {
@@ -21,72 +21,116 @@ const STEP_DESCRIPTIONS = {
   ACCOUNT_UPDATE: 'Update ledger, credit student, issue receipt.',
 } as const;
 
-function statusTone(s: string) {
+function statusTone(s: string): 'success' | 'danger' | 'info' | 'warning' {
   if (s === 'RECONCILED' || s === 'VERIFIED') return 'success';
   if (s === 'FAILED' || s === 'MANUAL_REVIEW') return 'danger';
+  if (s === 'OCR_IN_PROGRESS') return 'warning';
   return 'info';
 }
 
 export default function SlipQueuePage() {
-  // Pick the slip under active review for the detail pane.
   const active = SLIPS.find((s) => s.id === 'slip-2')!;
   const activeStudent = STUDENTS.find((s) => s.id === active.studentId)!;
 
   return (
-    <div className="space-y-6">
-      <div className="flex items-center justify-between">
+    <div className="space-y-8">
+      {/* Header */}
+      <header className="flex flex-wrap items-end justify-between gap-4">
         <div>
-          <h2 className="font-display text-2xl text-heritage-950">Bank-slip queue</h2>
-          <p className="text-sm text-granite-600 mt-1">
+          <p className="text-small text-muted">Admin · reconciliation</p>
+          <h1 className="mt-1 text-[clamp(1.75rem,3vw,2.25rem)] font-bold leading-tight tracking-tight text-ink">
+            Bank-slip queue
+          </h1>
+          <p className="mt-2 text-small text-muted">
             Six-step pipeline: enhance → OCR → parse → verify → reconcile → credit. Fraud is
             blocked at reconciliation — no balance clears without the deposit on our statement.
           </p>
         </div>
-        <div className="flex gap-2">
-          <Button variant="secondary">Import statements</Button>
-          <Button>Refresh queue</Button>
+        <div className="flex flex-wrap items-center gap-2">
+          <button className="inline-flex h-11 items-center gap-2 rounded-full border border-line bg-card px-4 text-small font-semibold text-ink transition-colors hover:bg-surface">
+            <Upload className="h-4 w-4" strokeWidth={1.75} aria-hidden />
+            Import statements
+          </button>
+          <button className="inline-flex h-11 items-center gap-2 rounded-full bg-brand-primary px-5 text-small font-semibold text-white shadow-card-sm transition hover:bg-brand-primary/90 hover:shadow-card-md">
+            <RefreshCw className="h-4 w-4" strokeWidth={1.75} aria-hidden />
+            Refresh queue
+          </button>
         </div>
-      </div>
+      </header>
 
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-        {(['UPLOADED', 'OCR_IN_PROGRESS', 'VERIFIED', 'RECONCILED', 'MANUAL_REVIEW', 'FAILED'] as const).map((s) => {
-          const count = SLIPS.filter((sl) => sl.status === s || (s === 'UPLOADED' && sl.status === 'OCR_COMPLETE')).length;
+      {/* Status tiles */}
+      <ul className="grid grid-cols-2 gap-3 md:grid-cols-3 lg:grid-cols-6">
+        {(
+          [
+            { key: 'UPLOADED', tone: 'info' as const, label: 'Uploaded' },
+            { key: 'OCR_IN_PROGRESS', tone: 'warning' as const, label: 'OCR in progress' },
+            { key: 'VERIFIED', tone: 'success' as const, label: 'Verified' },
+            { key: 'RECONCILED', tone: 'success' as const, label: 'Reconciled' },
+            { key: 'MANUAL_REVIEW', tone: 'danger' as const, label: 'Manual review' },
+            { key: 'FAILED', tone: 'danger' as const, label: 'Failed' },
+          ]
+        ).map((s) => {
+          const count = SLIPS.filter(
+            (sl) =>
+              sl.status === s.key ||
+              (s.key === 'UPLOADED' && sl.status === 'OCR_COMPLETE'),
+          ).length;
           return (
-            <Card key={s}>
-              <CardContent>
-                <p className="hha-label">{s.replace(/_/g, ' ').toLowerCase()}</p>
-                <p className="mt-1 font-display text-xl text-heritage-950">{count}</p>
-              </CardContent>
-            </Card>
+            <li key={s.key} className="rounded-lg border border-line bg-card p-4 shadow-card-sm">
+              <Badge tone={s.tone} dot>
+                {s.label}
+              </Badge>
+              <p className="mt-2 text-h2 tabular-nums text-ink">{count}</p>
+            </li>
           );
         })}
-      </div>
+      </ul>
 
-      <div className="grid grid-cols-1 lg:grid-cols-5 gap-6">
-        <Card className="lg:col-span-3">
-          <CardHeader>
-            <CardTitle>Queue</CardTitle>
-          </CardHeader>
-          <CardContent className="p-0">
-            <table className="hha-table">
+      <div className="grid grid-cols-1 gap-6 lg:grid-cols-5">
+        {/* Queue */}
+        <section className="overflow-hidden rounded-lg border border-line bg-card shadow-card-sm lg:col-span-3">
+          <header className="border-b border-line px-5 py-3.5">
+            <h2 className="text-small font-semibold text-ink">Queue</h2>
+            <p className="text-micro text-muted">{SLIPS.length} slips tracked</p>
+          </header>
+          <div className="overflow-x-auto">
+            <table className="w-full text-small">
               <thead>
-                <tr>
-                  <th>Slip</th>
-                  <th>Student</th>
-                  <th>Bank</th>
-                  <th className="text-right">Claimed</th>
-                  <th className="text-right">Conf.</th>
-                  <th>Status</th>
+                <tr className="bg-surface/60 text-left">
+                  <th className="px-5 py-3 text-micro font-semibold uppercase tracking-[0.1em] text-muted">
+                    Slip
+                  </th>
+                  <th className="px-4 py-3 text-micro font-semibold uppercase tracking-[0.1em] text-muted">
+                    Student
+                  </th>
+                  <th className="px-4 py-3 text-micro font-semibold uppercase tracking-[0.1em] text-muted">
+                    Bank
+                  </th>
+                  <th className="px-4 py-3 text-right text-micro font-semibold uppercase tracking-[0.1em] text-muted">
+                    Claimed
+                  </th>
+                  <th className="px-4 py-3 text-right text-micro font-semibold uppercase tracking-[0.1em] text-muted">
+                    Conf.
+                  </th>
+                  <th className="px-4 py-3 text-micro font-semibold uppercase tracking-[0.1em] text-muted">
+                    Status
+                  </th>
                 </tr>
               </thead>
               <tbody>
                 {SLIPS.map((slip) => {
                   const student = STUDENTS.find((s) => s.id === slip.studentId);
                   return (
-                    <tr key={slip.id} className={slip.id === active.id ? 'bg-heritage-50/60' : ''}>
-                      <td>
-                        <div className="font-mono text-xs text-granite-700">{slip.id}</div>
-                        <div className="text-[11px] text-granite-500">
+                    <tr
+                      key={slip.id}
+                      className={[
+                        'border-t border-line transition-colors hover:bg-surface/40',
+                        slip.id === active.id ? 'bg-brand-primary/[0.06]' : '',
+                      ].join(' ')}
+                    >
+                      <td className="px-5 py-3">
+                        <div className="font-mono text-micro text-ink">{slip.id}</div>
+                        <div className="text-micro text-muted">
                           {new Date(slip.uploadedAt).toLocaleString('en-ZW', {
                             day: 'numeric',
                             month: 'short',
@@ -95,23 +139,21 @@ export default function SlipQueuePage() {
                           })}
                         </div>
                       </td>
-                      <td className="text-sm">
+                      <td className="px-4 py-3 text-small text-ink">
                         {student ? `${student.firstName} ${student.lastName}` : slip.studentId}
-                        <div className="text-xs text-granite-500">{slip.uploadedBy}</div>
+                        <div className="text-micro text-muted">{slip.uploadedBy}</div>
                       </td>
-                      <td>{slip.detectedBank ?? '—'}</td>
-                      <td className="text-right">
-                        {slip.parsedAmount ? (
-                          <Money amount={slip.parsedAmount} currency={slip.parsedCurrency ?? 'USD'} />
-                        ) : (
-                          <span className="text-granite-400">—</span>
-                        )}
+                      <td className="px-4 py-3 text-small text-ink">{slip.detectedBank ?? '—'}</td>
+                      <td className="px-4 py-3 text-right tabular-nums text-ink">
+                        {slip.parsedAmount
+                          ? `${slip.parsedCurrency ?? 'USD'} ${slip.parsedAmount}`
+                          : <span className="text-muted">—</span>}
                       </td>
-                      <td className="text-right font-mono tabular-nums">
+                      <td className="px-4 py-3 text-right font-mono tabular-nums text-ink">
                         {slip.confidence !== undefined ? `${slip.confidence}%` : '—'}
                       </td>
-                      <td>
-                        <Badge tone={statusTone(slip.status)}>
+                      <td className="px-4 py-3">
+                        <Badge tone={statusTone(slip.status)} dot>
                           {slip.status.replace(/_/g, ' ').toLowerCase()}
                         </Badge>
                       </td>
@@ -120,73 +162,107 @@ export default function SlipQueuePage() {
                 })}
               </tbody>
             </table>
-          </CardContent>
-        </Card>
+          </div>
+        </section>
 
-        <Card className="lg:col-span-2">
-          <CardHeader className="flex-row items-center justify-between">
-            <div>
-              <CardTitle className="flex items-center gap-2">
-                <FileSearch className="h-5 w-5" aria-hidden /> Slip detail
-              </CardTitle>
-              <p className="mt-1 text-xs text-granite-500">
-                {activeStudent.firstName} {activeStudent.lastName} · {active.detectedBank} ·{' '}
-                {new Date(active.uploadedAt).toLocaleString('en-ZW')}
-              </p>
+        {/* Slip detail */}
+        <section className="overflow-hidden rounded-lg border border-line bg-card shadow-card-sm lg:col-span-2">
+          <header className="flex items-center justify-between gap-3 border-b border-line px-5 py-3.5">
+            <div className="flex items-center gap-2">
+              <span className="inline-flex h-8 w-8 items-center justify-center rounded-md bg-brand-primary/10 text-brand-primary">
+                <FileSearch className="h-4 w-4" strokeWidth={1.75} aria-hidden />
+              </span>
+              <div>
+                <h2 className="text-small font-semibold text-ink">Slip detail</h2>
+                <p className="text-micro text-muted">
+                  {activeStudent.firstName} {activeStudent.lastName} · {active.detectedBank}
+                </p>
+              </div>
             </div>
-            <Badge tone={statusTone(active.status)}>
+            <Badge tone={statusTone(active.status)} dot>
               {active.status.replace(/_/g, ' ').toLowerCase()}
             </Badge>
-          </CardHeader>
-          <CardContent>
-            <div className="rounded-lg border border-granite-200 bg-granite-50/70 h-40 flex items-center justify-center text-granite-400 mb-5">
+          </header>
+          <div className="p-5">
+            <div className="mb-5 flex h-40 items-center justify-center rounded-lg border border-line bg-surface/60 text-muted">
               <div className="text-center">
-                <p className="text-sm">Slip preview</p>
-                <p className="text-xs mt-1">Stanbic deposit · USD 1,450.00</p>
+                <p className="text-small font-semibold text-ink">Slip preview</p>
+                <p className="mt-1 text-micro text-muted">
+                  Stanbic deposit · USD 1,450.00
+                </p>
               </div>
             </div>
 
-            <dl className="grid grid-cols-2 gap-y-2 text-sm mb-5">
-              <dt className="text-granite-600">Amount</dt>
-              <dd className="text-right font-mono tabular-nums">
-                {active.parsedAmount ? (
-                  <Money amount={active.parsedAmount} currency={active.parsedCurrency ?? 'USD'} bold />
-                ) : '—'}
+            <dl className="mb-5 grid grid-cols-2 gap-y-2 text-small">
+              <dt className="text-muted">Amount</dt>
+              <dd className="text-right font-bold tabular-nums text-ink">
+                {active.parsedAmount
+                  ? `${active.parsedCurrency ?? 'USD'} ${active.parsedAmount}`
+                  : '—'}
               </dd>
-              <dt className="text-granite-600">Reference</dt>
-              <dd className="text-right font-mono tabular-nums">{active.parsedReference ?? '—'}</dd>
-              <dt className="text-granite-600">Bank</dt>
-              <dd className="text-right">{active.detectedBank ?? '—'}</dd>
-              <dt className="text-granite-600">OCR confidence</dt>
-              <dd className="text-right font-mono tabular-nums">{active.confidence}%</dd>
+              <dt className="text-muted">Reference</dt>
+              <dd className="text-right font-mono tabular-nums text-ink">
+                {active.parsedReference ?? '—'}
+              </dd>
+              <dt className="text-muted">Bank</dt>
+              <dd className="text-right text-ink">{active.detectedBank ?? '—'}</dd>
+              <dt className="text-muted">OCR confidence</dt>
+              <dd className="text-right font-mono tabular-nums text-ink">{active.confidence}%</dd>
             </dl>
 
-            <Stepper
-              items={active.steps.map((s) => ({
-                key: s.step,
-                label: STEP_LABELS[s.step],
-                description: STEP_DESCRIPTIONS[s.step],
-                status:
+            {/* Pipeline steps */}
+            <ol className="space-y-3">
+              {active.steps.map((s, i) => {
+                const stepTone =
                   s.outcome === 'done'
-                    ? 'done'
+                    ? 'success'
                     : s.outcome === 'failed'
-                    ? 'failed'
+                    ? 'danger'
                     : s.outcome === 'in-progress'
-                    ? 'in-progress'
-                    : 'pending',
-              }))}
-            />
+                    ? 'warning'
+                    : 'neutral';
+                const circleColor =
+                  s.outcome === 'done'
+                    ? 'bg-success text-white'
+                    : s.outcome === 'failed'
+                    ? 'bg-danger text-white'
+                    : s.outcome === 'in-progress'
+                    ? 'bg-warning text-white'
+                    : 'border border-line bg-card text-muted';
+                return (
+                  <li key={s.step} className="flex gap-3">
+                    <div
+                      className={`flex h-7 w-7 flex-none items-center justify-center rounded-full text-micro font-bold ${circleColor}`}
+                      aria-hidden
+                    >
+                      {i + 1}
+                    </div>
+                    <div className="min-w-0 flex-1">
+                      <div className="flex items-center gap-2">
+                        <p className="text-small font-semibold text-ink">{STEP_LABELS[s.step]}</p>
+                        <Badge tone={stepTone} dot>
+                          {s.outcome}
+                        </Badge>
+                      </div>
+                      <p className="text-micro text-muted">{STEP_DESCRIPTIONS[s.step]}</p>
+                    </div>
+                  </li>
+                );
+              })}
+            </ol>
 
             <div className="mt-5 flex gap-2">
-              <Button variant="secondary" className="flex-1">
-                <XCircle className="h-4 w-4" /> Reject
-              </Button>
-              <Button className="flex-1">
-                <CheckCircle2 className="h-4 w-4" /> Approve &amp; credit
-              </Button>
+              <button className="inline-flex h-10 flex-1 items-center justify-center gap-2 rounded-full border border-danger/30 bg-danger/5 text-small font-semibold text-danger transition-colors hover:bg-danger/10">
+                <XCircle className="h-4 w-4" strokeWidth={1.75} aria-hidden />
+                Reject
+              </button>
+              <button className="inline-flex h-10 flex-1 items-center justify-center gap-2 rounded-full bg-brand-primary text-small font-semibold text-white shadow-card-sm transition hover:bg-brand-primary/90 hover:shadow-card-md">
+                <CheckCircle2 className="h-4 w-4" strokeWidth={1.75} aria-hidden />
+                Approve &amp; credit
+              </button>
             </div>
-          </CardContent>
-        </Card>
+          </div>
+        </section>
       </div>
     </div>
   );

@@ -11,24 +11,18 @@ import {
   PiggyBank,
 } from 'lucide-react';
 
+import { Badge } from '@/components/ui/badge';
 import {
   ADMIN_REPORTS,
   type AdminReport,
   type ReportCategory,
 } from '@/lib/mock/school';
 
-/**
- * Admin reports — compliance, board, operational, academic.
- *
- * Three columns: KPI summary across the top; the report catalogue filtered
- * by category; a highlight strip for the report that's due next.
- */
-
 const CATEGORY_ICON: Record<ReportCategory, React.ReactNode> = {
-  STATUTORY: <Landmark className="h-4 w-4" strokeWidth={1.5} aria-hidden />,
-  BOARD: <PiggyBank className="h-4 w-4" strokeWidth={1.5} aria-hidden />,
-  OPERATIONAL: <ClipboardList className="h-4 w-4" strokeWidth={1.5} aria-hidden />,
-  ACADEMIC: <GraduationCap className="h-4 w-4" strokeWidth={1.5} aria-hidden />,
+  STATUTORY: <Landmark className="h-4 w-4" strokeWidth={1.75} aria-hidden />,
+  BOARD: <PiggyBank className="h-4 w-4" strokeWidth={1.75} aria-hidden />,
+  OPERATIONAL: <ClipboardList className="h-4 w-4" strokeWidth={1.75} aria-hidden />,
+  ACADEMIC: <GraduationCap className="h-4 w-4" strokeWidth={1.75} aria-hidden />,
 };
 
 const CATEGORY_LABEL: Record<ReportCategory, string> = {
@@ -63,18 +57,14 @@ export default function ReportsPage() {
   }, []);
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-8">
+      {/* Header */}
       <header>
-        <p
-          className="font-mono text-[11px] font-medium uppercase tracking-[0.18em]"
-          style={{ color: 'rgb(var(--accent))' }}
-        >
-          Compliance · Reports
-        </p>
-        <h1 className="mt-2 font-display text-[clamp(1.75rem,3vw,2.25rem)] font-medium tracking-tight text-obsidian">
-          The reports that leave this office.
+        <p className="text-small text-muted">Compliance · Reports</p>
+        <h1 className="mt-1 text-[clamp(1.75rem,3vw,2.25rem)] font-bold leading-tight tracking-tight text-ink">
+          The reports that leave this office
         </h1>
-        <p className="mt-2 max-w-[78ch] font-sans text-[14px] text-slate">
+        <p className="mt-2 max-w-[78ch] text-small text-muted">
           Statutory returns to the Ministry · board pack for the monthly meeting · operational
           reports for the Headmaster · academic reports for form teachers and parents. Every report
           is available as PDF <em>and</em> Excel — no format lock-in.
@@ -82,37 +72,43 @@ export default function ReportsPage() {
       </header>
 
       {/* Summary tiles */}
-      <div className="grid grid-cols-1 gap-3 md:grid-cols-3">
-        <SummaryTile
+      <ul className="grid grid-cols-1 gap-3 md:grid-cols-3">
+        <KpiTile
           label="Collected · Term 2"
-          value="$184,320"
-          sub="62% of target · $296,000 remaining"
+          value="USD 184,320"
+          sub="62% of target · USD 296,000 remaining"
+          tone="success"
         />
-        <SummaryTile
+        <KpiTile
           label="Generated this month"
           value="47"
           sub="12 statutory · 35 operational"
         />
-        <SummaryTile
+        <KpiTile
           label="Report-card approvals"
           value="18"
           sub="At form-teacher stage"
           tone="warning"
         />
-      </div>
+      </ul>
 
       {/* Category tabs */}
-      <div className="flex flex-wrap items-center gap-2 rounded-md border border-mist bg-snow p-2">
+      <div className="inline-flex flex-wrap items-center gap-1 rounded-full bg-surface p-1">
         <button
           type="button"
           onClick={() => setCategory('ALL')}
           className={[
-            'inline-flex h-9 items-center gap-2 rounded-md px-3 font-mono text-[11px] font-medium uppercase tracking-[0.1em] transition-colors',
-            category === 'ALL' ? 'bg-obsidian text-snow' : 'text-slate hover:bg-fog',
+            'inline-flex h-9 items-center gap-2 rounded-full px-4 text-small font-semibold transition-colors',
+            category === 'ALL' ? 'bg-card text-ink shadow-card-sm' : 'text-muted hover:text-ink',
           ].join(' ')}
         >
           All
-          <span className="rounded-sm bg-snow/10 px-1.5 py-0.5 font-mono text-[10px] tabular-nums">
+          <span
+            className={[
+              'rounded-full px-1.5 py-0.5 text-micro tabular-nums',
+              category === 'ALL' ? 'bg-brand-primary/10 text-brand-primary' : 'bg-card/60 text-muted',
+            ].join(' ')}
+          >
             {ADMIN_REPORTS.length}
           </span>
         </button>
@@ -124,16 +120,16 @@ export default function ReportsPage() {
               type="button"
               onClick={() => setCategory(c)}
               className={[
-                'inline-flex h-9 items-center gap-2 rounded-md px-3 font-mono text-[11px] font-medium uppercase tracking-[0.1em] transition-colors',
-                active ? 'bg-obsidian text-snow' : 'text-slate hover:bg-fog',
+                'inline-flex h-9 items-center gap-2 rounded-full px-4 text-small font-semibold transition-colors',
+                active ? 'bg-card text-ink shadow-card-sm' : 'text-muted hover:text-ink',
               ].join(' ')}
             >
               {CATEGORY_ICON[c]}
               {CATEGORY_LABEL[c]}
               <span
                 className={[
-                  'rounded-sm px-1.5 py-0.5 font-mono text-[10px] tabular-nums',
-                  active ? 'bg-snow/10 text-snow' : 'bg-fog text-steel',
+                  'rounded-full px-1.5 py-0.5 text-micro tabular-nums',
+                  active ? 'bg-brand-primary/10 text-brand-primary' : 'bg-card/60 text-muted',
                 ].join(' ')}
               >
                 {counts[c]}
@@ -151,14 +147,11 @@ export default function ReportsPage() {
       </ul>
 
       {/* Spec footer */}
-      <aside className="rounded-md border border-mist bg-fog/50 p-5">
-        <p
-          className="font-mono text-[11px] font-medium uppercase tracking-[0.18em]"
-          style={{ color: 'rgb(var(--accent))' }}
-        >
+      <aside className="rounded-lg border border-info/25 bg-info/[0.04] p-5">
+        <p className="text-micro font-semibold uppercase tracking-[0.12em] text-info">
           Report engine
         </p>
-        <p className="mt-2 max-w-[84ch] font-sans text-[13px] leading-relaxed text-slate">
+        <p className="mt-2 max-w-[84ch] text-small leading-relaxed text-ink">
           Reports run against the live fixture/DB with a frozen timestamp so each regeneration is
           reproducible. Every export carries a SHA-256 footer so regulators can verify authenticity.
           Custom reports can be composed via the academic office — turnaround is 72 hours.
@@ -168,88 +161,88 @@ export default function ReportsPage() {
   );
 }
 
-function SummaryTile({
+function KpiTile({
   label,
   value,
   sub,
-  tone = 'default',
+  tone,
 }: {
   label: string;
   value: string;
   sub: string;
-  tone?: 'default' | 'warning';
+  tone?: 'brand' | 'success' | 'warning';
 }) {
-  const border =
-    tone === 'warning' ? 'border-t-[3px] border-t-signal-warning' : 'border-t-[3px] border-t-mist';
+  const valueColor =
+    tone === 'warning' ? 'text-warning' : tone === 'success' ? 'text-success' : tone === 'brand' ? 'text-brand-primary' : 'text-ink';
   return (
-    <div className={`rounded-md border border-mist bg-snow p-5 ${border}`}>
-      <p className="font-mono text-[11px] font-medium uppercase tracking-[0.12em] text-slate">
-        {label}
-      </p>
-      <p className="mt-2 font-display text-[28px] font-medium leading-none text-obsidian tabular-nums">
-        {value}
-      </p>
-      <p className="mt-2 font-sans text-[12px] text-steel">{sub}</p>
-    </div>
+    <li className="rounded-lg border border-line bg-card p-5 shadow-card-sm">
+      <p className="text-micro font-semibold uppercase tracking-[0.12em] text-muted">{label}</p>
+      <p className={`mt-2 text-h2 tabular-nums ${valueColor}`}>{value}</p>
+      <p className="mt-1 text-micro text-muted">{sub}</p>
+    </li>
   );
 }
 
 function ReportCard({ report }: { report: AdminReport }) {
+  const categoryTone: Record<ReportCategory, 'brand' | 'success' | 'warning' | 'info'> = {
+    STATUTORY: 'warning',
+    BOARD: 'brand',
+    OPERATIONAL: 'info',
+    ACADEMIC: 'success',
+  };
   return (
-    <li className="group rounded-md border border-mist bg-snow p-5 transition-shadow duration-200 ease-out-soft hover:shadow-e2">
+    <li className="hover-lift group rounded-lg border border-line bg-card p-5 shadow-card-sm transition-colors hover:border-brand-primary/30">
       <div className="flex items-start justify-between gap-3">
-        <div className="flex items-center gap-2">
-          <span
-            className="inline-flex items-center gap-1 rounded-sm bg-fog px-2 py-0.5 font-mono text-[10px] font-medium uppercase tracking-[0.12em] text-slate"
-          >
-            {CATEGORY_ICON[report.category]}
-            {CATEGORY_LABEL[report.category]}
-          </span>
-          <span className="font-mono text-[10px] uppercase tracking-[0.1em] text-steel">
+        <div className="flex flex-wrap items-center gap-2">
+          <Badge tone={categoryTone[report.category]} dot>
+            <span className="inline-flex items-center gap-1">
+              {CATEGORY_ICON[report.category]}
+              {CATEGORY_LABEL[report.category]}
+            </span>
+          </Badge>
+          <span className="text-micro font-semibold uppercase tracking-[0.12em] text-muted">
             {report.cadence}
           </span>
         </div>
-        <span className="font-mono text-[10px] uppercase tracking-[0.1em] text-steel">
+        <span className="text-micro font-semibold uppercase tracking-[0.12em] text-muted">
           {report.format}
         </span>
       </div>
 
-      <h3 className="mt-4 font-display text-[17px] font-medium leading-snug tracking-tight text-obsidian">
+      <h3 className="mt-4 text-h3 leading-snug tracking-tight text-ink transition-colors group-hover:text-brand-primary">
         {report.name}
       </h3>
-      <p className="mt-2 font-sans text-[13px] leading-relaxed text-slate">
-        {report.description}
-      </p>
+      <p className="mt-2 text-small leading-relaxed text-muted">{report.description}</p>
 
-      <div className="mt-4 flex items-center justify-between border-t border-mist pt-3">
-        <div className="font-mono text-[11px] uppercase tracking-[0.08em] text-steel">
-          Owner: <span className="text-obsidian">{report.owner}</span> · Updated{' '}
+      <div className="mt-4 flex items-center justify-between border-t border-line pt-3">
+        <div className="text-micro text-muted">
+          Owner: <span className="text-ink">{report.owner}</span> · Updated{' '}
           {new Date(report.updatedAt).toLocaleDateString('en-ZW', {
             day: 'numeric',
             month: 'short',
           })}
         </div>
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-1">
           <button
             type="button"
             aria-label="Open report"
-            className="rounded-md border border-mist bg-snow p-1.5 text-slate transition-colors hover:bg-fog hover:text-obsidian"
+            className="rounded-full p-2 text-muted transition-colors hover:bg-surface hover:text-ink"
           >
-            <FileText className="h-3.5 w-3.5" strokeWidth={1.5} />
+            <FileText className="h-3.5 w-3.5" strokeWidth={1.75} />
           </button>
           <button
             type="button"
             aria-label="Download"
-            className="rounded-md border border-mist bg-snow p-1.5 text-slate transition-colors hover:bg-fog hover:text-obsidian"
+            className="rounded-full p-2 text-muted transition-colors hover:bg-surface hover:text-ink"
           >
-            <Download className="h-3.5 w-3.5" strokeWidth={1.5} />
+            <Download className="h-3.5 w-3.5" strokeWidth={1.75} />
           </button>
           <button
             type="button"
             aria-label="Open analytics"
-            className="rounded-md border border-mist bg-snow p-1.5 text-slate transition-colors hover:bg-fog hover:text-obsidian"
+            className="rounded-full p-2 text-muted transition-colors hover:bg-surface hover:text-ink"
           >
-            <BarChart3 className="h-3.5 w-3.5" strokeWidth={1.5} />
+            <BarChart3 className="h-3.5 w-3.5" strokeWidth={1.75} />
           </button>
         </div>
       </div>
