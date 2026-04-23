@@ -13,16 +13,16 @@ import {
   X,
 } from 'lucide-react';
 
+import { Badge } from '@/components/ui/badge';
 import { RESOURCES, SUBJECTS, type DemoResource } from '@/lib/mock/fixtures';
 
-import { EditorialCard, SectionEyebrow } from '@/components/student/primitives';
-
 /**
- * Library — §08 of the spec.
+ * Library — card-dense redesign.
  *
- * Universal search · subject browse · recently opened · full list. Bookmark
- * state and "recently opened" carry through the session so the page feels
- * alive. Clicking a resource opens a preview modal.
+ *   Pill search bar · subject filter chips · bookmarked / all tabs
+ *   Recently opened strip with colour-toned cards
+ *   Full resource list as a card with coloured icon squares, kind/size
+ *   metadata, download + bookmark actions, tap-to-preview
  */
 
 const KIND_ICON: Record<DemoResource['kind'], React.ElementType> = {
@@ -33,14 +33,34 @@ const KIND_ICON: Record<DemoResource['kind'], React.ElementType> = {
   Worksheet: FileText,
 };
 
+const KIND_TONE: Record<DemoResource['kind'], 'brand' | 'info' | 'success' | 'warning' | 'gold'> = {
+  Textbook: 'brand',
+  Notes: 'info',
+  'Past Paper': 'warning',
+  Video: 'gold',
+  Worksheet: 'success',
+};
+
+const KIND_STYLES: Record<'brand' | 'info' | 'success' | 'warning' | 'gold', string> = {
+  brand: 'bg-brand-primary/10 text-brand-primary',
+  info: 'bg-info/10 text-info',
+  success: 'bg-success/10 text-success',
+  warning: 'bg-warning/10 text-warning',
+  gold: 'bg-brand-accent/15 text-brand-accent',
+};
+
+type ViewTab = 'all' | 'bookmarked' | 'recent';
+
 export default function LibraryPage() {
   const [query, setQuery] = useState('');
   const [subject, setSubject] = useState<string>('ALL');
+  const [view, setView] = useState<ViewTab>('all');
   const [bookmarks, setBookmarks] = useState<Set<string>>(
     () => new Set(RESOURCES.filter((r) => r.bookmarked).map((r) => r.id)),
   );
   const [recent, setRecent] = useState<string[]>(['r1', 'r4', 'r3', 'r6']);
   const [preview, setPreview] = useState<DemoResource | null>(null);
+  const [downloaded, setDownloaded] = useState<Set<string>>(new Set());
 
   const subjectCounts = useMemo(() => {
     const c: Record<string, number> = {};
@@ -50,7 +70,11 @@ export default function LibraryPage() {
 
   const filtered = useMemo(() => {
     const q = query.trim().toLowerCase();
-    return RESOURCES.filter((r) => {
+    let base: readonly DemoResource[] = RESOURCES;
+    if (view === 'bookmarked') base = RESOURCES.filter((r) => bookmarks.has(r.id));
+    else if (view === 'recent') base = recent.map((id) => RESOURCES.find((r) => r.id === id)).filter((r): r is DemoResource => !!r);
+
+    return base.filter((r) => {
       if (subject !== 'ALL' && r.subjectCode !== subject) return false;
       if (!q) return true;
       return (
@@ -59,9 +83,9 @@ export default function LibraryPage() {
         r.subjectCode.toLowerCase().includes(q)
       );
     });
-  }, [query, subject]);
+  }, [query, subject, view, bookmarks, recent]);
 
-  const recentlyOpened = useMemo(
+  const recentResources = useMemo(
     () => recent.map((id) => RESOURCES.find((r) => r.id === id)).filter((r): r is DemoResource => !!r),
     [recent],
   );
@@ -80,24 +104,32 @@ export default function LibraryPage() {
     setRecent((curr) => [r.id, ...curr.filter((x) => x !== r.id)].slice(0, 6));
   }
 
+  function download(id: string) {
+    setDownloaded((curr) => {
+      const next = new Set(curr);
+      next.add(id);
+      return next;
+    });
+  }
+
   return (
     <div className="space-y-8">
+      {/* Header */}
       <header>
-        <SectionEyebrow>Library</SectionEyebrow>
-        <h1 className="mt-2 font-display text-[clamp(1.75rem,3vw,2.25rem)] text-ink">
-          Everything to read,{' '}
-          <span className="italic font-light text-terracotta">in one place.</span>
+        <p className="text-small text-muted">Past papers, lesson notes, recordings</p>
+        <h1 className="mt-1 text-[clamp(1.75rem,3vw,2.25rem)] font-bold leading-tight tracking-tight text-ink">
+          Library
         </h1>
-        <p className="mt-2 font-sans text-[13px] text-stone">
+        <p className="mt-2 text-small text-muted">
           {RESOURCES.length} resources · {bookmarks.size} bookmarked · works offline for bookmarked items
         </p>
       </header>
 
       {/* Search */}
-      <div className="relative">
+      <div className="relative max-w-[720px]">
         <Search
-          className="pointer-events-none absolute left-4 top-1/2 h-5 w-5 -translate-y-1/2 text-stone"
-          strokeWidth={1.5}
+          className="pointer-events-none absolute left-4 top-1/2 h-5 w-5 -translate-y-1/2 text-muted"
+          strokeWidth={1.75}
           aria-hidden
         />
         <input
@@ -105,43 +137,77 @@ export default function LibraryPage() {
           value={query}
           onChange={(e) => setQuery(e.target.value)}
           placeholder="Search textbooks, notes, past papers…"
-          className="h-14 w-full rounded border border-sand bg-white pl-12 pr-12 font-serif text-[18px] text-ink placeholder-stone focus:border-terracotta focus:outline-none"
+          className="h-14 w-full rounded-full border border-line bg-card pl-12 pr-12 text-body text-ink placeholder-muted/80 shadow-card-sm transition-colors focus:border-brand-primary focus:outline-none focus:ring-4 focus:ring-brand-primary/10"
         />
         {query ? (
           <button
             type="button"
             onClick={() => setQuery('')}
             aria-label="Clear search"
-            className="absolute right-3 top-1/2 -translate-y-1/2 rounded p-1.5 text-stone hover:bg-sand-light hover:text-ink"
+            className="absolute right-3 top-1/2 -translate-y-1/2 rounded-full p-1.5 text-muted hover:bg-surface hover:text-ink"
           >
-            <X className="h-4 w-4" strokeWidth={1.5} />
+            <X className="h-4 w-4" strokeWidth={1.75} />
           </button>
         ) : null}
       </div>
 
+      {/* View tabs */}
+      <div className="flex flex-wrap items-center gap-2 rounded-full border border-line bg-card p-1 shadow-card-sm w-fit">
+        {(
+          [
+            { key: 'all' as const, label: 'All resources', count: RESOURCES.length },
+            { key: 'bookmarked' as const, label: 'Bookmarked', count: bookmarks.size },
+            { key: 'recent' as const, label: 'Recently opened', count: recentResources.length },
+          ]
+        ).map((t) => {
+          const active = view === t.key;
+          return (
+            <button
+              key={t.key}
+              type="button"
+              onClick={() => setView(t.key)}
+              className={[
+                'inline-flex h-9 items-center gap-2 rounded-full px-4 text-small font-medium transition-colors',
+                active ? 'bg-brand-primary text-white' : 'text-muted hover:text-ink',
+              ].join(' ')}
+            >
+              {t.label}
+              <span
+                className={[
+                  'rounded-full px-1.5 text-micro font-semibold tabular-nums',
+                  active ? 'bg-white/20 text-white' : 'bg-surface text-muted',
+                ].join(' ')}
+              >
+                {t.count}
+              </span>
+            </button>
+          );
+        })}
+      </div>
+
       {/* Subject browse */}
       <section>
-        <SectionEyebrow>Subjects</SectionEyebrow>
-        <ul className="mt-4 grid grid-cols-2 gap-3 sm:grid-cols-4">
+        <div className="mb-4 flex items-center justify-between">
+          <h2 className="text-h3 text-ink">Browse by subject</h2>
+        </div>
+        <ul className="grid grid-cols-2 gap-3 sm:grid-cols-4 xl:grid-cols-9">
           <li>
             <button
               type="button"
               onClick={() => setSubject('ALL')}
               className={[
-                'group block h-full w-full rounded border bg-white p-5 text-left transition-all duration-200 ease-out-soft hover:-translate-y-px hover:shadow-e2',
-                subject === 'ALL' ? 'border-terracotta bg-sand-light/70' : 'border-sand',
+                'hover-lift flex h-full w-full flex-col gap-1.5 rounded-lg border bg-card p-3 text-left transition-colors',
+                subject === 'ALL' ? 'border-brand-primary bg-brand-primary/5' : 'border-line',
               ].join(' ')}
             >
-              <p className="font-sans text-[11px] font-semibold uppercase tracking-[0.14em] text-stone">
-                All
-              </p>
-              <p className="mt-1 font-display text-[20px] text-ink group-hover:text-earth">
-                Everything
-              </p>
-              <p className="mt-4 font-sans text-[13px] text-stone">{RESOURCES.length} resources</p>
+              <span className="inline-flex h-8 w-8 items-center justify-center rounded-md bg-brand-primary/10 text-brand-primary">
+                <BookOpen className="h-4 w-4" strokeWidth={1.75} aria-hidden />
+              </span>
+              <p className="text-small font-semibold text-ink">All</p>
+              <p className="text-micro text-muted">{RESOURCES.length}</p>
             </button>
           </li>
-          {SUBJECTS.slice(0, 7).map((s) => {
+          {SUBJECTS.slice(0, 8).map((s) => {
             const count = subjectCounts[s.code] ?? 0;
             const active = subject === s.code;
             return (
@@ -150,19 +216,15 @@ export default function LibraryPage() {
                   type="button"
                   onClick={() => setSubject(s.code)}
                   className={[
-                    'group block h-full w-full rounded border bg-white p-5 text-left transition-all duration-200 ease-out-soft hover:-translate-y-px hover:shadow-e2',
-                    active ? 'border-terracotta bg-sand-light/70' : 'border-sand',
+                    'hover-lift flex h-full w-full flex-col gap-1.5 rounded-lg border bg-card p-3 text-left transition-colors',
+                    active ? 'border-brand-primary bg-brand-primary/5' : 'border-line',
                   ].join(' ')}
                 >
-                  <p className="font-sans text-[11px] font-semibold uppercase tracking-[0.14em] text-stone">
+                  <span className="text-micro font-semibold uppercase tracking-[0.12em] text-brand-primary">
                     {s.code}
-                  </p>
-                  <p className="mt-1 font-display text-[20px] text-ink group-hover:text-earth">
-                    {s.name}
-                  </p>
-                  <p className="mt-4 font-sans text-[13px] text-stone">
-                    {count} resource{count === 1 ? '' : 's'}
-                  </p>
+                  </span>
+                  <p className="text-small font-semibold text-ink">{s.name}</p>
+                  <p className="text-micro text-muted">{count}</p>
                 </button>
               </li>
             );
@@ -170,34 +232,34 @@ export default function LibraryPage() {
         </ul>
       </section>
 
-      {/* Recently opened */}
-      {recentlyOpened.length > 0 ? (
+      {/* Recently opened carousel */}
+      {recentResources.length > 0 && view === 'all' ? (
         <section>
-          <div className="mb-3 flex items-center justify-between">
-            <SectionEyebrow>Recently opened</SectionEyebrow>
-            <span className="font-sans text-[12px] text-stone">
-              Continues from your last session
-            </span>
+          <div className="mb-4 flex items-center justify-between">
+            <h2 className="text-h3 text-ink">Recently opened</h2>
+            <p className="text-small text-muted">Continues from your last session</p>
           </div>
-          <div className="flex gap-3 overflow-x-auto pb-2">
-            {recentlyOpened.map((r) => {
+          <div className="flex gap-3 overflow-x-auto pb-2 no-scrollbar">
+            {recentResources.map((r) => {
               const Icon = KIND_ICON[r.kind];
               return (
                 <button
                   key={r.id}
                   type="button"
                   onClick={() => open(r)}
-                  className="group flex w-[280px] flex-none flex-col gap-3 rounded border border-sand bg-white p-5 text-left transition-all duration-200 ease-out-soft hover:-translate-y-px hover:shadow-e2"
+                  className="hover-lift group flex w-[280px] flex-none flex-col gap-3 rounded-lg border border-line bg-card p-4 text-left shadow-card-sm"
                 >
-                  <div className="flex h-24 items-center justify-center rounded bg-sand-light">
-                    <Icon className="h-8 w-8 text-earth" strokeWidth={1.25} aria-hidden />
+                  <div className={`flex h-24 items-center justify-center rounded-md ${KIND_STYLES[KIND_TONE[r.kind]]}`}>
+                    <Icon className="h-10 w-10" strokeWidth={1.25} aria-hidden />
                   </div>
-                  <p className="font-sans text-[11px] font-semibold uppercase tracking-[0.14em] text-stone">
-                    {r.kind}
-                  </p>
-                  <p className="font-display text-[15px] leading-snug text-ink line-clamp-2 group-hover:text-earth">
-                    {r.title}
-                  </p>
+                  <div>
+                    <p className="text-micro font-semibold uppercase tracking-[0.1em] text-muted">
+                      {r.kind}
+                    </p>
+                    <p className="mt-1 line-clamp-2 text-small font-semibold text-ink group-hover:text-brand-primary">
+                      {r.title}
+                    </p>
+                  </div>
                 </button>
               );
             })}
@@ -206,42 +268,41 @@ export default function LibraryPage() {
       ) : null}
 
       {/* Full list */}
-      <EditorialCard className="overflow-hidden">
-        <div className="flex items-center justify-between border-b border-sand px-6 py-4">
-          <SectionEyebrow>
-            {subject === 'ALL'
-              ? 'All resources'
-              : `${SUBJECTS.find((s) => s.code === subject)?.name ?? subject} resources`}
-          </SectionEyebrow>
-          <span className="font-sans text-[12px] text-stone">{filtered.length} items</span>
-        </div>
+      <section className="overflow-hidden rounded-lg border border-line bg-card shadow-card-sm">
+        <header className="flex items-center justify-between border-b border-line px-5 py-3.5">
+          <div>
+            <h2 className="text-small font-semibold text-ink">
+              {subject === 'ALL' ? 'All resources' : `${SUBJECTS.find((s) => s.code === subject)?.name ?? subject}`}
+            </h2>
+            <p className="text-micro text-muted">{filtered.length} items</p>
+          </div>
+        </header>
         {filtered.length === 0 ? (
-          <div className="p-10 text-center">
-            <p className="font-display text-[18px] text-ink">No matches.</p>
-            <p className="mt-2 font-sans text-[13px] text-stone">
-              Try another subject or simpler keywords.
-            </p>
+          <div className="px-5 py-10 text-center">
+            <p className="text-small font-semibold text-ink">No matches.</p>
+            <p className="mt-1 text-small text-muted">Try another subject or simpler keywords.</p>
           </div>
         ) : (
-          <ul className="divide-y divide-sand-light">
+          <ul className="divide-y divide-line">
             {filtered.map((r) => {
               const Icon = KIND_ICON[r.kind];
               const bookmarked = bookmarks.has(r.id);
+              const tone = KIND_TONE[r.kind];
               return (
-                <li key={r.id} className="group flex items-center gap-4 px-6 py-4 hover:bg-sand-light/40">
+                <li key={r.id} className="group flex items-center gap-4 px-5 py-4 transition-colors hover:bg-surface">
                   <button
                     type="button"
                     onClick={() => open(r)}
                     className="flex min-w-0 flex-1 items-center gap-4 text-left"
                   >
-                    <div className="flex h-10 w-10 flex-none items-center justify-center rounded bg-sand-light">
-                      <Icon className="h-5 w-5 text-earth" strokeWidth={1.5} aria-hidden />
-                    </div>
+                    <span className={`inline-flex h-10 w-10 flex-none items-center justify-center rounded-md ${KIND_STYLES[tone]}`}>
+                      <Icon className="h-4 w-4" strokeWidth={1.75} aria-hidden />
+                    </span>
                     <div className="min-w-0 flex-1">
-                      <p className="truncate font-display text-[17px] text-ink group-hover:text-earth">
+                      <p className="truncate text-small font-semibold text-ink group-hover:text-brand-primary">
                         {r.title}
                       </p>
-                      <p className="mt-0.5 font-sans text-[12px] text-stone">
+                      <p className="text-micro text-muted">
                         {r.subjectCode} · {r.kind} · {r.size ?? r.duration} · updated{' '}
                         {new Date(r.updatedAt).toLocaleDateString('en-ZW', {
                           day: 'numeric',
@@ -251,10 +312,10 @@ export default function LibraryPage() {
                     </div>
                   </button>
                   {bookmarked ? (
-                    <span className="inline-flex items-center gap-1 rounded-sm bg-sand-light px-2 py-0.5 font-sans text-[11px] font-semibold uppercase tracking-[0.14em] text-earth">
-                      <BookMarked className="h-3 w-3" strokeWidth={1.5} aria-hidden />
+                    <Badge tone="brand" dot>
+                      <BookMarked className="h-3 w-3" strokeWidth={2} aria-hidden />
                       Offline
-                    </span>
+                    </Badge>
                   ) : null}
                   <div className="flex items-center gap-1">
                     <button
@@ -263,24 +324,30 @@ export default function LibraryPage() {
                       aria-label={bookmarked ? 'Remove bookmark' : 'Bookmark'}
                       aria-pressed={bookmarked}
                       className={[
-                        'rounded p-2 transition-colors',
+                        'rounded-md p-2 transition-colors',
                         bookmarked
-                          ? 'text-terracotta hover:bg-sand-light'
-                          : 'text-stone hover:bg-sand hover:text-terracotta',
+                          ? 'text-brand-primary hover:bg-brand-primary/10'
+                          : 'text-muted hover:bg-surface hover:text-brand-primary',
                       ].join(' ')}
                     >
                       <Bookmark
                         className="h-4 w-4"
-                        strokeWidth={1.5}
+                        strokeWidth={1.75}
                         fill={bookmarked ? 'currentColor' : 'none'}
                       />
                     </button>
                     <button
                       type="button"
+                      onClick={() => download(r.id)}
                       aria-label="Download"
-                      className="rounded p-2 text-stone hover:bg-sand hover:text-earth"
+                      className={[
+                        'rounded-md p-2 transition-colors',
+                        downloaded.has(r.id)
+                          ? 'text-success hover:bg-success/10'
+                          : 'text-muted hover:bg-surface hover:text-ink',
+                      ].join(' ')}
                     >
-                      <Download className="h-4 w-4" strokeWidth={1.5} />
+                      <Download className="h-4 w-4" strokeWidth={1.75} />
                     </button>
                   </div>
                 </li>
@@ -288,7 +355,7 @@ export default function LibraryPage() {
             })}
           </ul>
         )}
-      </EditorialCard>
+      </section>
 
       {/* Preview modal */}
       {preview ? (
@@ -316,95 +383,115 @@ function ResourcePreview({
 }) {
   const Icon = KIND_ICON[resource.kind];
   const subject = SUBJECTS.find((s) => s.code === resource.subjectCode);
+  const tone = KIND_TONE[resource.kind];
 
   return (
     <div
       role="dialog"
       aria-modal="true"
       onClick={onClose}
-      className="fixed inset-0 z-50 flex items-center justify-center bg-ink/50 p-4"
+      className="fixed inset-0 z-50 flex items-center justify-center bg-ink/50 p-4 backdrop-blur-sm"
     >
       <div
         onClick={(e) => e.stopPropagation()}
-        className="relative flex max-h-[88vh] w-full max-w-3xl flex-col overflow-hidden rounded bg-white shadow-e3"
+        className="relative flex max-h-[88vh] w-full max-w-3xl flex-col overflow-hidden rounded-lg bg-card shadow-card-lg"
       >
-        <div className="flex items-center justify-between gap-4 border-b border-sand px-6 py-4">
+        <div className="flex items-start justify-between gap-4 border-b border-line px-5 py-4">
           <div className="min-w-0 flex-1">
-            <p className="font-sans text-[11px] font-semibold uppercase tracking-[0.18em] text-stone">
-              {resource.subjectCode} · {resource.kind}
-            </p>
-            <h2 className="mt-1 truncate font-display text-[18px] text-ink">
-              {resource.title}
-            </h2>
+            <div className="flex items-center gap-2">
+              <Badge tone={tone === 'gold' ? 'gold' : tone === 'warning' ? 'warning' : tone === 'success' ? 'success' : tone === 'info' ? 'info' : 'brand'}>
+                {resource.kind}
+              </Badge>
+              <span className="text-micro font-semibold uppercase tracking-[0.1em] text-muted">
+                {resource.subjectCode}
+              </span>
+            </div>
+            <h2 className="mt-2 truncate text-h3 text-ink">{resource.title}</h2>
           </div>
           <button
             type="button"
             onClick={onClose}
             aria-label="Close preview"
-            className="rounded p-2 text-stone transition-colors hover:bg-sand-light hover:text-ink"
+            className="rounded-md p-2 text-muted transition-colors hover:bg-surface hover:text-ink"
           >
-            <X className="h-5 w-5" strokeWidth={1.5} />
+            <X className="h-5 w-5" strokeWidth={1.75} />
           </button>
         </div>
 
-        <div className="flex-1 overflow-y-auto bg-sand-light/40 p-8">
-          <figure className="mx-auto max-w-[560px] rounded bg-white p-10 shadow-e2">
-            <div className="flex h-64 items-center justify-center rounded border border-sand bg-sand-light">
-              <Icon className="h-20 w-20 text-earth" strokeWidth={1.25} aria-hidden />
+        <div className="flex-1 overflow-y-auto bg-surface/50 p-6 sm:p-8">
+          <figure className="mx-auto max-w-[560px] rounded-lg bg-card p-8 shadow-card-md">
+            <div className={`flex h-56 items-center justify-center rounded-md ${KIND_STYLES[tone]}`}>
+              <Icon className="h-16 w-16" strokeWidth={1.25} aria-hidden />
             </div>
             <figcaption className="mt-6 space-y-3">
-              <p className="font-display text-[20px] leading-snug text-ink">{resource.title}</p>
-              <p className="font-serif text-[15px] leading-relaxed text-stone">
-                {stubSummary(resource)}
-              </p>
-              <ul className="font-sans text-[12px] text-stone">
-                <li>Subject · {subject?.name ?? resource.subjectCode}</li>
-                <li>Teacher · {subject?.teacher ?? 'HHA faculty'}</li>
-                <li>Type · {resource.kind}</li>
-                <li>
-                  Size · {resource.size ?? resource.duration} · updated{' '}
-                  {new Date(resource.updatedAt).toLocaleDateString('en-ZW', {
-                    day: 'numeric',
-                    month: 'long',
-                    year: 'numeric',
-                  })}
-                </li>
-              </ul>
+              <p className="text-h3 text-ink">{resource.title}</p>
+              <p className="text-small leading-relaxed text-muted">{stubSummary(resource)}</p>
+              <dl className="grid grid-cols-2 gap-3 border-t border-line pt-3 text-small">
+                <div>
+                  <dt className="text-micro font-semibold uppercase tracking-[0.1em] text-muted">
+                    Subject
+                  </dt>
+                  <dd className="mt-0.5 text-ink">{subject?.name ?? resource.subjectCode}</dd>
+                </div>
+                <div>
+                  <dt className="text-micro font-semibold uppercase tracking-[0.1em] text-muted">
+                    Teacher
+                  </dt>
+                  <dd className="mt-0.5 text-ink">{subject?.teacher ?? 'HHA faculty'}</dd>
+                </div>
+                <div>
+                  <dt className="text-micro font-semibold uppercase tracking-[0.1em] text-muted">
+                    Size
+                  </dt>
+                  <dd className="mt-0.5 text-ink">{resource.size ?? resource.duration}</dd>
+                </div>
+                <div>
+                  <dt className="text-micro font-semibold uppercase tracking-[0.1em] text-muted">
+                    Updated
+                  </dt>
+                  <dd className="mt-0.5 text-ink">
+                    {new Date(resource.updatedAt).toLocaleDateString('en-ZW', {
+                      day: 'numeric',
+                      month: 'long',
+                    })}
+                  </dd>
+                </div>
+              </dl>
             </figcaption>
           </figure>
         </div>
 
-        <div className="flex flex-wrap items-center gap-3 border-t border-sand bg-white px-6 py-4">
+        <div className="flex flex-wrap items-center gap-3 border-t border-line bg-card px-5 py-4">
           <button
             type="button"
             onClick={onToggleBookmark}
             className={[
-              'inline-flex h-10 items-center gap-2 rounded border px-3 font-sans text-[13px] font-medium transition-colors',
+              'inline-flex h-10 items-center gap-2 rounded-full px-4 text-small font-semibold transition-colors',
               bookmarked
-                ? 'border-terracotta bg-sand-light text-terracotta hover:bg-sand'
-                : 'border-sand bg-white text-earth hover:bg-sand-light',
+                ? 'bg-brand-primary/10 text-brand-primary hover:bg-brand-primary/15'
+                : 'border border-line bg-card text-ink hover:bg-surface',
             ].join(' ')}
           >
             <Bookmark
               className="h-4 w-4"
-              strokeWidth={1.5}
+              strokeWidth={1.75}
               fill={bookmarked ? 'currentColor' : 'none'}
             />
             {bookmarked ? 'Bookmarked · offline' : 'Bookmark · keep offline'}
           </button>
           <button
             type="button"
-            className="inline-flex h-10 items-center gap-2 rounded border border-sand bg-white px-3 font-sans text-[13px] font-medium text-earth hover:bg-sand-light"
+            className="inline-flex h-10 items-center gap-2 rounded-full border border-line bg-card px-4 text-small font-semibold text-ink transition-colors hover:bg-surface"
           >
-            <Download className="h-4 w-4" strokeWidth={1.5} aria-hidden />
+            <Download className="h-4 w-4" strokeWidth={1.75} aria-hidden />
             Download
           </button>
           <Link
             href={`/student/library?subject=${resource.subjectCode}`}
             onClick={onClose}
-            className="ml-auto font-sans text-[12px] font-medium text-earth hover:text-terracotta"
+            className="ml-auto text-small font-semibold text-brand-primary hover:text-brand-primary/80"
           >
-            See more {resource.subjectCode} resources
+            See more {resource.subjectCode} →
           </Link>
         </div>
       </div>

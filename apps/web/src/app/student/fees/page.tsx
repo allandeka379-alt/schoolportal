@@ -1,130 +1,226 @@
 import Link from 'next/link';
-import { ArrowRight, Banknote, CreditCard, FileDown, Smartphone, Upload } from 'lucide-react';
+import {
+  ArrowRight,
+  Banknote,
+  CheckCircle2,
+  CreditCard,
+  FileDown,
+  Receipt,
+  Smartphone,
+  Upload,
+} from 'lucide-react';
 
-import { INVOICES, PAYMENTS } from '@/lib/mock/fixtures';
+import { Badge } from '@/components/ui/badge';
+import { ProgressRing } from '@/components/student/progress-ring';
+import { PAYMENTS } from '@/lib/mock/fixtures';
 import { FEES_SUMMARY } from '@/lib/mock/student-extras';
 
-import { EditorialCard, SectionEyebrow, StatusPill } from '@/components/student/primitives';
+/**
+ * Student fees — card-dense redesign.
+ *
+ * Informational view. The full payment flow lives in the parent portal.
+ *   • Pay-now alert card (or paid success card) at the top
+ *   • 3 KPI tiles (Total / Paid / Outstanding) with a ring on the main one
+ *   • Payment methods grid — 7 coloured tiles
+ *   • Breakdown table + payment history, each a bordered card
+ */
 
 const PAYMENT_METHODS = [
-  { name: 'EcoCash', icon: Smartphone, settle: 'Real-time' },
-  { name: 'OneMoney', icon: Smartphone, settle: 'Real-time' },
-  { name: 'InnBucks', icon: Smartphone, settle: 'Real-time' },
-  { name: 'ZIPIT', icon: Banknote, settle: 'Instant' },
-  { name: 'CBZ / Stanbic / ZB', icon: Banknote, settle: 'Same-day' },
-  { name: 'Visa / Mastercard', icon: CreditCard, settle: 'Real-time' },
-  { name: 'Upload slip', icon: Upload, settle: 'Reconciled' },
-];
+  { name: 'EcoCash',          icon: Smartphone, settle: 'Real-time', tone: 'success' },
+  { name: 'OneMoney',         icon: Smartphone, settle: 'Real-time', tone: 'info' },
+  { name: 'InnBucks',         icon: Smartphone, settle: 'Real-time', tone: 'warning' },
+  { name: 'ZIPIT',            icon: Banknote,   settle: 'Instant',   tone: 'brand' },
+  { name: 'CBZ / Stanbic / ZB', icon: Banknote, settle: 'Same-day',  tone: 'info' },
+  { name: 'Visa / Mastercard', icon: CreditCard, settle: 'Real-time', tone: 'gold' },
+  { name: 'Upload slip',      icon: Upload,     settle: 'Reconciled', tone: 'brand' },
+] as const;
 
-/**
- * Fees — §11 of the spec (student view is informational; full pay flow shared
- * with the parent portal).
- */
+const TONE_STYLES: Record<'brand' | 'success' | 'info' | 'warning' | 'gold', string> = {
+  brand: 'bg-brand-primary/10 text-brand-primary',
+  success: 'bg-success/10 text-success',
+  info: 'bg-info/10 text-info',
+  warning: 'bg-warning/10 text-warning',
+  gold: 'bg-brand-accent/15 text-brand-accent',
+};
+
 export default function FeesPage() {
-  const invoices = INVOICES.filter((i) => i.studentId === 's-farai');
   const payments = PAYMENTS.filter((p) => p.studentId === 's-farai');
+  const totalDue = Number(FEES_SUMMARY.totalDue.replace(/,/g, ''));
+  const paid = Number(FEES_SUMMARY.paid.replace(/,/g, ''));
+  const paidPct = totalDue > 0 ? Math.round((paid / totalDue) * 100) : 0;
+  const isPaid = FEES_SUMMARY.status === 'PAID';
 
   return (
     <div className="space-y-8">
+      {/* Header */}
       <header>
-        <SectionEyebrow>Fees</SectionEyebrow>
-        <h1 className="mt-2 font-display text-[clamp(1.75rem,3vw,2.25rem)] text-ink">
-          {FEES_SUMMARY.termLabel}
-          <span className="text-terracotta">.</span>
+        <p className="text-small text-muted">Invoice · history · all payment methods</p>
+        <h1 className="mt-1 text-[clamp(1.75rem,3vw,2.25rem)] font-bold leading-tight tracking-tight text-ink">
+          Fees · {FEES_SUMMARY.termLabel}
         </h1>
       </header>
 
-      {/* Summary tiles */}
-      <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
-        <SummaryStat label="Total due" value={FEES_SUMMARY.totalDue} tone="neutral" />
-        <SummaryStat label="Paid" value={FEES_SUMMARY.paid} tone="ok" />
-        <SummaryStat label="Outstanding" value={FEES_SUMMARY.outstanding} tone={FEES_SUMMARY.status === 'PAID' ? 'ok' : 'warn'} />
-      </div>
-
-      {/* Pay now */}
-      <EditorialCard className="flex flex-wrap items-center justify-between gap-4 px-6 py-5">
-        <div className="flex items-center gap-3">
-          <StatusPill state={FEES_SUMMARY.status === 'PAID' ? 'paid' : 'partial'} />
-          <p className="font-serif text-[15px] text-stone">
-            Due by <span className="text-ink">Friday 9 May</span>
-          </p>
-        </div>
-        <div className="flex gap-2">
-          <button
-            type="button"
-            className="btn-ghost"
+      {/* Pay-now card (civic alert style) */}
+      <section
+        className={[
+          'rounded-lg border p-5 shadow-card-sm',
+          isPaid
+            ? 'border-success/25 bg-success/[0.04]'
+            : 'border-warning/25 bg-warning/[0.04]',
+        ].join(' ')}
+      >
+        <div className="flex flex-wrap items-center gap-5">
+          <span
+            className={[
+              'inline-flex h-14 w-14 flex-none items-center justify-center rounded-full bg-white shadow-card-sm',
+              isPaid ? 'text-success' : 'text-warning',
+            ].join(' ')}
           >
-            <FileDown className="h-4 w-4" strokeWidth={1.5} aria-hidden />
-            Statement
-          </button>
-          <Link href="/parent/fees/upload" className="btn-terracotta">
-            Pay now
-            <ArrowRight className="h-4 w-4" strokeWidth={1.5} aria-hidden />
-          </Link>
+            {isPaid ? (
+              <CheckCircle2 className="h-7 w-7" strokeWidth={1.75} aria-hidden />
+            ) : (
+              <CreditCard className="h-7 w-7" strokeWidth={1.75} aria-hidden />
+            )}
+          </span>
+          <div className="min-w-0 flex-1">
+            {isPaid ? (
+              <>
+                <p className="text-h3 text-ink">Settled in full this term.</p>
+                <p className="mt-1 text-small text-muted">
+                  Thank you — we&rsquo;ll email a copy of every receipt to your parents.
+                </p>
+              </>
+            ) : (
+              <>
+                <p className="text-small text-muted">Outstanding this term</p>
+                <div className="mt-1 flex items-baseline gap-3">
+                  <span className="text-small font-semibold text-muted">{FEES_SUMMARY.currency}</span>
+                  <span className="text-[2rem] font-bold leading-none tabular-nums text-ink">
+                    {FEES_SUMMARY.outstanding}
+                  </span>
+                  <Badge tone="warning" dot>Due by Fri 9 May</Badge>
+                </div>
+                <p className="mt-2 text-small text-muted">
+                  {paidPct}% of term paid · {FEES_SUMMARY.currency} {FEES_SUMMARY.paid} so far
+                </p>
+              </>
+            )}
+          </div>
+          <div className="flex flex-wrap items-center gap-2">
+            <button
+              type="button"
+              className="inline-flex h-11 items-center gap-2 rounded-full border border-line bg-card px-4 text-small font-semibold text-ink transition-colors hover:bg-surface"
+            >
+              <FileDown className="h-4 w-4" strokeWidth={1.75} aria-hidden />
+              Statement
+            </button>
+            <Link
+              href="/parent/fees/upload"
+              className="inline-flex h-11 items-center gap-2 rounded-full bg-brand-primary px-5 text-small font-semibold text-white shadow-card-sm transition hover:bg-brand-primary/90 hover:shadow-card-md"
+            >
+              {isPaid ? 'View history' : 'Pay now'}
+              <ArrowRight className="h-4 w-4" strokeWidth={1.75} aria-hidden />
+            </Link>
+          </div>
         </div>
-      </EditorialCard>
+      </section>
+
+      {/* KPI tiles */}
+      <ul className="grid grid-cols-1 gap-3 sm:grid-cols-3">
+        <KpiTile
+          label="Total invoiced"
+          value={`${FEES_SUMMARY.currency} ${FEES_SUMMARY.totalDue}`}
+          sub={FEES_SUMMARY.termLabel}
+          tone="brand"
+        />
+        <KpiTile
+          label="Paid"
+          value={`${FEES_SUMMARY.currency} ${FEES_SUMMARY.paid}`}
+          sub={`${paidPct}% of the term`}
+          tone="success"
+          ring={paidPct}
+        />
+        <KpiTile
+          label="Outstanding"
+          value={`${FEES_SUMMARY.currency} ${FEES_SUMMARY.outstanding}`}
+          sub={isPaid ? 'Paid up' : 'Due 9 May'}
+          tone={isPaid ? 'success' : 'warning'}
+        />
+      </ul>
 
       {/* Payment methods */}
-      <EditorialCard>
-        <div className="border-b border-sand px-6 py-4">
-          <SectionEyebrow>Payment methods</SectionEyebrow>
-          <p className="mt-1 font-sans text-[13px] text-stone">
-            Seven options, one workflow. Mobile money and ZIPIT settle in real time.
+      <section className="overflow-hidden rounded-lg border border-line bg-card shadow-card-sm">
+        <header className="border-b border-line px-5 py-3.5">
+          <h2 className="text-small font-semibold text-ink">Payment methods</h2>
+          <p className="text-micro text-muted">
+            Seven options, one workflow — mobile money and ZIPIT clear in real time
           </p>
-        </div>
-        <ul className="grid grid-cols-2 gap-3 p-5 sm:grid-cols-3 lg:grid-cols-4">
+        </header>
+        <ul className="grid grid-cols-2 gap-3 p-5 sm:grid-cols-3 xl:grid-cols-4">
           {PAYMENT_METHODS.map((m) => {
             const Icon = m.icon;
-            return (
-              <li
-                key={m.name}
-                className="group flex flex-col gap-2 rounded border border-sand bg-sand-light/40 px-4 py-3 transition-all hover:border-terracotta hover:bg-sand-light"
-              >
-                <Icon className="h-5 w-5 text-earth" strokeWidth={1.5} aria-hidden />
-                <p className="font-sans text-[13px] font-semibold text-ink">{m.name}</p>
-                <p className="font-sans text-[11px] font-semibold uppercase tracking-[0.14em] text-stone">
+            const isUpload = m.name === 'Upload slip';
+            const inner = (
+              <div className="hover-lift group flex h-full flex-col gap-2 rounded-lg border border-line bg-card p-4 transition-colors hover:border-brand-primary/30">
+                <span className={`inline-flex h-10 w-10 items-center justify-center rounded-md ${TONE_STYLES[m.tone as keyof typeof TONE_STYLES]}`}>
+                  <Icon className="h-4 w-4" strokeWidth={1.75} aria-hidden />
+                </span>
+                <p className="text-small font-semibold text-ink">{m.name}</p>
+                <Badge tone={m.tone === 'gold' ? 'gold' : m.tone === 'warning' ? 'warning' : m.tone === 'info' ? 'info' : m.tone === 'success' ? 'success' : 'brand'} dot>
                   {m.settle}
-                </p>
+                </Badge>
+              </div>
+            );
+            return (
+              <li key={m.name}>
+                {isUpload ? (
+                  <Link href="/parent/fees/upload" className="block h-full">
+                    {inner}
+                  </Link>
+                ) : (
+                  inner
+                )}
               </li>
             );
           })}
         </ul>
-      </EditorialCard>
+      </section>
 
       {/* Breakdown */}
-      <EditorialCard className="overflow-hidden">
-        <div className="border-b border-sand px-6 py-4">
-          <SectionEyebrow>Breakdown</SectionEyebrow>
-        </div>
+      <section className="overflow-hidden rounded-lg border border-line bg-card shadow-card-sm">
+        <header className="border-b border-line px-5 py-3.5">
+          <h2 className="text-small font-semibold text-ink">Breakdown</h2>
+          <p className="text-micro text-muted">Line-by-line invoice · current term</p>
+        </header>
         <div className="overflow-x-auto">
-          <table className="w-full text-[14px]">
+          <table className="w-full text-small">
             <thead>
-              <tr className="bg-sand-light/40">
-                <th className="px-6 py-3 text-left font-sans text-[11px] font-semibold uppercase tracking-[0.14em] text-stone">
+              <tr className="bg-surface/60 text-left">
+                <th className="px-5 py-3 text-micro font-semibold uppercase tracking-[0.1em] text-muted">
                   Item
                 </th>
-                <th className="px-4 py-3 text-right font-sans text-[11px] font-semibold uppercase tracking-[0.14em] text-stone">
+                <th className="px-4 py-3 text-right text-micro font-semibold uppercase tracking-[0.1em] text-muted">
                   Due
                 </th>
-                <th className="px-4 py-3 text-right font-sans text-[11px] font-semibold uppercase tracking-[0.14em] text-stone">
+                <th className="px-4 py-3 text-right text-micro font-semibold uppercase tracking-[0.1em] text-muted">
                   Paid
                 </th>
-                <th className="px-4 py-3 text-right font-sans text-[11px] font-semibold uppercase tracking-[0.14em] text-stone">
+                <th className="px-4 py-3 text-right text-micro font-semibold uppercase tracking-[0.1em] text-muted">
                   Balance
                 </th>
               </tr>
             </thead>
             <tbody>
               {FEES_SUMMARY.breakdown.map((row) => (
-                <tr key={row.label} className="border-t border-sand-light">
-                  <td className="px-6 py-3 font-sans font-medium text-ink">{row.label}</td>
-                  <td className="px-4 py-3 text-right font-mono tabular-nums text-ink">
+                <tr key={row.label} className="border-t border-line">
+                  <td className="px-5 py-3 font-semibold text-ink">{row.label}</td>
+                  <td className="px-4 py-3 text-right tabular-nums text-ink">
                     {FEES_SUMMARY.currency} {row.due}
                   </td>
-                  <td className="px-4 py-3 text-right font-mono tabular-nums text-stone">
+                  <td className="px-4 py-3 text-right tabular-nums text-muted">
                     {FEES_SUMMARY.currency} {row.paid}
                   </td>
-                  <td className="px-4 py-3 text-right font-mono tabular-nums font-semibold text-ink">
+                  <td className="px-4 py-3 text-right font-semibold tabular-nums text-ink">
                     {FEES_SUMMARY.currency} {row.balance}
                   </td>
                 </tr>
@@ -132,52 +228,73 @@ export default function FeesPage() {
             </tbody>
           </table>
         </div>
-      </EditorialCard>
+      </section>
 
       {/* Payment history */}
-      <EditorialCard className="overflow-hidden">
-        <div className="border-b border-sand px-6 py-4">
-          <SectionEyebrow>Payment history</SectionEyebrow>
-        </div>
-        <ul className="divide-y divide-sand-light">
-          {payments.map((p) => (
-            <li key={p.id} className="flex items-center gap-4 px-6 py-4">
-              <div className="min-w-0 flex-1">
-                <p className="font-sans font-medium text-ink">{p.method}</p>
-                <p className="mt-0.5 font-mono text-[12px] text-stone">{p.reference}</p>
-              </div>
-              <span className="font-mono tabular-nums text-ink">USD {p.amount}</span>
-              <StatusPill state={p.status === 'RECONCILED' ? 'verified' : 'pending'}>
-                {p.status.toLowerCase().replace('_', ' ')}
-              </StatusPill>
-              <span className="w-24 text-right font-sans text-[12px] text-stone">
-                {new Date(p.paidAt).toLocaleDateString('en-ZW', { day: 'numeric', month: 'short' })}
-              </span>
-            </li>
-          ))}
+      <section className="overflow-hidden rounded-lg border border-line bg-card shadow-card-sm">
+        <header className="border-b border-line px-5 py-3.5">
+          <h2 className="text-small font-semibold text-ink">Payment history</h2>
+          <p className="text-micro text-muted">{payments.length} transactions on file</p>
+        </header>
+        <ul className="divide-y divide-line">
+          {payments.map((p) => {
+            const tone: 'success' | 'info' | 'warning' =
+              p.status === 'RECONCILED' ? 'success' : p.status === 'VERIFIED' ? 'info' : 'warning';
+            return (
+              <li key={p.id} className="flex items-center gap-4 px-5 py-4">
+                <span className="inline-flex h-10 w-10 flex-none items-center justify-center rounded-md bg-success/10 text-success">
+                  <Receipt className="h-4 w-4" strokeWidth={1.75} aria-hidden />
+                </span>
+                <div className="min-w-0 flex-1">
+                  <p className="truncate text-small font-semibold text-ink">{p.method}</p>
+                  <p className="text-micro font-mono text-muted">{p.reference}</p>
+                </div>
+                <span className="text-small font-bold tabular-nums text-ink">
+                  {FEES_SUMMARY.currency} {p.amount}
+                </span>
+                <Badge tone={tone} dot>
+                  {p.status.replace('_', ' ').toLowerCase()}
+                </Badge>
+                <span className="hidden w-24 text-right text-micro text-muted sm:inline">
+                  {new Date(p.paidAt).toLocaleDateString('en-ZW', { day: 'numeric', month: 'short' })}
+                </span>
+              </li>
+            );
+          })}
         </ul>
-      </EditorialCard>
+      </section>
     </div>
   );
 }
 
-function SummaryStat({
+function KpiTile({
   label,
   value,
+  sub,
   tone,
+  ring,
 }: {
   label: string;
   value: string;
-  tone: 'neutral' | 'ok' | 'warn';
+  sub: string;
+  tone: 'brand' | 'success' | 'warning';
+  ring?: number;
 }) {
-  const colour = tone === 'ok' ? 'text-ok' : tone === 'warn' ? 'text-danger' : 'text-ink';
   return (
-    <EditorialCard className="px-6 py-6">
-      <p className="hha-eyebrow-earth">{label}</p>
-      <p className={`mt-2 font-display text-[42px] leading-none tabular-nums ${colour}`}>
-        <span className="text-[18px] text-stone">{FEES_SUMMARY.currency} </span>
-        {value}
-      </p>
-    </EditorialCard>
+    <li className="rounded-lg border border-line bg-card p-5 shadow-card-sm">
+      <div className="flex items-center justify-between">
+        <p className="text-micro font-semibold uppercase tracking-[0.12em] text-muted">{label}</p>
+        {ring !== undefined ? (
+          <ProgressRing
+            value={ring}
+            size={44}
+            stroke={5}
+            tone={tone === 'warning' ? 'warning' : tone === 'success' ? 'success' : 'brand'}
+          />
+        ) : null}
+      </div>
+      <p className="mt-3 text-h2 tabular-nums text-ink">{value}</p>
+      <p className="mt-1 text-micro text-muted">{sub}</p>
+    </li>
   );
 }
