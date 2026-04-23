@@ -1,9 +1,19 @@
 'use client';
 
-import { useState } from 'react';
-import { CheckCircle2, Download, FileText, HandCoins, MessageSquarePlus } from 'lucide-react';
+import { useEffect, useMemo, useState } from 'react';
+import {
+  ArrowRight,
+  Check,
+  CheckCircle2,
+  Download,
+  FileText,
+  HandCoins,
+  Loader2,
+  MessageSquarePlus,
+  X,
+} from 'lucide-react';
 
-import { EditorialAvatar, EditorialCard, SectionEyebrow } from '@/components/student/primitives';
+import { EditorialAvatar, EditorialCard, SectionEyebrow, TrendArrow } from '@/components/student/primitives';
 import { ChildColourDot, ParentPageHeader, ParentStatusPill } from '@/components/parent/primitives';
 import { useSelectedChild } from '@/components/parent/selected-child-context';
 import { reportsFor } from '@/lib/mock/parent-extras';
@@ -22,6 +32,29 @@ export default function ParentReportsPage() {
   const current = reports.find((r) => r.current) ?? reports[0]!;
   const past = reports.filter((r) => !r.current);
   const [acknowledged, setAcknowledged] = useState(current.acknowledged);
+  const [downloading, setDownloading] = useState<string | null>(null);
+  const [downloaded, setDownloaded] = useState<Set<string>>(new Set());
+  const [compareOpen, setCompareOpen] = useState(false);
+  const [toast, setToast] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (!toast) return;
+    const t = setTimeout(() => setToast(null), 2400);
+    return () => clearTimeout(t);
+  }, [toast]);
+
+  function simulateDownload(id: string, label: string) {
+    setDownloading(id);
+    setTimeout(() => {
+      setDownloading(null);
+      setDownloaded((curr) => {
+        const next = new Set(curr);
+        next.add(id);
+        return next;
+      });
+      setToast(`Downloaded "${label}" (watermarked PDF)`);
+    }, 1100);
+  }
 
   return (
     <div className="space-y-8">
@@ -33,10 +66,22 @@ export default function ParentReportsPage() {
         right={
           <button
             type="button"
-            className="inline-flex h-10 items-center gap-2 rounded border border-sand bg-white px-3 font-sans text-[13px] font-medium text-earth hover:bg-sand-light"
+            onClick={() => simulateDownload(current.id, `${current.term} ${current.year} — ${selectedChild.firstName}`)}
+            disabled={downloading === current.id}
+            className="inline-flex h-10 items-center gap-2 rounded border border-sand bg-white px-3 font-sans text-[13px] font-medium text-earth hover:bg-sand-light disabled:opacity-60"
           >
-            <Download className="h-4 w-4" strokeWidth={1.5} aria-hidden />
-            Download PDF
+            {downloading === current.id ? (
+              <Loader2 className="h-4 w-4 animate-spin" strokeWidth={1.5} aria-hidden />
+            ) : downloaded.has(current.id) ? (
+              <Check className="h-4 w-4 text-ok" strokeWidth={2} aria-hidden />
+            ) : (
+              <Download className="h-4 w-4" strokeWidth={1.5} aria-hidden />
+            )}
+            {downloading === current.id
+              ? 'Preparing PDF…'
+              : downloaded.has(current.id)
+              ? 'Downloaded'
+              : 'Download PDF'}
           </button>
         }
       />
@@ -138,7 +183,9 @@ export default function ParentReportsPage() {
           <SectionEyebrow>Past reports</SectionEyebrow>
           <button
             type="button"
-            className="inline-flex h-9 items-center gap-1.5 rounded border border-sand bg-white px-3 font-sans text-[12px] font-medium text-earth hover:bg-sand-light"
+            onClick={() => setCompareOpen(true)}
+            disabled={past.length === 0}
+            className="inline-flex h-9 items-center gap-1.5 rounded border border-sand bg-white px-3 font-sans text-[12px] font-medium text-earth hover:bg-sand-light disabled:opacity-40"
           >
             Compare terms
           </button>
@@ -149,31 +196,220 @@ export default function ParentReportsPage() {
           </p>
         ) : (
           <ul className="divide-y divide-sand-light">
-            {past.map((r) => (
-              <li key={r.id} className="flex items-center gap-4 px-6 py-4">
-                <FileText className="h-5 w-5 flex-none text-earth" strokeWidth={1.5} aria-hidden />
-                <div className="min-w-0 flex-1">
-                  <p className="font-sans font-medium text-ink">
-                    {r.term} {r.year} · Form-teacher report
-                  </p>
-                  <p className="font-sans text-[12px] text-stone">
-                    Released {r.releasedOn} · {r.average}% · Grade {r.grade} · attendance {r.attendance}%
-                  </p>
-                </div>
-                <ParentStatusPill state={r.acknowledged ? 'acknowledged' : 'action-required'} />
-                <button
-                  type="button"
-                  className="inline-flex h-8 items-center gap-1.5 rounded border border-sand bg-white px-3 font-sans text-[12px] font-medium text-earth hover:bg-sand-light"
-                >
-                  <Download className="h-3.5 w-3.5" strokeWidth={1.5} aria-hidden />
-                  Download
-                </button>
-              </li>
-            ))}
+            {past.map((r) => {
+              const isDownloading = downloading === r.id;
+              const isDownloaded = downloaded.has(r.id);
+              return (
+                <li key={r.id} className="flex items-center gap-4 px-6 py-4">
+                  <FileText className="h-5 w-5 flex-none text-earth" strokeWidth={1.5} aria-hidden />
+                  <div className="min-w-0 flex-1">
+                    <p className="font-sans font-medium text-ink">
+                      {r.term} {r.year} · Form-teacher report
+                    </p>
+                    <p className="font-sans text-[12px] text-stone">
+                      Released {r.releasedOn} · {r.average}% · Grade {r.grade} · attendance {r.attendance}%
+                    </p>
+                  </div>
+                  <ParentStatusPill state={r.acknowledged ? 'acknowledged' : 'action-required'} />
+                  <button
+                    type="button"
+                    onClick={() => simulateDownload(r.id, `${r.term} ${r.year} — ${selectedChild.firstName}`)}
+                    disabled={isDownloading}
+                    className="inline-flex h-8 items-center gap-1.5 rounded border border-sand bg-white px-3 font-sans text-[12px] font-medium text-earth hover:bg-sand-light disabled:opacity-60"
+                  >
+                    {isDownloading ? (
+                      <Loader2 className="h-3.5 w-3.5 animate-spin" strokeWidth={1.5} aria-hidden />
+                    ) : isDownloaded ? (
+                      <Check className="h-3.5 w-3.5 text-ok" strokeWidth={2} aria-hidden />
+                    ) : (
+                      <Download className="h-3.5 w-3.5" strokeWidth={1.5} aria-hidden />
+                    )}
+                    {isDownloading ? 'Preparing…' : isDownloaded ? 'Downloaded' : 'Download'}
+                  </button>
+                </li>
+              );
+            })}
           </ul>
         )}
       </EditorialCard>
+
+      {compareOpen ? (
+        <CompareDrawer
+          current={current}
+          past={past}
+          onClose={() => setCompareOpen(false)}
+        />
+      ) : null}
+
+      {toast ? (
+        <div
+          role="status"
+          className="fixed bottom-6 left-1/2 z-40 -translate-x-1/2 rounded-full bg-ink px-4 py-2 font-sans text-[12px] font-semibold text-cream shadow-e3"
+        >
+          <Check className="mr-1 inline-block h-3.5 w-3.5" strokeWidth={2} aria-hidden />
+          {toast}
+        </div>
+      ) : null}
     </div>
+  );
+}
+
+function CompareDrawer({
+  current,
+  past,
+  onClose,
+}: {
+  current: ReturnType<typeof reportsFor>[number];
+  past: ReturnType<typeof reportsFor>;
+  onClose: () => void;
+}) {
+  const all = useMemo(() => [...past, current], [past, current]).sort((a, b) => {
+    return `${a.year}-${a.term}`.localeCompare(`${b.year}-${b.term}`);
+  });
+
+  const max = Math.max(...all.map((r) => r.average));
+  const min = Math.min(...all.map((r) => r.average));
+
+  return (
+    <div
+      role="dialog"
+      aria-modal="true"
+      onClick={onClose}
+      className="fixed inset-0 z-50 flex items-center justify-center bg-ink/50 p-4"
+    >
+      <div
+        onClick={(e) => e.stopPropagation()}
+        className="flex max-h-[88vh] w-full max-w-3xl flex-col overflow-hidden rounded bg-white shadow-e3"
+      >
+        <div className="flex items-center justify-between border-b border-sand px-6 py-4">
+          <h2 className="font-display text-[20px] text-ink">Compare terms</h2>
+          <button
+            type="button"
+            onClick={onClose}
+            aria-label="Close"
+            className="rounded p-2 text-stone transition-colors hover:bg-sand-light hover:text-ink"
+          >
+            <X className="h-5 w-5" strokeWidth={1.5} />
+          </button>
+        </div>
+        <div className="overflow-y-auto p-6">
+          <p className="font-sans text-[13px] text-stone">
+            Side-by-side across {all.length} terms · the portal stitches together form-teacher reports so
+            you can read the arc at a glance.
+          </p>
+
+          {/* Trend strip */}
+          <div className="mt-5 rounded border border-sand bg-sand-light/40 p-4">
+            <p className="font-sans text-[11px] font-semibold uppercase tracking-[0.14em] text-earth">
+              Term averages
+            </p>
+            <div className="mt-3 flex items-end gap-4">
+              {all.map((r) => {
+                const h = Math.max(12, ((r.average - min + 4) / Math.max(max - min + 4, 1)) * 120);
+                const isCurrent = r.id === current.id;
+                return (
+                  <div key={r.id} className="flex flex-1 flex-col items-center gap-2">
+                    <div
+                      className={[
+                        'w-full max-w-[56px] rounded-t',
+                        isCurrent ? 'bg-terracotta' : 'bg-earth/60',
+                      ].join(' ')}
+                      style={{ height: `${h}px` }}
+                      aria-hidden
+                    />
+                    <div className="text-center font-mono text-[11px] text-stone">
+                      <p className="font-semibold text-ink">{r.average}%</p>
+                      <p>
+                        {r.term} · {r.year}
+                      </p>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+
+          {/* Row comparison */}
+          <table className="mt-6 w-full text-[14px]">
+            <thead>
+              <tr className="bg-sand-light/40 text-left">
+                <th className="px-4 py-2 font-sans text-[10px] font-semibold uppercase tracking-[0.14em] text-stone">
+                  Metric
+                </th>
+                {all.map((r) => (
+                  <th
+                    key={r.id}
+                    className={[
+                      'px-4 py-2 font-sans text-[10px] font-semibold uppercase tracking-[0.14em]',
+                      r.id === current.id ? 'text-terracotta' : 'text-stone',
+                    ].join(' ')}
+                  >
+                    {r.term} {r.year}
+                    {r.id === current.id ? ' (current)' : ''}
+                  </th>
+                ))}
+              </tr>
+            </thead>
+            <tbody className="font-mono tabular-nums text-[13px] text-ink">
+              <ComparisonRow label="Average" values={all.map((r) => `${r.average}%`)} />
+              <ComparisonRow label="Grade" values={all.map((r) => r.grade)} />
+              <ComparisonRow
+                label="Position"
+                values={all.map((r) => `${r.position}/${r.classSize}`)}
+              />
+              <ComparisonRow
+                label="Attendance"
+                values={all.map((r) => `${r.attendance}%`)}
+              />
+            </tbody>
+          </table>
+
+          {/* Quoted commentary */}
+          <div className="mt-6 space-y-3">
+            {all.map((r) => (
+              <blockquote
+                key={r.id}
+                className={[
+                  'rounded border p-4',
+                  r.id === current.id
+                    ? 'border-terracotta/40 bg-sand-light/70'
+                    : 'border-sand bg-white',
+                ].join(' ')}
+              >
+                <p className="font-sans text-[11px] font-semibold uppercase tracking-[0.14em] text-earth">
+                  {r.term} {r.year}
+                </p>
+                <p className="mt-2 font-serif text-[14px] italic leading-relaxed text-ink">
+                  &ldquo;{r.formTeacherComment}&rdquo;
+                </p>
+              </blockquote>
+            ))}
+          </div>
+        </div>
+        <div className="flex items-center justify-end gap-2 border-t border-sand bg-white px-6 py-4">
+          <button
+            type="button"
+            onClick={onClose}
+            className="inline-flex h-10 items-center gap-2 rounded border border-sand bg-white px-3 font-sans text-[13px] font-medium text-stone hover:bg-sand-light"
+          >
+            Close
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function ComparisonRow({ label, values }: { label: string; values: string[] }) {
+  return (
+    <tr className="border-t border-sand-light">
+      <td className="px-4 py-3 font-sans font-medium text-stone">{label}</td>
+      {values.map((v, i) => (
+        <td key={i} className="px-4 py-3">
+          {v}
+        </td>
+      ))}
+    </tr>
   );
 }
 
