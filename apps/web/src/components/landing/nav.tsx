@@ -1,205 +1,140 @@
 'use client';
 
 import Link from 'next/link';
-import { useEffect, useState } from 'react';
-import { ArrowRight, Menu, X } from 'lucide-react';
+import { useCallback, useEffect, useState } from 'react';
+import { Menu, X } from 'lucide-react';
 
-import { LandingCrest } from './crest';
+import { cn } from '@hha/ui';
 
-const NAV_LINKS: readonly { href: string; label: string; hot?: boolean }[] = [
-  { href: '#academics', label: 'Academics' },
-  { href: '#admissions', label: 'Admissions' },
-  { href: '#announcements', label: 'Announcements', hot: true },
-  { href: '#support', label: 'Support' },
-  { href: '#about', label: 'About' },
-];
-
-const LOCALES: readonly { code: 'EN' | 'SN' | 'ND'; label: string }[] = [
-  { code: 'EN', label: 'English' },
-  { code: 'SN', label: 'Shona' },
-  { code: 'ND', label: 'Ndebele' },
-];
+import { Button } from '@/components/ui/button';
+import { Logo } from '@/components/ui/logo';
 
 /**
- * Sticky nav — v2.0 "cool precision software".
+ * Scroll-reactive landing navigation.
  *
- * Transparent over the hero at 80px tall. After 40px of scroll, a
- * Snow/Fog-92 backdrop-blur fills in with a Mist hairline. Between
- * 80–200px the height compresses to 64px.
- *
- * A compact "Sign in" FAB appears in the bottom-right after 400px of
- * scroll.
+ *   • Transparent while sitting over the hero
+ *   • Translucent white + line hairline + blur once you scroll past ~10px
+ *   • Hamburger menu under lg; Escape closes it
+ *   • Sign in link + Get started CTA on the right
  */
+
+const NAV_ITEMS = [
+  { href: '#services',      label: 'What it does' },
+  { href: '#how-it-works',  label: 'How it works' },
+  { href: '#announcements', label: 'Announcements' },
+  { href: '#support',       label: 'Support' },
+] as const;
+
+const SCROLL_THRESHOLD = 10;
+
 export function LandingNav() {
   const [scrolled, setScrolled] = useState(false);
-  const [compact, setCompact] = useState(false);
-  const [showFab, setShowFab] = useState(false);
-  const [menuOpen, setMenuOpen] = useState(false);
-  const [locale, setLocale] = useState<'EN' | 'SN' | 'ND'>('EN');
+  const [mobileOpen, setMobileOpen] = useState(false);
 
-  useEffect(() => {
-    function onScroll() {
-      const y = window.scrollY;
-      setScrolled(y > 40);
-      setCompact(y > 200);
-      setShowFab(y > 400);
-    }
-    onScroll();
-    window.addEventListener('scroll', onScroll, { passive: true });
-    return () => window.removeEventListener('scroll', onScroll);
+  const onScroll = useCallback(() => {
+    setScrolled(window.scrollY > SCROLL_THRESHOLD);
   }, []);
 
+  useEffect(() => {
+    window.addEventListener('scroll', onScroll, { passive: true });
+    onScroll();
+    return () => window.removeEventListener('scroll', onScroll);
+  }, [onScroll]);
+
+  useEffect(() => {
+    if (!mobileOpen) return;
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') setMobileOpen(false);
+    };
+    document.body.style.overflow = 'hidden';
+    window.addEventListener('keydown', onKey);
+    return () => {
+      document.body.style.overflow = '';
+      window.removeEventListener('keydown', onKey);
+    };
+  }, [mobileOpen]);
+
   return (
-    <>
-      <a
-        href="#main"
-        className="absolute left-2 top-2 z-[60] -translate-y-20 rounded bg-obsidian px-3 py-2 text-xs font-semibold text-snow focus:translate-y-0"
-      >
-        Skip to main content
-      </a>
+    <header
+      className={cn(
+        'fixed inset-x-0 top-0 z-[45] transition-all duration-300 ease-[cubic-bezier(0.16,1,0.3,1)]',
+        scrolled || mobileOpen
+          ? 'border-b border-line bg-card/90 backdrop-blur-md'
+          : 'border-b border-transparent bg-transparent',
+      )}
+    >
+      <nav className="mx-auto flex h-[64px] max-w-[1200px] items-center justify-between px-5 sm:px-8">
+        <Logo size={32} showText asLink variant="on-light" />
 
-      <header
-        data-scrolled={scrolled ? 'true' : 'false'}
-        data-compact={compact ? 'true' : 'false'}
-        className={[
-          'sticky top-0 z-50 w-full transition-all duration-300 ease-out-soft',
-          scrolled
-            ? 'border-b border-mist bg-snow/92 shadow-nav-scroll backdrop-blur-[12px]'
-            : 'border-b border-transparent bg-snow/0 backdrop-blur-0',
-          compact ? 'h-16' : 'h-20',
-        ].join(' ')}
-      >
-        <div className="hha-wrap flex h-full items-center gap-6">
-          <Link
-            href="/"
-            className="flex flex-none items-center gap-3"
-            aria-label="Harare Heritage Academy — home"
-          >
-            <LandingCrest size={32} />
-            <span className="hidden leading-tight sm:block">
-              <span
-                className="block font-mono text-[11px] font-medium uppercase tracking-[0.18em]"
-                style={{ color: 'rgb(var(--accent))' }}
-              >
-                Harare Heritage Academy
-              </span>
-              <span className="block font-display text-[15px] font-medium text-obsidian">
-                HHA Portal
-              </span>
-            </span>
-          </Link>
-
-          <nav
-            aria-label="Primary"
-            className="ml-auto hidden items-center gap-8 lg:flex"
-          >
-            {NAV_LINKS.map((link) => (
-              <Link
-                key={link.href}
-                href={link.href}
-                className="landing-link relative font-sans text-sm font-medium text-slate transition-colors hover:text-obsidian"
-              >
-                {link.label}
-                {link.hot ? (
-                  <span
-                    aria-label="unread urgent announcement"
-                    className="absolute -right-3 -top-0.5 h-1.5 w-1.5 rounded-full"
-                    style={{ backgroundColor: 'rgb(var(--accent))' }}
-                  />
-                ) : null}
-              </Link>
-            ))}
-          </nav>
-
-          <div className="hidden items-center gap-2 lg:flex">
-            <div
-              role="radiogroup"
-              aria-label="Language"
-              className="flex items-center gap-1 font-mono text-xs font-medium uppercase tracking-[0.1em]"
+        <div className="hidden items-center gap-1 lg:flex">
+          {NAV_ITEMS.map((item) => (
+            <Link
+              key={item.href}
+              href={item.href}
+              className="rounded-sm px-3 py-2 text-small font-medium text-ink/80 transition-colors hover:text-brand-primary"
             >
-              {LOCALES.map((l, i) => (
-                <span key={l.code} className="flex items-center gap-1">
-                  {i > 0 ? <span className="text-steel">·</span> : null}
-                  <button
-                    type="button"
-                    role="radio"
-                    aria-checked={locale === l.code}
-                    aria-label={l.label}
-                    onClick={() => setLocale(l.code)}
-                    className={[
-                      'rounded px-1.5 py-1 transition-colors',
-                      locale === l.code
-                        ? 'text-obsidian'
-                        : 'text-steel hover:text-obsidian',
-                    ].join(' ')}
-                  >
-                    {l.code}
-                  </button>
-                </span>
-              ))}
-            </div>
-          </div>
-
-          <Link
-            href="/sign-in"
-            className="btn-primary hidden lg:inline-flex"
-            data-animate="nav-cta"
-          >
-            Sign in
-            <ArrowRight className="h-4 w-4" aria-hidden strokeWidth={1.5} />
-          </Link>
-
-          <button
-            type="button"
-            className="ml-auto inline-flex h-10 w-10 items-center justify-center rounded text-slate transition-colors hover:bg-fog lg:hidden"
-            aria-label={menuOpen ? 'Close menu' : 'Open menu'}
-            aria-expanded={menuOpen}
-            onClick={() => setMenuOpen((v) => !v)}
-          >
-            {menuOpen ? (
-              <X className="h-6 w-6" strokeWidth={1.5} />
-            ) : (
-              <Menu className="h-6 w-6" strokeWidth={1.5} />
-            )}
-          </button>
+              {item.label}
+            </Link>
+          ))}
         </div>
 
-        {menuOpen ? (
-          <div className="absolute inset-x-0 top-full border-t border-mist bg-snow shadow-e2 lg:hidden">
-            <nav aria-label="Primary (mobile)" className="hha-wrap flex flex-col py-6">
-              {NAV_LINKS.map((link) => (
-                <Link
-                  key={link.href}
-                  href={link.href}
-                  className="py-3 font-sans text-base text-obsidian hover:text-slate"
-                  onClick={() => setMenuOpen(false)}
-                >
-                  {link.label}
-                </Link>
-              ))}
-              <Link
-                href="/sign-in"
-                className="btn-primary mt-4 w-full"
-                onClick={() => setMenuOpen(false)}
-              >
-                Sign in
-                <ArrowRight className="h-4 w-4" aria-hidden strokeWidth={1.5} />
-              </Link>
-            </nav>
-          </div>
-        ) : null}
-      </header>
+        <div className="hidden items-center gap-3 lg:flex">
+          <Link
+            href="/sign-in"
+            className="rounded-sm px-3 py-2 text-small font-medium text-ink/80 transition-colors hover:text-brand-primary"
+          >
+            Sign in
+          </Link>
+          <Link
+            href="/sign-in"
+            className="inline-flex h-9 items-center gap-2 rounded-full bg-brand-primary px-5 text-small font-semibold text-white shadow-card-sm transition hover:bg-brand-primary/90 hover:shadow-card-md"
+          >
+            Open my portal
+          </Link>
+        </div>
 
-      {showFab ? (
-        <Link
-          href="/sign-in"
-          className="btn-primary fixed bottom-6 right-6 z-40 shadow-e3"
-          aria-label="Sign in to the portal"
+        <button
+          type="button"
+          className="flex h-10 w-10 items-center justify-center rounded-md text-ink hover:bg-brand-primary/10 lg:hidden"
+          onClick={() => setMobileOpen((v) => !v)}
+          aria-label={mobileOpen ? 'Close menu' : 'Open menu'}
+          aria-expanded={mobileOpen}
         >
-          Sign in
-          <ArrowRight className="h-4 w-4" aria-hidden strokeWidth={1.5} />
-        </Link>
+          {mobileOpen ? <X className="h-5 w-5" /> : <Menu className="h-5 w-5" />}
+        </button>
+      </nav>
+
+      {mobileOpen ? (
+        <div className="absolute inset-x-0 top-[64px] border-b border-line bg-card animate-slide-down lg:hidden">
+          <div className="mx-auto flex max-w-[1200px] flex-col gap-1 px-5 py-4 sm:px-8">
+            {NAV_ITEMS.map((item) => (
+              <Link
+                key={item.href}
+                href={item.href}
+                onClick={() => setMobileOpen(false)}
+                className="rounded-md px-3 py-3 text-body font-medium text-ink hover:bg-surface"
+              >
+                {item.label}
+              </Link>
+            ))}
+            <div className="my-2 h-px bg-line" />
+            <Link
+              href="/sign-in"
+              onClick={() => setMobileOpen(false)}
+              className="rounded-md px-3 py-3 text-body font-medium text-ink hover:bg-surface"
+            >
+              Sign in
+            </Link>
+            <Button
+              fullWidth
+              className="mt-2 rounded-full"
+              onClick={() => setMobileOpen(false)}
+            >
+              <Link href="/sign-in">Open my portal</Link>
+            </Button>
+          </div>
+        </div>
       ) : null}
-    </>
+    </header>
   );
 }

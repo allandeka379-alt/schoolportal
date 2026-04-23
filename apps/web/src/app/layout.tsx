@@ -1,7 +1,7 @@
 import type { Metadata, Viewport } from 'next';
 import type { ReactNode } from 'react';
 
-import { fontVariables } from '@/lib/fonts';
+import { fontVariables, legacyAliasStyle } from '@/lib/fonts';
 
 import './globals.css';
 
@@ -11,18 +11,18 @@ export const metadata: Metadata = {
     template: '%s · HHA Portal',
   },
   description:
-    'Software for the academic life of Harare Heritage Academy — students, teachers, parents, and the Headmaster.',
+    'Software for the academic life of Harare Heritage Academy — students, teachers, parents, and the administrator.',
   metadataBase: new URL('https://hha-portal.vercel.app'),
   openGraph: {
-    title: 'HHA Portal · v2.0',
+    title: 'HHA Portal',
     description:
-      'Cool precision software for students, teachers, parents, and the Headmaster of Harare Heritage Academy.',
+      'Software for the academic life of Harare Heritage Academy.',
     type: 'website',
   },
 };
 
 export const viewport: Viewport = {
-  themeColor: '#0A0A0B',
+  themeColor: '#1F3A68',
   width: 'device-width',
   initialScale: 1,
 };
@@ -30,7 +30,10 @@ export const viewport: Viewport = {
 export default function RootLayout({ children }: { children: ReactNode }) {
   return (
     <html lang="en" className={`h-full ${fontVariables}`}>
-      <body className="h-full bg-snow text-obsidian antialiased">{children}</body>
+      <head>
+        <style dangerouslySetInnerHTML={{ __html: legacyAliasStyle }} />
+      </head>
+      <body className="min-h-full bg-surface text-ink antialiased">{children}</body>
     </html>
   );
 }

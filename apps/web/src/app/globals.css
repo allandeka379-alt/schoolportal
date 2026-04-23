@@ -3,235 +3,333 @@
 @tailwind utilities;
 
 /*
- * HHA Portal · v2.0 Design Direction
+ * HHA Portal — civic redesign.
  *
- * Cool precision over warm editorial. Space Grotesk display · Inter body ·
- * JetBrains Mono signature. Snow / Fog / Obsidian surfaces with per-portal
- * vivid accents injected through the --accent CSS variable.
+ * Light-theme palette:
+ *   Council-Blue brand primary  #1F3A68
+ *   Gold brand accent           #C9A227
+ *   Ink, muted, surface, card, line
+ *   Semantic success/warning/danger/info
+ *
+ * Legacy utility classes that dozens of pages still reference
+ * (hha-eyebrow, landing-link, btn-terracotta, sidebar-active-accent,
+ * portal-* scope classes, etc.) are retained below so we don't touch a
+ * hundred files just to swap the visual language.
  */
 
 @layer base {
   :root {
-    /* Default accent — if a page isn't inside a portal scope, fall back
-       to Landing's electric cyan so focus rings & CTAs still have a
-       recognisable tone. */
-    --accent: 10 239 255;
-    --accent-hover: 0 197 212;
+    /* Brand */
+    --color-brand-primary: 31 58 104;
+    --color-brand-accent:  201 162 39;
+    --color-brand-ink:     17 24 39;
 
-    /* Palette echoes — accessible as CSS vars for components that need
-       colour-math (e.g. gradients, alpha). */
-    --snow: 255 255 255;
-    --fog: 237 239 242;
-    --mist: 212 215 221;
-    --steel: 144 149 160;
-    --slate: 77 81 89;
-    --graphite: 43 45 49;
-    --charcoal: 23 24 27;
-    --obsidian: 10 10 11;
+    /* Semantic */
+    --color-success: 30 127 79;
+    --color-warning: 199 119 0;
+    --color-danger:  180 35 24;
+    --color-info:    30 90 170;
+
+    /* Neutrals */
+    --color-ink:     34 34 34;
+    --color-muted:   85 85 85;
+    --color-border:  229 231 235;
+    --color-surface: 247 248 250;
+    --color-card:    255 255 255;
+
+    /* Radius */
+    --radius-sm: 0.375rem;
+    --radius-md: 0.5rem;
+    --radius-lg: 0.75rem;
+    --radius-xl: 1rem;
+
+    /* Motion */
+    --ease-out-expo: cubic-bezier(0.16, 1, 0.3, 1);
+    --duration-fast: 150ms;
+    --duration-base: 200ms;
+    --duration-slow: 300ms;
+
+    /* Z-index */
+    --z-dropdown: 40;
+    --z-sticky: 45;
+    --z-overlay: 50;
+    --z-modal: 60;
+    --z-toast: 80;
+    --z-tooltip: 90;
+
+    /* Per-portal accent variable kept for pages still referencing
+       rgb(var(--accent)) — now mapped onto the brand primary so everything
+       still resolves to a valid colour. */
+    --accent: var(--color-brand-primary);
+    --accent-hover: var(--color-brand-primary);
   }
 
-  /* Per-portal scope — the sidebar/shell wraps its children with one of
-     these classes so every button, focus ring, and active-state CTA
-     downstream picks up the right accent without per-component edits. */
-
-  .portal-student   { --accent: 91 92 255;   --accent-hover: 70 72 217; }
-  .portal-teacher   { --accent: 0 179 126;   --accent-hover: 0 144 96;  }
-  .portal-parent    { --accent: 255 91 122;  --accent-hover: 230 69 100;}
-  .portal-headmaster{ --accent: 245 165 36;  --accent-hover: 217 144 32;}
-  .portal-admin     { --accent: 245 165 36;  --accent-hover: 217 144 32;}
-  .portal-landing   { --accent: 10 239 255;  --accent-hover: 0 197 212; }
+  /* Portal scope classes are kept but all resolve to the same brand blue
+     now. The per-portal vivid accent era is retired. */
+  .portal-student,
+  .portal-teacher,
+  .portal-parent,
+  .portal-headmaster,
+  .portal-admin,
+  .portal-landing {
+    --accent: var(--color-brand-primary);
+    --accent-hover: var(--color-brand-primary);
+  }
 
   html {
-    font-feature-settings: 'ss01', 'cv11';
-    text-rendering: optimizeLegibility;
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
+    text-rendering: optimizeLegibility;
   }
 
   body {
-    @apply bg-snow text-obsidian font-sans;
-  }
-
-  /* Headings — geometric display, tight tracking. No more italics for
-     emphasis, no more serifs anywhere. */
-  h1, h2, h3, h4 {
-    @apply font-display text-obsidian;
-    font-feature-settings: 'ss02', 'cv11';
-  }
-  h1 { @apply text-display-m font-medium tracking-tight; }
-  h2 { @apply text-heading-1 font-medium tracking-tight; }
-  h3 { @apply text-heading-2 font-medium; }
-  h4 { @apply text-heading-3 font-medium; }
-
-  /* Body measure cap per §03. */
-  p {
-    @apply max-w-measure;
+    background-color: rgb(var(--color-surface));
+    color: rgb(var(--color-ink));
+    font-family: var(--font-sans), system-ui, sans-serif;
   }
 
   ::selection {
-    background: rgb(var(--accent) / 0.2);
-    color: #0A0A0B;
+    background-color: rgba(var(--color-brand-primary), 0.18);
+    color: rgb(var(--color-brand-primary));
   }
 
   :focus-visible {
+    outline: 2px solid rgba(var(--color-brand-primary), 0.7);
+    outline-offset: 2px;
+    border-radius: 3px;
+  }
+
+  :focus:not(:focus-visible) {
     outline: none;
-    box-shadow: 0 0 0 2px #FFFFFF, 0 0 0 4px rgb(var(--accent));
+  }
+
+  ::-webkit-scrollbar {
+    width: 8px;
+    height: 8px;
+  }
+
+  ::-webkit-scrollbar-track {
+    background: transparent;
+  }
+
+  ::-webkit-scrollbar-thumb {
+    background: rgba(var(--color-border), 0.8);
     border-radius: 4px;
   }
 
-  /* Authenticated portals still keep their own base background. */
-  .portal-shell-root {
-    @apply bg-snow text-obsidian;
+  ::-webkit-scrollbar-thumb:hover {
+    background: rgb(var(--color-muted));
+  }
+
+  * {
+    scrollbar-width: thin;
+    scrollbar-color: rgba(var(--color-border), 0.8) transparent;
+  }
+
+  input:-webkit-autofill,
+  input:-webkit-autofill:hover,
+  input:-webkit-autofill:focus,
+  textarea:-webkit-autofill {
+    -webkit-text-fill-color: rgb(var(--color-ink));
+    -webkit-box-shadow: 0 0 0 1000px rgb(var(--color-card)) inset;
+    transition: background-color 5000s ease-in-out 0s;
+  }
+
+  ::placeholder {
+    color: rgb(var(--color-muted) / 0.7);
+    opacity: 1;
+  }
+
+  h1, h2, h3, h4 {
+    color: rgb(var(--color-ink));
+    font-family: var(--font-sans);
   }
 }
 
 @layer components {
+  /* ------------------------------------------------------------------ */
+  /*  Legacy HHA component classes — preserved for compat               */
+  /* ------------------------------------------------------------------ */
+
   .hha-wrap {
-    @apply mx-auto w-full max-w-[1440px] px-6 md:px-8 lg:px-10;
+    @apply mx-auto w-full max-w-[1200px] px-5 sm:px-8;
   }
 
-  /* Eyebrow — v2.0 is mono caps, tight tracking. */
   .hha-eyebrow,
-  .hha-eyebrow-earth {
-    @apply font-mono text-[11px] font-medium uppercase tracking-[0.12em] text-slate;
-  }
-
+  .hha-eyebrow-earth,
   .hha-label {
-    @apply font-mono text-[11px] font-medium uppercase tracking-[0.12em] text-slate;
+    @apply inline-flex items-center gap-2 text-micro font-semibold uppercase tracking-[0.12em] text-brand-primary;
   }
 
   .hha-hairline {
-    @apply border-mist;
+    @apply border-line;
   }
 
-  /* Cards — crisp mist borders, no shadow at rest, subtle darken on hover. */
   .hha-card-surface {
-    @apply bg-snow border border-mist rounded-md transition-colors duration-120 ease-out-soft;
+    @apply rounded-md border border-line bg-card shadow-card-sm transition-colors duration-base ease-out-expo;
   }
 
-  .hha-card-surface:hover {
-    @apply border-slate/30;
-  }
-
-  /* Sidebar nav rows used by legacy shells — still work; new shells
-     style their own nav inline. */
   .hha-nav-link {
-    @apply flex items-center gap-3 px-3 py-2 rounded font-sans text-sm font-medium text-slate transition-colors duration-120 hover:bg-fog hover:text-obsidian;
+    @apply flex items-center gap-3 rounded-md px-3 py-2.5 text-small font-medium text-ink/80 transition-colors duration-200 hover:bg-brand-primary/10 hover:text-brand-primary;
   }
 
   .hha-nav-link-active {
-    background: rgb(var(--accent) / 0.1);
-    color: rgb(var(--accent));
+    @apply bg-brand-primary/10 text-brand-primary;
   }
 
-  /* Tables */
   .hha-table {
-    @apply w-full text-sm;
+    @apply w-full text-small;
   }
 
   .hha-table thead th {
-    @apply text-left font-mono text-[11px] font-medium uppercase tracking-[0.12em] text-slate px-4 py-2.5 border-b border-mist bg-fog/50;
+    @apply border-b border-line bg-surface/60 px-4 py-2.5 text-left text-micro font-semibold uppercase tracking-[0.1em] text-muted;
   }
 
   .hha-table tbody td {
-    @apply px-4 py-3 border-b border-mist/60;
+    @apply border-b border-line/60 px-4 py-3;
   }
 
   .hha-table tbody tr:hover {
-    @apply bg-fog/60;
+    @apply bg-surface/60;
   }
 
-  /* Landing-specific primitives — re-tuned to v2.0 */
+  /* Landing card */
   .landing-card {
-    @apply bg-snow border border-mist rounded-md transition-all duration-120 ease-out-soft;
+    @apply rounded-lg border border-line bg-card shadow-card-sm transition-all duration-base ease-out-expo;
   }
 
   .landing-card:hover {
-    @apply border-slate/30 -translate-y-px;
+    @apply -translate-y-0.5 shadow-card-md;
   }
 
   .landing-link {
-    @apply relative inline-flex items-center gap-1 font-medium;
-    color: rgb(var(--accent));
+    @apply relative inline-flex items-center gap-1 font-medium text-brand-primary transition-colors hover:text-brand-ink;
   }
 
-  .landing-link::after {
-    content: '';
-    @apply absolute left-0 -bottom-0.5 h-px w-full origin-left scale-x-0 transition-transform duration-120 ease-out-soft;
-    background: rgb(var(--accent));
-  }
-
-  .landing-link:hover::after {
-    @apply scale-x-100;
-  }
-
-  /* Primary button — accent-aware. "btn-terracotta" kept as alias for
-     backward compatibility; new code should use btn-primary. */
+  /* Buttons — legacy names all resolve to the same civic primary. */
   .btn-primary,
   .btn-terracotta {
-    @apply inline-flex h-10 items-center justify-center gap-2 rounded-md px-4 font-sans text-[14px] font-semibold transition-all duration-120 ease-out-soft;
-    background: rgb(var(--accent));
-    color: #FFFFFF;
-  }
-
-  .btn-primary:hover,
-  .btn-terracotta:hover {
-    background: rgb(var(--accent-hover));
-    transform: translateY(-1px);
-  }
-
-  .btn-primary:active,
-  .btn-terracotta:active {
-    transform: scale(0.98);
-  }
-
-  .btn-primary svg,
-  .btn-terracotta svg {
-    @apply transition-transform duration-120 ease-out-soft;
-  }
-
-  .btn-primary:hover svg,
-  .btn-terracotta:hover svg {
-    @apply translate-x-1;
+    @apply inline-flex h-11 items-center justify-center gap-2 rounded-md bg-brand-primary px-5 text-small font-semibold text-white shadow-card-sm transition-all duration-base ease-out-expo hover:bg-brand-primary/90 hover:shadow-card-md active:scale-[0.985];
   }
 
   .btn-ghost {
-    @apply inline-flex h-10 items-center justify-center gap-2 rounded-md border border-mist bg-snow px-4 font-sans text-[14px] font-medium text-slate transition-colors duration-120 hover:bg-fog hover:text-obsidian;
+    @apply inline-flex h-11 items-center justify-center gap-2 rounded-md border border-line bg-card px-4 text-small font-medium text-ink transition-colors duration-base hover:bg-surface hover:border-brand-primary/30;
   }
 
-  /* Inputs — underline for primary forms; 6px radius boxes for settings. */
+  /* Inputs */
   .input-underlined {
-    @apply w-full border-0 border-b border-mist bg-transparent px-0 py-2 font-sans text-[15px] text-obsidian placeholder-steel transition-colors focus:outline-none focus:ring-0;
+    @apply w-full border-0 border-b border-line bg-transparent px-0 py-2 text-body text-ink placeholder-muted transition-colors focus:outline-none focus:ring-0;
   }
 
   .input-underlined:focus {
-    border-bottom-color: rgb(var(--accent));
+    border-bottom-color: rgb(var(--color-brand-primary));
     border-bottom-width: 2px;
   }
 
   .input-boxed {
-    @apply h-10 w-full rounded-md border border-mist bg-snow px-3 font-sans text-[14px] text-obsidian placeholder-steel transition-colors focus:outline-none focus:ring-0;
+    @apply h-11 w-full rounded-sm border border-line bg-card px-3 text-small text-ink placeholder-muted transition-colors focus:outline-none focus:border-brand-primary focus:ring-4 focus:ring-brand-primary/10;
   }
 
-  .input-boxed:focus {
-    border-color: rgb(var(--accent));
-    border-width: 2px;
-  }
-
-  /* Pill / status tag — v2.0 mono caps treatment */
+  /* Pill */
   .hha-pill {
-    @apply inline-flex items-center rounded-sm px-2 py-0.5 font-mono text-[10px] font-medium uppercase tracking-[0.12em];
+    @apply inline-flex items-center rounded-full px-2.5 py-0.5 text-micro font-semibold;
   }
 
-  /* Dark-sidebar active-row accent stripe (used by all portal shells). */
   .sidebar-active-accent {
-    background: rgb(var(--accent));
+    background: rgb(var(--color-brand-primary));
   }
 }
 
-/*
- * Reduced-motion fallback per §05 of the direction.
- */
+@layer utilities {
+  .tabular-nums {
+    font-variant-numeric: tabular-nums;
+  }
+
+  .text-gradient-brand {
+    background: linear-gradient(
+      135deg,
+      rgb(var(--color-brand-primary)) 0%,
+      rgb(var(--color-info)) 50%,
+      rgb(var(--color-brand-accent)) 100%
+    );
+    -webkit-background-clip: text;
+    background-clip: text;
+    -webkit-text-fill-color: transparent;
+  }
+
+  .glass-card-light {
+    background: rgba(255, 255, 255, 0.78);
+    border: 1px solid rgba(255, 255, 255, 0.5);
+    backdrop-filter: blur(12px) saturate(160%);
+    -webkit-backdrop-filter: blur(12px) saturate(160%);
+    box-shadow:
+      0 0 0 1px rgba(31, 58, 104, 0.05),
+      0 24px 48px -12px rgba(17, 24, 39, 0.14);
+  }
+
+  .bg-grain {
+    background-image:
+      radial-gradient(circle at 1px 1px, rgba(0, 0, 0, 0.04) 1px, transparent 0);
+    background-size: 24px 24px;
+  }
+
+  .truncate-line {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  .no-scrollbar::-webkit-scrollbar {
+    display: none;
+  }
+  .no-scrollbar {
+    -ms-overflow-style: none;
+    scrollbar-width: none;
+  }
+
+  .safe-bottom {
+    padding-bottom: env(safe-area-inset-bottom, 0px);
+  }
+  .safe-top {
+    padding-top: env(safe-area-inset-top, 0px);
+  }
+
+  .stagger-children > * {
+    opacity: 0;
+    animation: hha-fade-up 400ms var(--ease-out-expo) forwards;
+  }
+  .stagger-children > *:nth-child(1) { animation-delay: 0ms; }
+  .stagger-children > *:nth-child(2) { animation-delay: 60ms; }
+  .stagger-children > *:nth-child(3) { animation-delay: 120ms; }
+  .stagger-children > *:nth-child(4) { animation-delay: 180ms; }
+  .stagger-children > *:nth-child(5) { animation-delay: 240ms; }
+  .stagger-children > *:nth-child(6) { animation-delay: 300ms; }
+  .stagger-children > *:nth-child(7) { animation-delay: 360ms; }
+  .stagger-children > *:nth-child(8) { animation-delay: 420ms; }
+
+  .hover-lift {
+    transition:
+      transform var(--duration-base) var(--ease-out-expo),
+      box-shadow var(--duration-base) var(--ease-out-expo);
+  }
+  .hover-lift:hover {
+    transform: translateY(-2px);
+    box-shadow:
+      0 16px 32px -12px rgba(31, 58, 104, 0.18),
+      0 4px 8px -4px rgba(17, 24, 39, 0.06);
+  }
+}
+
+@keyframes hha-fade-up {
+  from { opacity: 0; transform: translateY(12px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes hha-pulse-ring {
+  0%   { transform: scale(1);   opacity: 0.5; }
+  100% { transform: scale(2.4); opacity: 0;   }
+}
+
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after {
     animation-duration: 0.01ms !important;
@@ -239,16 +337,4 @@
     transition-duration: 0.01ms !important;
     scroll-behavior: auto !important;
   }
-}
-
-/*
- * Subtle stone pattern from v1 — retained so the landing page's hero
- * isn't a visual regression. Disabled by default; opt in by adding
- * .stone-pattern.
- */
-.stone-pattern {
-  background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='240' height='240' viewBox='0 0 240 240'><g fill='none' stroke='%239095A0' stroke-width='0.4' opacity='0.12'><path d='M0 60 L60 30 L120 60 L60 90 Z'/><path d='M120 60 L180 30 L240 60 L180 90 Z'/><path d='M60 90 L120 60 L180 90 L120 120 Z'/><path d='M0 180 L60 150 L120 180 L60 210 Z'/><path d='M120 180 L180 150 L240 180 L180 210 Z'/><path d='M60 210 L120 180 L180 210 L120 240 Z'/></g></svg>");
-  background-size: 240px 240px;
-  background-position: bottom right;
-  background-repeat: no-repeat;
 }

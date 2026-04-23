@@ -13,7 +13,7 @@ const MARKS = [
   },
   {
     icon: Wallet,
-    title: 'Paynow Verified',
+    title: 'Paynow verified',
     subtitle: 'Secure local payment rail',
   },
   {
@@ -21,39 +21,27 @@ const MARKS = [
     title: 'Support',
     subtitle: 'Mon–Fri · 07:00 – 18:00 CAT',
   },
-] as const;
+];
 
-/**
- * Trust & security — v2.0.
- *
- * Thin strip of four marks. Icons in 1.5px Slate; titles Inter 15/500
- * Obsidian; subtitles mono caps Steel.
- */
 export function TrustSecurity() {
   return (
     <section
       id="support"
       aria-label="Trust and security"
-      className="border-y border-mist bg-snow py-12 md:py-14"
+      className="border-y border-line bg-card py-10"
     >
-      <div className="hha-wrap">
-        <ul className="grid grid-cols-2 gap-x-6 gap-y-10 md:grid-cols-4">
+      <div className="mx-auto max-w-[1200px] px-5 sm:px-8">
+        <ul className="grid grid-cols-2 gap-x-6 gap-y-8 md:grid-cols-4">
           {MARKS.map((m) => {
             const Icon = m.icon;
             return (
-              <li key={m.title} className="flex items-start gap-4">
-                <Icon
-                  className="h-6 w-6 flex-none text-slate"
-                  strokeWidth={1.5}
-                  aria-hidden
-                />
+              <li key={m.title} className="flex items-start gap-3">
+                <span className="inline-flex h-10 w-10 flex-none items-center justify-center rounded-md bg-brand-primary/10 text-brand-primary">
+                  <Icon className="h-5 w-5" strokeWidth={1.75} aria-hidden />
+                </span>
                 <div>
-                  <p className="font-sans text-[15px] font-medium text-obsidian">
-                    {m.title}
-                  </p>
-                  <p className="mt-1 font-mono text-[11px] uppercase tracking-[0.12em] text-steel">
-                    {m.subtitle}
-                  </p>
+                  <p className="text-small font-semibold text-ink">{m.title}</p>
+                  <p className="mt-0.5 text-micro text-muted">{m.subtitle}</p>
                 </div>
               </li>
             );

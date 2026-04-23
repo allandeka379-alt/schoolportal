@@ -1,124 +1,125 @@
 import Link from 'next/link';
+import { ArrowRight } from 'lucide-react';
 
-import { Crest } from '@hha/ui';
+import { Logo } from '@/components/ui/logo';
+import { Card } from '@/components/ui/card';
 
 import { SignInForm } from './sign-in-form';
 
 interface PageProps {
-  searchParams?: Promise<{ next?: string; error?: string }>;
+  searchParams?: Promise<{ next?: string; error?: string; role?: string }>;
 }
 
+const DEMO_USERS = [
+  { role: 'Student',       email: 'student@hha.ac.zw',  sub: 'Farai · Form 3 Blue' },
+  { role: 'Teacher',       email: 'teacher@hha.ac.zw',  sub: 'Mrs Dziva · Mathematics' },
+  { role: 'Parent',        email: 'parent@hha.ac.zw',   sub: 'Mrs Moyo · 2 children' },
+  { role: 'Bursar',        email: 'bursar@hha.ac.zw',   sub: 'Fees · slip reconciliation' },
+  { role: 'Administrator', email: 'head@hha.ac.zw',     sub: 'Whole-school oversight' },
+] as const;
+
+const DEMO_PASSWORD = 'HHA!Portal2026';
+
 /**
- * Sign-in surface — v2.0.
+ * Sign-in surface — civic-light redesign.
  *
- * Obsidian brand panel on the left; crisp snow/mist sign-in form on the
- * right. Electric cyan accent (inherited from `.portal-landing`).
+ *   • Minimal header with logo only
+ *   • Split layout: form card on the left, demo-users card on the right
+ *   • Background gradient tinted with brand primary + accent
  */
 export default async function SignInPage({ searchParams }: PageProps) {
   const params = (await searchParams) ?? {};
+
   return (
-    <main className="portal-landing min-h-screen bg-snow">
-      <div className="mx-auto grid min-h-screen max-w-6xl grid-cols-1 lg:grid-cols-2">
-        <section className="relative hidden flex-col justify-between overflow-hidden bg-obsidian p-12 text-snow lg:flex">
-          <header className="relative flex items-center gap-3">
-            <Crest size={40} />
-            <div>
-              <p
-                className="font-mono text-[11px] font-medium uppercase tracking-[0.18em]"
-                style={{ color: 'rgb(var(--accent))' }}
-              >
-                Harare Heritage Academy
+    <main className="relative min-h-screen overflow-hidden bg-surface">
+      {/* Background glow */}
+      <div
+        aria-hidden
+        className="pointer-events-none absolute -right-32 top-0 h-72 w-72 rounded-full bg-brand-accent/15 blur-3xl"
+      />
+      <div
+        aria-hidden
+        className="pointer-events-none absolute -left-24 bottom-0 h-80 w-80 rounded-full bg-brand-primary/15 blur-3xl"
+      />
+
+      {/* Minimal header */}
+      <header className="relative z-10 mx-auto flex h-[64px] max-w-[1200px] items-center justify-between px-5 sm:px-8">
+        <Logo size={32} showText asLink variant="on-light" />
+        <Link
+          href="/"
+          className="rounded-sm text-small font-medium text-muted transition-colors hover:text-brand-primary"
+        >
+          ← Back to landing
+        </Link>
+      </header>
+
+      <div className="relative z-10 mx-auto grid max-w-[960px] items-start gap-8 px-5 py-10 sm:px-8 sm:py-14 lg:grid-cols-[1.1fr_0.9fr]">
+        {/* Form card */}
+        <div>
+          <Card className="p-6 sm:p-8">
+            <div className="mb-6">
+              <p className="inline-flex items-center gap-2 rounded-full border border-brand-primary/15 bg-brand-primary/5 px-2.5 py-0.5 text-micro font-semibold uppercase tracking-[0.12em] text-brand-primary">
+                <span className="inline-block h-1.5 w-1.5 rounded-full bg-brand-primary" />
+                Sign in to your portal
               </p>
-              <p className="mt-0.5 font-display text-[18px] font-medium">HHA Portal</p>
-            </div>
-          </header>
-
-          <div className="relative max-w-md space-y-6">
-            <h1 className="font-display text-[clamp(2rem,4vw,2.75rem)] font-medium leading-tight tracking-tight text-snow">
-              Software for the academic life of the school.
-            </h1>
-            <p className="font-sans text-[15px] leading-relaxed text-fog/80">
-              One portal. Every stakeholder. Precise, fast, and built for how
-              teachers, students, parents, and the administrator actually work.
-            </p>
-            <ul className="space-y-3 font-sans text-[14px] text-fog/80">
-              {[
-                'Assignments, marking, and end-of-term reports in one place.',
-                'EcoCash, OneMoney, InnBucks, and every major local bank — accepted here.',
-                'Automatic bank-slip reading. No more slips sitting in a drawer.',
-              ].map((line) => (
-                <li key={line} className="flex gap-3">
-                  <span
-                    className="mt-2 h-1 w-1 flex-none rounded-full"
-                    style={{ backgroundColor: 'rgb(var(--accent))' }}
-                  />
-                  {line}
-                </li>
-              ))}
-            </ul>
-          </div>
-
-          <footer className="relative font-mono text-[11px] uppercase tracking-[0.14em] text-steel">
-            © 2026 Harare Heritage Academy · v2.0
-          </footer>
-        </section>
-
-        <section className="flex items-center justify-center p-6 lg:p-12">
-          <div className="w-full max-w-md space-y-8">
-            <div className="lg:hidden flex items-center gap-3">
-              <Crest size={32} />
-              <p className="font-display text-[18px] font-medium">HHA Portal</p>
-            </div>
-
-            <div>
-              <p className="font-mono text-[11px] font-medium uppercase tracking-[0.14em] text-slate">
-                Sign in
-              </p>
-              <h2 className="mt-2 font-display text-[clamp(1.75rem,3vw,2.25rem)] font-medium tracking-tight text-obsidian">
-                Software for HHA.
-              </h2>
-              <p className="mt-2 font-sans text-[14px] text-slate">
-                Use your HHA credentials. Your portal will be chosen for you.
+              <h1 className="mt-3 text-h1 text-ink">Welcome back</h1>
+              <p className="mt-1 text-small text-muted">
+                Use your HHA credentials. The portal routes you to your role automatically.
               </p>
             </div>
 
             <SignInForm next={params.next} initialError={params.error} />
 
-            <div className="rounded-md border border-mist bg-snow p-4">
-              <p className="font-mono text-[11px] font-medium uppercase tracking-[0.14em] text-slate">
-                Demo accounts
-              </p>
-              <p className="mt-1 font-mono text-[11px] text-steel">
-                All use the password{' '}
-                <code className="rounded bg-fog px-1 py-0.5 font-mono text-obsidian">
-                  HHA!Portal2026
-                </code>
-              </p>
-              <dl className="mt-3 space-y-1.5 font-mono text-[12px]">
-                {[
-                  ['student@hha.ac.zw', 'Student · indigo'],
-                  ['teacher@hha.ac.zw', 'Teacher · emerald'],
-                  ['parent@hha.ac.zw',  'Parent · coral'],
-                  ['bursar@hha.ac.zw',  'Admin · bursar'],
-                  ['head@hha.ac.zw',    'Administrator · amber'],
-                ].map(([email, tag]) => (
-                  <div key={email} className="flex justify-between gap-4">
-                    <dt className="text-obsidian">{email}</dt>
-                    <dd className="uppercase tracking-[0.1em] text-steel">{tag}</dd>
-                  </div>
-                ))}
-              </dl>
-            </div>
-
-            <p className="text-center font-sans text-[12px] text-steel">
+            <p className="mt-6 text-center text-small text-muted">
               By signing in you accept the{' '}
-              <Link href="#" className="text-obsidian underline-offset-4 hover:underline">
+              <Link href="#" className="font-medium text-brand-primary hover:underline">
                 acceptable use policy
               </Link>
               .
             </p>
-          </div>
-        </section>
+          </Card>
+        </div>
+
+        {/* Demo users */}
+        <div>
+          <Card className="border-dashed border-brand-primary/20 bg-brand-primary/[0.04] p-5 sm:p-6">
+            <div className="mb-4 text-small font-semibold text-brand-primary">
+              Demo accounts
+            </div>
+            <p className="text-micro text-muted">
+              Every account uses the password{' '}
+              <code className="rounded bg-card px-1.5 py-0.5 font-mono text-micro text-ink">
+                {DEMO_PASSWORD}
+              </code>
+            </p>
+            <ul className="mt-4 flex flex-col gap-2.5">
+              {DEMO_USERS.map((u) => (
+                <li key={u.email}>
+                  <details className="group rounded-md border border-line bg-card transition-all duration-200 hover:border-brand-primary/25 hover:shadow-card-sm">
+                    <summary className="flex cursor-pointer list-none items-center justify-between gap-3 px-3 py-2.5">
+                      <div className="min-w-0">
+                        <div className="text-small font-semibold text-ink">{u.role}</div>
+                        <div className="truncate-line text-micro text-muted">
+                          {u.email} · {u.sub}
+                        </div>
+                      </div>
+                      <ArrowRight className="h-3.5 w-3.5 shrink-0 text-muted transition-transform group-open:rotate-90" />
+                    </summary>
+                    <div className="border-t border-line px-3 py-2.5">
+                      <p className="text-micro text-muted">
+                        Click the form fields to the left and type the email + password above to
+                        sign in as this user.
+                      </p>
+                    </div>
+                  </details>
+                </li>
+              ))}
+            </ul>
+            <p className="mt-4 text-micro text-muted">
+              This portal is a cosmetic demo. No real student data is displayed.
+            </p>
+          </Card>
+        </div>
       </div>
     </main>
   );

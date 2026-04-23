@@ -24,7 +24,7 @@ export function AdminShell({
   const [mobileOpen, setMobileOpen] = useState(false);
 
   return (
-    <div className="portal-admin min-h-screen bg-snow">
+    <div className="min-h-screen bg-surface text-ink">
       <div className="flex min-h-screen">
         <AdminSidebar
           accountName={accountName}

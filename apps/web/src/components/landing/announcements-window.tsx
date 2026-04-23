@@ -1,118 +1,89 @@
 import Link from 'next/link';
 import { ArrowRight } from 'lucide-react';
 
-import { Reveal } from './reveal';
+import { Badge } from '@/components/ui/badge';
 
 const PUBLIC_ANNOUNCEMENTS = [
   {
     urgent: true,
     date: '22 April 2026',
-    source: "Headmaster's Office",
-    title: 'Term 2 opens Monday 5 May — registration 07:00 sharp',
+    source: 'Administrator',
+    title: 'Term 2 opens Monday 5 May — registration 07:00',
     preview:
-      'Full uniform is required. Boarders should arrive on Sunday 4 May between 14:00 and 17:00. Day scholars report to the main hall for assembly at 07:45.',
+      'Full uniform is required. Boarders arrive Sunday 4 May between 14:00 and 17:00. Day scholars report to the main hall for assembly at 07:45.',
   },
   {
     urgent: false,
     date: '20 April 2026',
     source: 'Bursary',
-    title: 'Term 2 fees now due — multiple payment options available',
+    title: 'Term 2 fees now due · multiple payment options',
     preview:
-      'Invoices have been issued. EcoCash, OneMoney, ZIPIT, and direct bank deposits to our CBZ account are supported through the portal.',
+      'Invoices have been issued. EcoCash, OneMoney, ZIPIT, and direct deposits to our CBZ account are supported through the portal.',
   },
   {
     urgent: false,
     date: '18 April 2026',
     source: 'Admissions',
-    title: 'Open morning for Form 1 intake — Saturday 10 May',
+    title: 'Open morning for Form 1 intake · Saturday 10 May',
     preview:
-      'Prospective Form 1 parents are warmly invited to visit the academy between 09:00 and 12:00. RSVP through the portal or the admissions office.',
+      'Prospective Form 1 parents are invited to visit between 09:00 and 12:00. RSVP through the portal or the admissions office.',
   },
-] as const;
+];
 
-/**
- * Announcements window — v2.0.
- *
- * Three most-recent public announcements on a Snow surface. Urgent rows
- * carry a 3px accent top border and Fog fill.
- */
 export function AnnouncementsWindow() {
   return (
     <section
       id="announcements"
       aria-labelledby="announcements-heading"
-      aria-live="polite"
-      className="bg-snow py-20 md:py-28"
+      className="bg-surface py-16 sm:py-20"
     >
-      <div className="hha-wrap">
-        <div className="flex flex-wrap items-end justify-between gap-6 border-b border-mist pb-8">
+      <div className="mx-auto max-w-[1200px] px-5 sm:px-8">
+        <div className="flex flex-wrap items-end justify-between gap-4 border-b border-line pb-8">
           <div>
-            <p
-              className="font-mono text-[11px] font-medium uppercase tracking-[0.18em]"
-              style={{ color: 'rgb(var(--accent))' }}
-            >
+            <p className="mb-3 inline-flex items-center gap-2 rounded-full border border-brand-primary/15 bg-brand-primary/5 px-3 py-1 text-micro font-semibold uppercase tracking-[0.12em] text-brand-primary">
+              <span className="inline-block h-1.5 w-1.5 rounded-full bg-brand-primary" />
               Announcements
             </p>
-            <h2
-              id="announcements-heading"
-              className="mt-3 font-display text-[clamp(1.75rem,3vw,2.5rem)] font-medium leading-tight tracking-tight text-obsidian"
-            >
+            <h2 id="announcements-heading" className="text-h1 text-ink">
               What the school is saying,{' '}
-              <span style={{ color: 'rgb(var(--accent))' }}>openly.</span>
+              <span className="text-gradient-brand">openly.</span>
             </h2>
           </div>
           <Link
-            href="#"
-            className="inline-flex items-center gap-2 font-mono text-[11px] font-medium uppercase tracking-[0.14em] text-obsidian hover:opacity-70"
+            href="/sign-in"
+            className="inline-flex items-center gap-2 text-small font-semibold text-brand-primary hover:text-brand-primary/80"
           >
-            View all announcements
-            <ArrowRight className="h-4 w-4" strokeWidth={1.5} aria-hidden />
+            View all
+            <ArrowRight className="h-3.5 w-3.5" aria-hidden />
           </Link>
         </div>
 
-        <ul>
-          {PUBLIC_ANNOUNCEMENTS.map((a, i) => (
-            <Reveal key={a.title} as="li" delayMs={i * 80}>
+        <ul className="mt-6 space-y-3">
+          {PUBLIC_ANNOUNCEMENTS.map((a) => (
+            <li key={a.title}>
               <Link
-                href="#"
+                href="/sign-in"
                 className={[
-                  'group block border-b border-mist transition-colors hover:bg-fog',
-                  a.urgent ? 'bg-fog/50' : '',
+                  'hover-lift group block rounded-lg border bg-card p-5 transition-colors',
+                  a.urgent
+                    ? 'border-t-[3px] border-t-danger border-x-line border-b-line'
+                    : 'border-line',
                 ].join(' ')}
-                style={a.urgent ? { borderTop: '3px solid rgb(var(--accent))' } : undefined}
               >
-                <div className="hha-wrap -mx-0 px-0 py-6 md:py-8">
-                  <p className="flex flex-wrap items-center gap-3 font-mono text-[11px] font-medium uppercase tracking-[0.14em]">
-                    {a.urgent ? (
-                      <span
-                        className="inline-flex items-center rounded-sm px-2 py-0.5 text-snow"
-                        style={{ backgroundColor: 'rgb(var(--accent))' }}
-                      >
-                        Urgent
-                      </span>
-                    ) : (
-                      <span className="text-slate">Notice</span>
-                    )}
-                    <span className="text-steel">·</span>
-                    <span className="text-steel">{a.date}</span>
-                    <span className="text-steel">·</span>
-                    <span className="text-steel">{a.source}</span>
-                  </p>
-                  <h3 className="mt-3 font-display text-[24px] md:text-[26px] font-medium leading-snug tracking-tight text-obsidian transition-colors group-hover:text-slate">
-                    {a.title}
-                  </h3>
-                  <p className="mt-2 line-clamp-1 font-sans text-[15px] leading-relaxed text-slate">
-                    {a.preview}{' '}
-                    <span
-                      className="font-mono text-[11px] font-medium uppercase tracking-[0.14em]"
-                      style={{ color: 'rgb(var(--accent))' }}
-                    >
-                      Read more →
-                    </span>
-                  </p>
-                </div>
+                <p className="flex flex-wrap items-center gap-3 text-micro font-semibold uppercase tracking-[0.12em]">
+                  {a.urgent ? <Badge tone="danger">Urgent</Badge> : <Badge tone="brand">Notice</Badge>}
+                  <span className="text-muted">· {a.date}</span>
+                  <span className="text-muted">· {a.source}</span>
+                </p>
+                <h3 className="mt-3 text-h2 text-ink transition-colors group-hover:text-brand-primary">
+                  {a.title}
+                </h3>
+                <p className="mt-2 line-clamp-2 text-body text-muted">
+                  {a.preview}{' '}
+                  <span className="font-semibold text-brand-primary">Read more →</span>
+                </p>
               </Link>
-            </Reveal>
+            </li>
           ))}
         </ul>
       </div>

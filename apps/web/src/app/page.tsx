@@ -1,40 +1,44 @@
 import { redirect } from 'next/navigation';
 
 import { AnnouncementsWindow } from '@/components/landing/announcements-window';
-import { FeatureShowcase } from '@/components/landing/feature-showcase';
+import { CtaBand } from '@/components/landing/cta-band';
 import { LandingFooter } from '@/components/landing/footer';
 import { Hero } from '@/components/landing/hero';
 import { HowItWorks } from '@/components/landing/how-it-works';
+import { LiveStatsStrip } from '@/components/landing/live-stats';
 import { LandingNav } from '@/components/landing/nav';
-import { NumbersBand } from '@/components/landing/numbers-band';
-import { RolePathways } from '@/components/landing/role-pathways';
+import { ServicesGrid } from '@/components/landing/services-grid';
 import { TrustSecurity } from '@/components/landing/trust-security';
-import { Voices } from '@/components/landing/voices';
 import { currentAccount, portalHomePath } from '@/lib/auth/session';
 
 /**
- * Root route — the landing page.
+ * Landing page — civic-light redesign.
  *
- * v2.0 direction: the landing earns the electric-cyan accent (the public
- * face of the system). The `portal-landing` scope class sets --accent to
- * cyan for all downstream components.
+ *   Nav (scroll-reactive)
+ *   Hero (carousel + background photo)
+ *   Live stats strip
+ *   Services grid (what the portal does)
+ *   How it works (four steps)
+ *   Announcements (public notices)
+ *   Trust & security
+ *   CTA band
+ *   Footer
  */
 export default async function LandingPage() {
   const account = await currentAccount();
   if (account) redirect(portalHomePath(account.portal));
 
   return (
-    <div className="portal-landing min-h-screen bg-snow text-obsidian">
+    <div className="min-h-screen bg-surface text-ink">
       <LandingNav />
-      <main>
+      <main id="main-content">
         <Hero />
-        <RolePathways />
-        <FeatureShowcase />
-        <NumbersBand />
+        <LiveStatsStrip />
+        <ServicesGrid />
         <HowItWorks />
-        <Voices />
         <AnnouncementsWindow />
         <TrustSecurity />
+        <CtaBand />
       </main>
       <LandingFooter />
     </div>

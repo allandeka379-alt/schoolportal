@@ -3,19 +3,18 @@ import type { Config } from 'tailwindcss';
 import preset from '@hha/config/tailwind/preset';
 
 /**
- * v2.0 Design Direction · "Cool precision."
+ * Civic redesign — light-theme palette.
  *
- * Seven-step neutral system from pure Snow (#FFFFFF) to deep Obsidian
- * (#0A0A0B), plus five per-portal vivid accents used sparingly — never
- * mixed within a single portal.
+ *   • Brand primary · Council Blue  #1F3A68
+ *   • Brand accent  · Gold          #C9A227
+ *   • Ink / muted / border / surface / card for neutrals
+ *   • Semantic success / warning / danger / info
  *
- * The previous warm-editorial tokens (cream / sand / earth / terracotta /
- * ochre / stone / ink) are retained for backward compatibility with pages
- * that still reference them; the new shells and chrome use the new tokens.
- *
- * Shells and components that want to be "portal-aware" should use
- * `bg-accent`, `text-accent`, `border-accent` — these resolve to the CSS
- * variable `--accent` scoped per portal in globals.css.
+ * All tokens live as CSS variables in globals.css so charts and inline
+ * styles can consume them. Every older HHA colour name (cream, sand, ink,
+ * stone, earth, terracotta, ochre, snow, fog, mist, steel, slate,
+ * graphite, charcoal, obsidian) is aliased to this palette so the hundred-
+ * odd pages written against those names keep rendering.
  */
 const config: Config = {
   presets: [preset as Config],
@@ -24,166 +23,148 @@ const config: Config = {
     '../../packages/ui/src/**/*.{ts,tsx}',
   ],
   theme: {
+    container: {
+      center: true,
+      padding: {
+        DEFAULT: '1.5rem',
+        sm: '2rem',
+        lg: '2.5rem',
+      },
+      screens: {
+        '2xl': '1280px',
+      },
+    },
     extend: {
-      colors: {
-        /* v2.0 neutrals */
-        snow: '#FFFFFF',
-        fog: '#EDEFF2',
-        mist: '#D4D7DD',
-        steel: '#9095A0',
-        slate: '#4D5159',
-        graphite: '#2B2D31',
-        charcoal: '#17181B',
-        obsidian: '#0A0A0B',
-
-        /* Per-portal accents — explicit hex */
-        indigo: {
-          DEFAULT: '#5B5CFF',
-          hover: '#4648D9',
-        },
-        emerald: {
-          DEFAULT: '#00B37E',
-          hover: '#009060',
-        },
-        coral: {
-          DEFAULT: '#FF5B7A',
-          hover: '#E64564',
-        },
-        amber: {
-          DEFAULT: '#F5A524',
-          hover: '#D99020',
-        },
-        cyan: {
-          DEFAULT: '#0AEFFF',
-          hover: '#00C5D4',
-        },
-
-        /* Portal-aware accent — each shell sets --accent */
-        accent: {
-          DEFAULT: 'rgb(var(--accent) / <alpha-value>)',
-          hover: 'rgb(var(--accent-hover) / <alpha-value>)',
-        },
-
-        /* Universal signal colours */
-        signal: {
-          success: '#00B37E',
-          warning: '#F5A524',
-          error: '#FF4D4D',
-        },
-
-        /* Retained for backward compat on pages that haven't been refactored */
-        ink: {
-          DEFAULT: '#0A0A0B', // re-aliased to Obsidian
-          soft: '#17181B',
-        },
-        earth: '#4D5159', // re-aliased to Slate so earth-labelled eyebrows still read
-        terracotta: {
-          DEFAULT: 'rgb(var(--accent) / <alpha-value>)',
-          hover: 'rgb(var(--accent-hover) / <alpha-value>)',
-        },
-        ochre: '#F5A524',
-        cream: '#FFFFFF', // re-aliased to Snow
-        'sand-light': '#EDEFF2', // re-aliased to Fog
-        sand: '#D4D7DD', // re-aliased to Mist
-        stone: '#4D5159', // re-aliased to Slate
-        ok: '#00B37E',
-        warn: '#F5A524',
-        danger: '#FF4D4D',
-      },
       fontFamily: {
-        display: ['var(--font-display)', 'ui-sans-serif', 'system-ui', 'sans-serif'],
-        sans: ['var(--font-inter)', 'ui-sans-serif', 'system-ui', 'sans-serif'],
-        mono: ['var(--font-jetbrains-mono)', 'ui-monospace', 'monospace'],
-        /* "serif" is now also Inter — the warm body serif is retired */
-        serif: ['var(--font-inter)', 'ui-sans-serif', 'system-ui', 'sans-serif'],
+        sans: ['var(--font-sans)', 'system-ui', 'sans-serif'],
+        display: ['var(--font-sans)', 'system-ui', 'sans-serif'],
+        serif: ['var(--font-sans)', 'system-ui', 'sans-serif'],
+        mono: ['ui-monospace', 'SFMono-Regular', 'Menlo', 'monospace'],
       },
-      fontSize: {
-        /* v2.0 type scale from §02 */
-        'display-xl': ['7.5rem', { lineHeight: '1.0', letterSpacing: '-0.03em' }],
-        'display-l':  ['5rem',   { lineHeight: '1.05', letterSpacing: '-0.025em' }],
-        'display-m':  ['3.5rem', { lineHeight: '1.1', letterSpacing: '-0.02em' }],
-        'display-s':  ['2.5rem', { lineHeight: '1.15', letterSpacing: '-0.015em' }],
-        /* Legacy display aliases for pages that use text-display-md/sm/lg */
-        'display-lg': ['5rem',   { lineHeight: '1.05', letterSpacing: '-0.025em' }],
-        'display-md': ['3.5rem', { lineHeight: '1.1', letterSpacing: '-0.02em' }],
-        'display-sm': ['2.5rem', { lineHeight: '1.15', letterSpacing: '-0.015em' }],
-        /* Headings */
-        'heading-1': ['1.75rem',  { lineHeight: '1.2', letterSpacing: '-0.01em' }],
-        'heading-2': ['1.375rem', { lineHeight: '1.25' }],
-        'heading-3': ['1.125rem', { lineHeight: '1.3' }],
-        'heading-lg': ['1.75rem', { lineHeight: '1.2' }],
-        'heading-md': ['1.375rem', { lineHeight: '1.25' }],
-        /* Body */
-        'body-l': ['1rem',     { lineHeight: '1.5' }],
-        'body-m': ['0.875rem', { lineHeight: '1.5' }],
-        'body-s': ['0.75rem',  { lineHeight: '1.4' }],
-        'micro':  ['0.6875rem', { lineHeight: '1.35', letterSpacing: '0.08em' }],
-        'body-lg': ['1rem',    { lineHeight: '1.5' }],
-        'body-base': ['0.875rem', { lineHeight: '1.5' }],
-        'body-sm': ['0.75rem', { lineHeight: '1.4' }],
-        /* Eyebrow/caps */
-        'label-caps': ['0.6875rem', { lineHeight: '1.35', letterSpacing: '0.12em' }],
-        'mono-sm':    ['0.75rem',   { lineHeight: '1.4' }],
-      },
-      spacing: {
-        '18': '4.5rem',
-        '22': '5.5rem',
-        '30': '7.5rem',
+      colors: {
+        /* Brand */
+        brand: {
+          DEFAULT: 'rgb(var(--color-brand-primary) / <alpha-value>)',
+          primary: 'rgb(var(--color-brand-primary) / <alpha-value>)',
+          accent: 'rgb(var(--color-brand-accent) / <alpha-value>)',
+          ink: 'rgb(var(--color-brand-ink) / <alpha-value>)',
+        },
+
+        /* Semantic */
+        success: 'rgb(var(--color-success) / <alpha-value>)',
+        warning: 'rgb(var(--color-warning) / <alpha-value>)',
+        danger: 'rgb(var(--color-danger) / <alpha-value>)',
+        info: 'rgb(var(--color-info) / <alpha-value>)',
+
+        /* Core neutrals */
+        ink: 'rgb(var(--color-ink) / <alpha-value>)',
+        muted: 'rgb(var(--color-muted) / <alpha-value>)',
+        line: 'rgb(var(--color-border) / <alpha-value>)',
+        surface: 'rgb(var(--color-surface) / <alpha-value>)',
+        card: 'rgb(var(--color-card) / <alpha-value>)',
+
+        /* Legacy HHA palette (kept for backward-compat) */
+        cream: 'rgb(var(--color-card) / <alpha-value>)',
+        snow: 'rgb(var(--color-card) / <alpha-value>)',
+        fog: 'rgb(var(--color-surface) / <alpha-value>)',
+        'sand-light': 'rgb(var(--color-surface) / <alpha-value>)',
+        sand: 'rgb(var(--color-border) / <alpha-value>)',
+        mist: 'rgb(var(--color-border) / <alpha-value>)',
+        stone: 'rgb(var(--color-muted) / <alpha-value>)',
+        steel: 'rgb(var(--color-muted) / <alpha-value>)',
+        slate: 'rgb(var(--color-muted) / <alpha-value>)',
+        graphite: 'rgb(var(--color-ink) / <alpha-value>)',
+        charcoal: 'rgb(var(--color-ink) / <alpha-value>)',
+        obsidian: 'rgb(var(--color-brand-ink) / <alpha-value>)',
+        earth: 'rgb(var(--color-brand-primary) / <alpha-value>)',
+        'earth-light': 'rgb(var(--color-brand-primary) / <alpha-value>)',
+        terracotta: 'rgb(var(--color-brand-primary) / <alpha-value>)',
+        'terracotta-hover': 'rgb(var(--color-brand-primary) / <alpha-value>)',
+        ochre: 'rgb(var(--color-brand-accent) / <alpha-value>)',
+        ok: 'rgb(var(--color-success) / <alpha-value>)',
+        warn: 'rgb(var(--color-warning) / <alpha-value>)',
+        'signal-success': 'rgb(var(--color-success) / <alpha-value>)',
+        'signal-warning': 'rgb(var(--color-warning) / <alpha-value>)',
+        'signal-error': 'rgb(var(--color-danger) / <alpha-value>)',
       },
       borderRadius: {
-        /* v2.0 — slightly squared-off; default 6-8 */
-        DEFAULT: '0.375rem', // 6px
-        sm: '0.25rem',       // 4px
-        md: '0.5rem',        // 8px
-        lg: '0.75rem',       // 12px
+        sm: 'var(--radius-sm)',
+        md: 'var(--radius-md)',
+        lg: 'var(--radius-lg)',
+        xl: 'var(--radius-xl)',
       },
       boxShadow: {
-        /* v2.0 — elevation is implied through border contrast alone. */
-        e1: 'none',
-        e2: '0 0 0 1px #D4D7DD', // mist border
-        e3: '0 8px 24px -8px rgba(10, 10, 11, 0.15)',
-        screenshot: '0 8px 24px -8px rgba(10, 10, 11, 0.15)',
-        'nav-scroll': '0 1px 0 rgba(10, 10, 11, 0.04)',
-        focus: '0 0 0 2px rgb(var(--accent) / 1)',
+        'card-sm': '0 1px 2px 0 rgba(17, 24, 39, 0.04), 0 1px 3px 0 rgba(17, 24, 39, 0.06)',
+        'card-md': '0 4px 8px -2px rgba(17, 24, 39, 0.06), 0 2px 4px -2px rgba(17, 24, 39, 0.04)',
+        'card-lg': '0 16px 32px -12px rgba(17, 24, 39, 0.12), 0 4px 8px -4px rgba(17, 24, 39, 0.06)',
+        'ring-brand': '0 0 0 4px rgba(31, 58, 104, 0.15)',
+        /* Legacy HHA names */
+        e1: '0 1px 2px 0 rgba(17, 24, 39, 0.04), 0 1px 3px 0 rgba(17, 24, 39, 0.06)',
+        e2: '0 4px 8px -2px rgba(17, 24, 39, 0.06), 0 2px 4px -2px rgba(17, 24, 39, 0.04)',
+        e3: '0 16px 32px -12px rgba(17, 24, 39, 0.12), 0 4px 8px -4px rgba(17, 24, 39, 0.06)',
+        screenshot: '0 16px 40px -12px rgba(17, 24, 39, 0.14), 0 4px 12px -4px rgba(17, 24, 39, 0.06)',
+        'nav-scroll': '0 1px 2px 0 rgba(17, 24, 39, 0.06)',
       },
       transitionTimingFunction: {
+        'out-expo': 'cubic-bezier(0.16, 1, 0.3, 1)',
         'out-soft': 'cubic-bezier(0.16, 1, 0.3, 1)',
       },
       transitionDuration: {
-        '60': '60ms',
-        '120': '120ms',
-      },
-      maxWidth: {
-        measure: '72ch',
-        'prose-sm': '52ch',
-      },
-      animation: {
-        reveal: 'reveal 200ms cubic-bezier(0.16, 1, 0.3, 1) both',
-        nudge: 'nudge 2.4s ease-in-out infinite',
-        'pulse-once': 'pulseOnce 1.2s ease-out 400ms 1',
-        'underline-in': 'underlineIn 120ms ease-out forwards',
+        fast: '150ms',
+        base: '200ms',
+        slow: '300ms',
+        120: '120ms',
       },
       keyframes: {
-        reveal: {
-          from: { opacity: '0', transform: 'translateY(8px)' },
-          to: { opacity: '1', transform: 'translateY(0)' },
-        },
-        nudge: {
-          '0%, 100%': { transform: 'translateY(0)' },
-          '50%': { transform: 'translateY(4px)' },
-        },
-        pulseOnce: {
-          '0%': { boxShadow: '0 0 0 0 rgb(var(--accent) / 0.35)' },
-          '70%': { boxShadow: '0 0 0 8px rgb(var(--accent) / 0)' },
-          '100%': { boxShadow: '0 0 0 0 rgb(var(--accent) / 0)' },
-        },
-        underlineIn: {
-          from: { transform: 'scaleX(0)', transformOrigin: 'left' },
-          to: { transform: 'scaleX(1)', transformOrigin: 'left' },
-        },
+        'fade-in':    { from: { opacity: '0' }, to: { opacity: '1' } },
+        'fade-out':   { from: { opacity: '1' }, to: { opacity: '0' } },
+        'slide-up':   { from: { opacity: '0', transform: 'translateY(16px)' }, to: { opacity: '1', transform: 'translateY(0)' } },
+        'slide-down': { from: { opacity: '0', transform: 'translateY(-12px)' }, to: { opacity: '1', transform: 'translateY(0)' } },
+        'scale-in':   { from: { opacity: '0', transform: 'scale(0.97)' }, to: { opacity: '1', transform: 'scale(1)' } },
+        'pulse-ring': { '0%': { transform: 'scale(1)', opacity: '0.6' }, '100%': { transform: 'scale(2.2)', opacity: '0' } },
+        'rotating-in':{ from: { opacity: '0', transform: 'translateY(0.3em)' }, to: { opacity: '1', transform: 'translateY(0)' } },
+        reveal:       { from: { opacity: '0', transform: 'translateY(8px)' }, to: { opacity: '1', transform: 'translateY(0)' } },
+        nudge:        { '0%,100%': { transform: 'translateY(0)' }, '50%': { transform: 'translateY(3px)' } },
+      },
+      animation: {
+        'fade-in':    'fade-in 200ms cubic-bezier(0.16, 1, 0.3, 1)',
+        'fade-out':   'fade-out 150ms ease-in',
+        'slide-up':   'slide-up 320ms cubic-bezier(0.16, 1, 0.3, 1)',
+        'slide-down': 'slide-down 260ms cubic-bezier(0.16, 1, 0.3, 1)',
+        'scale-in':   'scale-in 200ms cubic-bezier(0.16, 1, 0.3, 1)',
+        'pulse-ring': 'pulse-ring 1.8s cubic-bezier(0.16, 1, 0.3, 1) infinite',
+        'rotating-in':'rotating-in 300ms cubic-bezier(0.16, 1, 0.3, 1)',
+        reveal:       'reveal 400ms cubic-bezier(0.16, 1, 0.3, 1) both',
+        nudge:        'nudge 1.6s ease-in-out infinite',
+      },
+      fontSize: {
+        display: ['clamp(2.5rem, 5vw + 1rem, 4.5rem)', { lineHeight: '1.05', letterSpacing: '-0.02em', fontWeight: '700' }],
+        h1: ['2rem', { lineHeight: '2.5rem', letterSpacing: '-0.01em', fontWeight: '700' }],
+        h2: ['1.5rem', { lineHeight: '2rem', letterSpacing: '-0.01em', fontWeight: '700' }],
+        h3: ['1.25rem', { lineHeight: '1.75rem', fontWeight: '600' }],
+        body: ['1rem', { lineHeight: '1.5rem' }],
+        small: ['0.875rem', { lineHeight: '1.25rem' }],
+        micro: ['0.75rem', { lineHeight: '1rem' }],
+
+        /* Legacy HHA type scale names */
+        'display-xl': ['clamp(3.5rem, 7vw + 1rem, 5.5rem)', { lineHeight: '1.04', letterSpacing: '-0.02em', fontWeight: '600' }],
+        'display-md': ['clamp(2rem, 4vw + 1rem, 3.25rem)', { lineHeight: '1.08', letterSpacing: '-0.01em', fontWeight: '600' }],
+        'display-sm': ['clamp(1.5rem, 3vw + 0.5rem, 2.25rem)', { lineHeight: '1.12', fontWeight: '600' }],
+        'heading-1': ['2rem', { lineHeight: '2.5rem', fontWeight: '700' }],
+        'heading-2': ['1.5rem', { lineHeight: '2rem', fontWeight: '700' }],
+        'heading-3': ['1.25rem', { lineHeight: '1.75rem', fontWeight: '600' }],
+        'heading-md': ['1.125rem', { lineHeight: '1.6rem', fontWeight: '600' }],
+        'heading-lg': ['1.5rem', { lineHeight: '2rem', fontWeight: '700' }],
+        'body-lg': ['1.0625rem', { lineHeight: '1.6rem' }],
+        'body-base': ['1rem', { lineHeight: '1.5rem' }],
+      },
+      maxWidth: {
+        measure: '65ch',
+        'prose-sm': '56ch',
       },
     },
   },
+  plugins: [],
 };
 
 export default config;

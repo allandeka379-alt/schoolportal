@@ -1,77 +1,65 @@
-import { Reveal } from './reveal';
+/**
+ * Four-step explainer. Each step is a card with a numbered badge.
+ * Desktop: four across, joined by a dashed line behind the numbers.
+ */
 
 const STEPS = [
   {
     n: '01',
     title: 'Sign in',
-    body: 'With the credentials from your welcome email.',
+    body: 'Use the credentials from your welcome email. Multi-factor auth for staff.',
   },
   {
     n: '02',
     title: 'See your world',
-    body: 'A dashboard shaped to your role — nothing extra.',
+    body: 'A dashboard shaped to your role — nothing extra, nothing missing.',
   },
   {
     n: '03',
     title: 'Do the work',
-    body: 'Submit, mark, pay, read, message. One portal.',
+    body: 'Submit, mark, pay, read, message — one portal, every workflow.',
   },
   {
     n: '04',
     title: 'Stay informed',
-    body: 'Announcements and updates arrive as they happen.',
+    body: 'Announcements and grades arrive as they happen. SMS backup on low bandwidth.',
   },
-] as const;
+];
 
-/**
- * How it works — v2.0.
- *
- * Four columns on desktop with a Mist dashed connector running behind
- * the numerals.
- */
 export function HowItWorks() {
   return (
     <section
+      id="how-it-works"
       aria-labelledby="how-it-works-heading"
-      className="bg-snow py-20 md:py-28"
+      className="bg-card py-16 sm:py-20"
     >
-      <div className="hha-wrap text-center">
-        <p
-          className="font-mono text-[11px] font-medium uppercase tracking-[0.18em]"
-          style={{ color: 'rgb(var(--accent))' }}
-        >
+      <div className="mx-auto max-w-[1200px] px-5 text-center sm:px-8">
+        <p className="mb-3 inline-flex items-center gap-2 rounded-full border border-brand-primary/15 bg-brand-primary/5 px-3 py-1 text-micro font-semibold uppercase tracking-[0.12em] text-brand-primary">
+          <span className="inline-block h-1.5 w-1.5 rounded-full bg-brand-primary" />
           How it works
         </p>
         <h2
           id="how-it-works-heading"
-          className="mx-auto mt-4 max-w-[640px] font-display text-[clamp(2rem,4vw,2.75rem)] font-medium leading-tight tracking-tight text-obsidian"
+          className="mx-auto max-w-[640px] text-h1 text-ink"
         >
           Four steps. Then you are{' '}
-          <span style={{ color: 'rgb(var(--accent))' }}>home.</span>
+          <span className="text-gradient-brand">home.</span>
         </h2>
 
-        <div className="relative mx-auto mt-16 md:mt-20">
+        <div className="relative mx-auto mt-14">
           <div
             aria-hidden
-            className="absolute left-[10%] right-[10%] top-7 hidden border-t border-dashed border-mist md:block"
+            className="absolute left-[10%] right-[10%] top-7 hidden border-t border-dashed border-line md:block"
           />
-
           <ol className="relative grid grid-cols-1 gap-10 md:grid-cols-4 md:gap-6">
-            {STEPS.map((step, i) => (
-              <Reveal key={step.n} as="li" delayMs={i * 120} className="relative">
-                <div
-                  className="mx-auto flex h-14 w-14 items-center justify-center rounded-full border border-mist bg-snow font-mono text-[13px] font-medium uppercase tracking-[0.1em]"
-                  style={{ color: 'rgb(var(--accent))' }}
-                >
+            {STEPS.map((step) => (
+              <li key={step.n} className="relative">
+                <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-full border border-line bg-card text-h3 font-semibold text-brand-primary shadow-card-sm">
                   {step.n}
                 </div>
-                <h3 className="mt-6 font-display text-[20px] font-medium tracking-tight text-obsidian">
-                  {step.title}
-                </h3>
-                <p className="mx-auto mt-3 max-w-[220px] font-sans text-[14px] leading-relaxed text-slate">
-                  {step.body}
-                </p>
-              </Reveal>
+                <h3 className="mt-5 text-h3 text-ink">{step.title}</h3>
+                <p className="mx-auto mt-2 max-w-[240px] text-small text-muted">{step.body}</p>
+              </li>
             ))}
           </ol>
         </div>

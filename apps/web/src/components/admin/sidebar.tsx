@@ -18,7 +18,7 @@ import {
   type LucideIcon,
 } from 'lucide-react';
 
-import { LandingCrest } from '@/components/landing/crest';
+import { Logo } from '@/components/ui/logo';
 import { EditorialAvatar } from '@/components/student/primitives';
 import { signOutAction } from '@/lib/auth/actions';
 
@@ -97,46 +97,42 @@ export function AdminSidebar({
         <div
           aria-hidden
           onClick={onMobileClose}
-          className="fixed inset-0 z-40 bg-ink/60 lg:hidden"
+          className="fixed inset-0 z-40 bg-ink/30 backdrop-blur-sm lg:hidden"
         />
       ) : null}
 
       <aside
         className={[
-          'fixed inset-y-0 left-0 z-50 flex w-[260px] flex-col bg-obsidian text-fog',
-          'transition-transform duration-120 ease-out-soft lg:static lg:translate-x-0',
+          'fixed inset-y-0 left-0 z-50 flex w-[260px] flex-col border-r border-line bg-card text-ink',
+          'transition-transform duration-200 ease-[cubic-bezier(0.16,1,0.3,1)] lg:static lg:translate-x-0',
           mobileOpen ? 'translate-x-0' : '-translate-x-full lg:translate-x-0',
         ].join(' ')}
       >
-        <div className="flex items-center justify-between border-b border-graphite px-5 py-5">
-          <Link href="/admin" className="flex items-center gap-3" aria-label="HHA admin">
-            <LandingCrest size={32} variant="cream" />
-            <span className="leading-tight">
-              <span className="block font-display text-[15px] font-medium text-snow">HHA Portal</span>
-              <span
-                className="block font-mono text-[10px] font-medium uppercase tracking-[0.14em]"
-                style={{ color: 'rgb(var(--accent))' }}
-              >
-                Admin · Bursar
-              </span>
-            </span>
+        <div className="flex items-center justify-between border-b border-line px-5 py-4">
+          <Link href="/admin" className="flex items-center" aria-label="HHA admin">
+            <Logo size={32} showText variant="on-light" />
           </Link>
           {mobileOpen ? (
             <button
               type="button"
               onClick={onMobileClose}
-              className="rounded p-1.5 text-steel transition-colors hover:bg-graphite hover:text-snow lg:hidden"
+              className="rounded-md p-1.5 text-muted transition-colors hover:bg-surface hover:text-ink lg:hidden"
               aria-label="Close menu"
             >
               <X className="h-5 w-5" strokeWidth={1.5} />
             </button>
           ) : null}
         </div>
+        <div className="border-b border-line px-5 py-2.5">
+          <p className="text-micro font-semibold uppercase tracking-[0.12em] text-brand-primary">
+            Bursar portal
+          </p>
+        </div>
 
         <nav aria-label="Admin navigation" className="flex-1 overflow-y-auto px-3 py-4">
           {ADMIN_NAV.map((group) => (
             <div key={group.label} className="mb-5 last:mb-0">
-              <p className="mb-1 px-3 font-mono text-[10px] font-medium uppercase tracking-[0.14em] text-steel">
+              <p className="mb-1.5 px-3 text-micro font-semibold uppercase tracking-[0.12em] text-muted">
                 {group.label}
               </p>
               <ul className="space-y-0.5">
@@ -150,29 +146,25 @@ export function AdminSidebar({
                         onClick={onMobileClose}
                         aria-current={active ? 'page' : undefined}
                         className={[
-                          'relative flex items-center gap-3 rounded px-3 py-2 font-sans text-[14px] transition-colors duration-120',
+                          'relative flex items-center gap-3 rounded-md px-3 py-2.5 text-small transition-colors duration-200',
                           active
-                            ? 'bg-graphite font-medium text-snow'
-                            : 'text-steel hover:bg-graphite/60 hover:text-fog',
+                            ? 'bg-brand-primary/10 font-semibold text-brand-primary'
+                            : 'text-ink/80 hover:bg-surface hover:text-brand-primary',
                         ].join(' ')}
                       >
                         {active ? (
                           <span
                             aria-hidden
-                            className="absolute inset-y-1 left-0 w-[2px] rounded-r-sm sidebar-active-accent"
+                            className="absolute inset-y-2 left-0 w-[3px] rounded-r-sm bg-brand-primary"
                           />
                         ) : null}
-                        <Icon
-                          className="h-4 w-4"
-                          style={active ? { color: 'rgb(var(--accent))' } : undefined}
-                          strokeWidth={1.5}
-                        />
+                        <Icon className="h-4 w-4" strokeWidth={1.75} aria-hidden />
                         <span className="flex-1">{item.label}</span>
                         {item.badge !== undefined && item.badge > 0 ? (
                           <span
                             className={[
-                              'rounded-sm px-1.5 py-0.5 font-mono text-[10px] font-medium tabular-nums',
-                              active ? 'bg-snow/10 text-snow' : 'bg-graphite text-steel',
+                              'rounded-full px-1.5 py-0.5 text-micro font-semibold tabular-nums',
+                              active ? 'bg-brand-primary text-white' : 'bg-surface text-muted',
                             ].join(' ')}
                           >
                             {item.badge}
@@ -188,54 +180,53 @@ export function AdminSidebar({
         </nav>
 
         {/* Quick actions */}
-        <div className="border-t border-graphite px-3 py-4">
-          <p className="mb-2 px-3 font-mono text-[10px] font-medium uppercase tracking-[0.14em] text-steel">
+        <div className="border-t border-line px-3 py-4">
+          <p className="mb-2 px-3 text-micro font-semibold uppercase tracking-[0.12em] text-muted">
             Quick actions
           </p>
           <div className="space-y-1.5">
             <Link
               href="/admin/slips"
-              className="flex items-center gap-2 rounded border border-graphite bg-graphite/40 px-3 py-2 font-sans text-[13px] font-medium text-fog transition-colors duration-120 hover:border-slate hover:text-snow"
+              className="flex items-center gap-2 rounded-md border border-line bg-card px-3 py-2 text-small font-medium text-ink transition-colors hover:border-brand-primary/30 hover:text-brand-primary"
             >
-              <FileSearch className="h-3.5 w-3.5" strokeWidth={1.5} aria-hidden />
+              <FileSearch className="h-3.5 w-3.5" strokeWidth={1.75} aria-hidden />
               Review slips
             </Link>
             <Link
               href="/admin/announcements"
-              className="flex items-center gap-2 rounded border border-graphite bg-graphite/40 px-3 py-2 font-sans text-[13px] font-medium text-fog transition-colors duration-120 hover:border-slate hover:text-snow"
+              className="flex items-center gap-2 rounded-md border border-line bg-card px-3 py-2 text-small font-medium text-ink transition-colors hover:border-brand-primary/30 hover:text-brand-primary"
             >
-              <Megaphone className="h-3.5 w-3.5" strokeWidth={1.5} aria-hidden />
+              <Megaphone className="h-3.5 w-3.5" strokeWidth={1.75} aria-hidden />
               Post notice
             </Link>
             <Link
               href="/admin/receipts"
-              className="flex items-center gap-2 rounded border border-graphite bg-graphite/40 px-3 py-2 font-sans text-[13px] font-medium text-fog transition-colors duration-120 hover:border-slate hover:text-snow"
+              className="flex items-center gap-2 rounded-md border border-line bg-card px-3 py-2 text-small font-medium text-ink transition-colors hover:border-brand-primary/30 hover:text-brand-primary"
             >
-              <Banknote className="h-3.5 w-3.5" strokeWidth={1.5} aria-hidden />
+              <Banknote className="h-3.5 w-3.5" strokeWidth={1.75} aria-hidden />
               New receipt
             </Link>
           </div>
         </div>
 
-        {/* Profile compact + sign out */}
-        <div className="border-t border-graphite p-4">
-          <div className="flex items-center gap-3 rounded-sm px-2 py-2">
+        <div className="border-t border-line p-4">
+          <div className="flex items-center gap-3 rounded-md px-2 py-2">
             <EditorialAvatar name={accountName} size="sm" tone="terracotta" />
             <span className="min-w-0 flex-1">
-              <span className="block truncate font-sans text-[14px] font-medium text-snow">
+              <span className="block truncate text-small font-semibold text-ink">
                 {accountName}
               </span>
-              <span className="block truncate font-mono text-[11px] uppercase tracking-[0.08em] text-steel">
+              <span className="block truncate text-micro text-muted">
                 {accountMeta}
               </span>
             </span>
           </div>
-          <form action={signOutAction} className="mt-3">
+          <form action={signOutAction} className="mt-2">
             <button
               type="submit"
-              className="flex w-full items-center gap-3 rounded px-3 py-2 font-sans text-[13px] text-steel transition-colors duration-120 hover:bg-graphite/60 hover:text-snow"
+              className="flex w-full items-center gap-3 rounded-md px-3 py-2 text-small text-muted transition-colors hover:bg-surface hover:text-brand-primary"
             >
-              <LogOut className="h-4 w-4" strokeWidth={1.5} aria-hidden />
+              <LogOut className="h-4 w-4" strokeWidth={1.75} aria-hidden />
               Sign out
             </button>
           </form>
