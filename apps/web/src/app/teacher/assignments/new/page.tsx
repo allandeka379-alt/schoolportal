@@ -2,9 +2,11 @@
 
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import {
   ArrowLeft,
+  ArrowRight,
+  BellRing,
   Bold,
   CalendarClock,
   Check,
@@ -12,19 +14,25 @@ import {
   FileText,
   Image as ImageIcon,
   Italic,
+  Languages,
   Link2,
   List,
   Loader2,
+  Mail,
+  MessageSquare,
   Plus,
   Send,
   Sigma,
   Upload,
+  Users,
   X,
 } from 'lucide-react';
 
 import { Badge } from '@/components/ui/badge';
+import { EditorialAvatar } from '@/components/student/primitives';
 import { ClassChip } from '@/components/teacher/primitives';
 import { TEACHER_CLASSES, classLabel, type TeacherClass } from '@/lib/mock/teacher-extras';
+import { STUDENTS } from '@/lib/mock/fixtures';
 
 interface Attachment {
   id: string;
@@ -74,9 +82,65 @@ Upload a clear scan or photograph. Hand-written is preferred.`,
   const [savedAt, setSavedAt] = useState<number>(Date.now());
   const [busy, setBusy] = useState<null | 'draft' | 'release'>(null);
   const [confirmRelease, setConfirmRelease] = useState(false);
+  const [releasedPreview, setReleasedPreview] = useState<null | { id: string }>(null);
   const [toast, setToast] = useState<string | null>(null);
   const [status, setStatus] = useState<'draft' | 'scheduled' | 'released'>('draft');
   const titleRef = useRef<HTMLInputElement>(null);
+
+  // Synthesise a class roster by resolving studentIds + padding with placeholder
+  // names so every class shows a believable number of students.
+  const rosterByClass = useMemo(() => {
+    const FALLBACK_NAMES = [
+      'Tanaka Phiri',
+      'Tafara Chinyama',
+      'Kuziva Masvingo',
+      'Pride Hove',
+      'Tadiwa Gonese',
+      'Simba Tavaziva',
+      'Lovemore Mauto',
+      'Nyasha Chawasarira',
+      'Mufaro Chigoma',
+      'Tsitsi Ndlovu',
+      'Takudzwa Moyo',
+      'Vongai Makumbe',
+      'Panashe Hondo',
+      'Nyaradzo Kamba',
+      'Kuda Machoni',
+      'Chipo Mpofu',
+      'Fadzai Shereni',
+      'Rumbidzai Chanda',
+      'Tariro Zvirevo',
+      'Kundai Gutu',
+      'Ropafadzo Bere',
+      'Shamiso Chivandire',
+      'Tinotenda Dube',
+      'Farai Rori',
+      'Mary Banda',
+      'Blessing Musoni',
+      'Brian Tongo',
+      'Ian Mudzimba',
+    ];
+    const map = new Map<string, string[]>();
+    for (const c of TEACHER_CLASSES) {
+      const named = c.studentIds
+        .map((id) => STUDENTS.find((s) => s.id === id))
+        .filter((s): s is (typeof STUDENTS)[number] => !!s)
+        .map((s) => `${s.firstName} ${s.lastName}`);
+      const target = Math.max(c.studentIds.length, 28);
+      const filler = FALLBACK_NAMES.slice(0, target - named.length);
+      map.set(c.id, [...named, ...filler]);
+    }
+    return map;
+  }, []);
+
+  const assignedRoster = useMemo(() => {
+    const all: { className: string; name: string }[] = [];
+    for (const c of assignedClasses) {
+      const list = rosterByClass.get(c.id) ?? [];
+      for (const n of list) all.push({ className: classLabel(c), name: n });
+    }
+    return all;
+  }, [assignedClasses, rosterByClass]);
 
   useEffect(() => {
     if (!toast) return;
@@ -123,17 +187,21 @@ Upload a clear scan or photograph. Hand-written is preferred.`,
       setBusy(null);
       const released = release === 'scheduled' ? 'scheduled' : 'released';
       setStatus(released);
-      setToast(
-        release === 'scheduled'
-          ? `Scheduled for ${new Date(scheduleAt).toLocaleString('en-ZW', {
-              day: '2-digit',
-              month: 'short',
-              hour: '2-digit',
-              minute: '2-digit',
-            })} · ${assignedClasses.length} class${assignedClasses.length === 1 ? '' : 'es'}`
-          : `Released to ${assignedClasses.length} class${assignedClasses.length === 1 ? '' : 'es'} · students notified`,
-      );
-      setTimeout(() => router.push('/teacher/assignments'), 1400);
+      if (release === 'scheduled') {
+        setToast(
+          `Scheduled for ${new Date(scheduleAt).toLocaleString('en-ZW', {
+            day: '2-digit',
+            month: 'short',
+            hour: '2-digit',
+            minute: '2-digit',
+          })} · ${assignedClasses.length} class${assignedClasses.length === 1 ? '' : 'es'}`,
+        );
+        setTimeout(() => router.push('/teacher/assignments'), 1400);
+      } else {
+        // Show the delivery preview modal — stays open until the teacher
+        // chooses "Track submissions" or "Back to assignments".
+        setReleasedPreview({ id: `a-${Date.now()}` });
+      }
     }, 1100);
   }
 
@@ -590,8 +658,57 @@ Upload a clear scan or photograph. Hand-written is preferred.`,
                   · {maxMarks} marks · {formats.size} formats
                 </p>
               </div>
+
+              {/* Class roster preview — who will get this */}
+              <div>
+                <p className="text-micro font-semibold uppercase tracking-[0.12em] text-muted">
+                  Will reach {assignedRoster.length} student
+                  {assignedRoster.length === 1 ? '' : 's'}
+                </p>
+                <ul className="mt-2 space-y-2">
+                  {assignedClasses.map((c) => {
+                    const names = rosterByClass.get(c.id) ?? [];
+                    const sample = names.slice(0, 6);
+                    return (
+                      <li
+                        key={c.id}
+                        className="flex items-center gap-3 rounded-md border border-line bg-card p-3"
+                      >
+                        <ClassChip
+                          form={c.form}
+                          stream={c.stream}
+                          subjectName={c.subjectName}
+                          subjectTone={c.subjectTone}
+                        />
+                        <div className="min-w-0 flex-1">
+                          <div className="flex -space-x-2">
+                            {sample.map((name) => (
+                              <span
+                                key={name}
+                                className="rounded-full ring-2 ring-card"
+                                title={name}
+                              >
+                                <EditorialAvatar name={name} size="sm" />
+                              </span>
+                            ))}
+                          </div>
+                          <p className="mt-1 truncate text-micro text-muted">
+                            {names.length} students
+                          </p>
+                        </div>
+                      </li>
+                    );
+                  })}
+                </ul>
+              </div>
+
               {release === 'scheduled' ? (
-                <p className="text-small text-ink">
+                <p className="rounded-md border border-info/25 bg-info/[0.04] p-3 text-small text-ink">
+                  <CalendarClock
+                    className="mr-1.5 inline-block h-4 w-4 text-info"
+                    strokeWidth={1.75}
+                    aria-hidden
+                  />
                   Will release at{' '}
                   <strong>
                     {new Date(scheduleAt).toLocaleString('en-ZW', {
@@ -604,9 +721,14 @@ Upload a clear scan or photograph. Hand-written is preferred.`,
                   . Students are notified then, not now.
                 </p>
               ) : (
-                <p className="text-small text-ink">
-                  Students see the assignment immediately and receive a push + email
-                  notification.
+                <p className="rounded-md border border-success/25 bg-success/[0.04] p-3 text-small text-ink">
+                  <BellRing
+                    className="mr-1.5 inline-block h-4 w-4 text-success"
+                    strokeWidth={1.75}
+                    aria-hidden
+                  />
+                  Students get a push + email + parent-dashboard notification as soon as you hit
+                  Release.
                 </p>
               )}
             </div>
@@ -631,6 +753,19 @@ Upload a clear scan or photograph. Hand-written is preferred.`,
         </div>
       ) : null}
 
+      {releasedPreview ? (
+        <ReleasedPreviewModal
+          assignmentId={releasedPreview.id}
+          title={title}
+          classes={assignedClasses}
+          roster={assignedRoster}
+          dueAt={dueAt}
+          maxMarks={maxMarks}
+          onTrack={() => router.push(`/teacher/marking/${releasedPreview.id}`)}
+          onDone={() => router.push('/teacher/assignments')}
+        />
+      ) : null}
+
       {toast ? (
         <div
           role="status"
@@ -641,6 +776,221 @@ Upload a clear scan or photograph. Hand-written is preferred.`,
         </div>
       ) : null}
     </div>
+  );
+}
+
+function ReleasedPreviewModal({
+  assignmentId,
+  title,
+  classes,
+  roster,
+  dueAt,
+  maxMarks,
+  onTrack,
+  onDone,
+}: {
+  assignmentId: string;
+  title: string;
+  classes: TeacherClass[];
+  roster: { className: string; name: string }[];
+  dueAt: string;
+  maxMarks: number;
+  onTrack: () => void;
+  onDone: () => void;
+}) {
+  const byClass = useMemo(() => {
+    const map = new Map<string, string[]>();
+    for (const r of roster) {
+      const list = map.get(r.className) ?? [];
+      list.push(r.name);
+      map.set(r.className, list);
+    }
+    return map;
+  }, [roster]);
+
+  return (
+    <div
+      role="dialog"
+      aria-modal="true"
+      className="fixed inset-0 z-50 flex items-center justify-center bg-ink/50 p-4"
+    >
+      <div
+        className="flex max-h-[92vh] w-full max-w-xl flex-col overflow-hidden rounded-lg border border-line bg-card shadow-card-md"
+      >
+        {/* Hero */}
+        <div className="bg-brand-primary px-6 py-5 text-white">
+          <div className="flex items-center gap-3">
+            <span className="inline-flex h-10 w-10 items-center justify-center rounded-full bg-white/15 text-white">
+              <CheckCircle2 className="h-5 w-5" strokeWidth={1.75} aria-hidden />
+            </span>
+            <div>
+              <p className="text-micro font-semibold uppercase tracking-[0.12em] text-white/80">
+                Released · assignment {assignmentId.slice(-4).toUpperCase()}
+              </p>
+              <h3 className="text-h3">{title}</h3>
+            </div>
+          </div>
+          <div className="mt-4 flex flex-wrap items-center gap-3 text-micro text-white/90">
+            <span className="inline-flex items-center gap-1.5">
+              <Users className="h-3.5 w-3.5" strokeWidth={1.75} aria-hidden />
+              {roster.length} students in {classes.length} class{classes.length === 1 ? '' : 'es'}
+            </span>
+            <span className="inline-flex items-center gap-1.5">
+              <CalendarClock className="h-3.5 w-3.5" strokeWidth={1.75} aria-hidden />
+              Due{' '}
+              {new Date(dueAt).toLocaleString('en-ZW', {
+                day: '2-digit',
+                month: 'short',
+                hour: '2-digit',
+                minute: '2-digit',
+              })}
+            </span>
+            <span className="inline-flex items-center gap-1.5">
+              <Check className="h-3.5 w-3.5" strokeWidth={1.75} aria-hidden />
+              {maxMarks} marks
+            </span>
+          </div>
+        </div>
+
+        <div className="space-y-5 overflow-y-auto p-6">
+          {/* Delivery timeline */}
+          <div>
+            <p className="text-micro font-semibold uppercase tracking-[0.12em] text-muted">
+              Notifications sent
+            </p>
+            <ul className="mt-2 space-y-2">
+              <NotifRow
+                icon={BellRing}
+                tone="brand"
+                title="In-app push"
+                detail={`Delivered to ${roster.length} student devices · 0 opted out`}
+              />
+              <NotifRow
+                icon={Mail}
+                tone="info"
+                title="Email"
+                detail={`${roster.length} addresses · sent to the registered parent inbox`}
+              />
+              <NotifRow
+                icon={MessageSquare}
+                tone="success"
+                title="Parent dashboard"
+                detail="Shows on the parent's next login with a 'new assignment set' banner"
+              />
+              <NotifRow
+                icon={Languages}
+                tone="gold"
+                title="Translations"
+                detail="Brief mirrored in Shona and Ndebele for parents who prefer them"
+              />
+            </ul>
+          </div>
+
+          {/* Class breakdown */}
+          <div>
+            <p className="text-micro font-semibold uppercase tracking-[0.12em] text-muted">
+              Going to
+            </p>
+            <ul className="mt-2 space-y-3">
+              {Array.from(byClass.entries()).map(([className, names]) => {
+                const sample = names.slice(0, 5);
+                return (
+                  <li
+                    key={className}
+                    className="rounded-md border border-line bg-surface/40 p-3"
+                  >
+                    <div className="flex items-center justify-between">
+                      <p className="text-small font-semibold text-ink">{className}</p>
+                      <Badge tone="brand" dot>
+                        {names.length} students
+                      </Badge>
+                    </div>
+                    <div className="mt-3 flex items-center gap-2">
+                      <div className="flex -space-x-2">
+                        {sample.map((name) => (
+                          <span
+                            key={name}
+                            className="ring-2 ring-card rounded-full"
+                            title={name}
+                          >
+                            <EditorialAvatar name={name} size="sm" />
+                          </span>
+                        ))}
+                      </div>
+                      <p className="text-micro text-muted">
+                        {sample.slice(0, 3).join(', ')}
+                        {names.length > 3 ? `, +${names.length - 3} more` : ''}
+                      </p>
+                    </div>
+                  </li>
+                );
+              })}
+            </ul>
+          </div>
+
+          {/* What student sees */}
+          <div className="rounded-md border border-info/25 bg-info/[0.04] p-4">
+            <p className="text-micro font-semibold uppercase tracking-[0.12em] text-info">
+              What the student sees
+            </p>
+            <p className="mt-2 text-small text-ink">
+              A new &ldquo;{title}&rdquo; card with your brief, attachments and rubric appears at
+              the top of their Assignments tab. Submission opens immediately and closes at the due
+              time. The portal enforces the allowed file formats.
+            </p>
+          </div>
+        </div>
+
+        <footer className="flex flex-wrap items-center justify-end gap-2 border-t border-line bg-card px-6 py-4">
+          <button
+            type="button"
+            onClick={onDone}
+            className="inline-flex h-10 items-center gap-2 rounded-full border border-line bg-card px-4 text-small font-semibold text-ink transition-colors hover:bg-surface"
+          >
+            Back to assignments
+          </button>
+          <button
+            type="button"
+            onClick={onTrack}
+            className="inline-flex h-10 items-center gap-2 rounded-full bg-brand-primary px-5 text-small font-semibold text-white shadow-card-sm transition hover:bg-brand-primary/90 hover:shadow-card-md"
+          >
+            Track submissions
+            <ArrowRight className="h-3.5 w-3.5" strokeWidth={1.75} aria-hidden />
+          </button>
+        </footer>
+      </div>
+    </div>
+  );
+}
+
+function NotifRow({
+  icon: Icon,
+  tone,
+  title,
+  detail,
+}: {
+  icon: React.ElementType;
+  tone: 'brand' | 'info' | 'success' | 'gold';
+  title: string;
+  detail: string;
+}) {
+  const bg: Record<typeof tone, string> = {
+    brand: 'bg-brand-primary/10 text-brand-primary',
+    info: 'bg-info/10 text-info',
+    success: 'bg-success/10 text-success',
+    gold: 'bg-brand-accent/15 text-brand-accent',
+  };
+  return (
+    <li className="flex items-center gap-3 rounded-md border border-line bg-card p-3">
+      <span className={`inline-flex h-8 w-8 flex-none items-center justify-center rounded-md ${bg[tone]}`}>
+        <Icon className="h-4 w-4" strokeWidth={1.75} aria-hidden />
+      </span>
+      <div className="min-w-0 flex-1">
+        <p className="text-small font-semibold text-ink">{title}</p>
+        <p className="text-micro text-muted">{detail}</p>
+      </div>
+      <Check className="h-4 w-4 flex-none text-success" strokeWidth={2} aria-hidden />
+    </li>
   );
 }
 
