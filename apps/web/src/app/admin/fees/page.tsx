@@ -1,23 +1,75 @@
-import { Download, Filter, Search } from 'lucide-react';
+'use client';
+
+import { useEffect, useMemo, useState } from 'react';
+import { Check, Download, Filter, Loader2, Search } from 'lucide-react';
 
 import { Badge } from '@/components/ui/badge';
 import { INVOICES, STUDENTS } from '@/lib/mock/fixtures';
 
 export default function AdminFeesPage() {
-  const rows = STUDENTS.map((s, i) => {
-    const invoice = INVOICES[i % INVOICES.length]!;
-    const outstanding = (i * 37) % 2 === 0 ? invoice.balance : '0.00';
-    return {
-      student: s,
-      invoice,
-      outstanding,
-      status: outstanding === '0.00' ? 'PAID' : 'PARTIAL',
-    };
-  });
+  const [query, setQuery] = useState('');
+  const [formFilter, setFormFilter] = useState('All forms');
+  const [statusFilter, setStatusFilter] = useState('Any status');
+  const [nudged, setNudged] = useState<Set<string>>(new Set());
+  const [exporting, setExporting] = useState(false);
+  const [toast, setToast] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (!toast) return;
+    const t = setTimeout(() => setToast(null), 2400);
+    return () => clearTimeout(t);
+  }, [toast]);
+
+  const baseRows = useMemo(
+    () =>
+      STUDENTS.map((s, i) => {
+        const invoice = INVOICES[i % INVOICES.length]!;
+        const outstanding = (i * 37) % 2 === 0 ? invoice.balance : '0.00';
+        return {
+          student: s,
+          invoice,
+          outstanding,
+          status: outstanding === '0.00' ? 'PAID' : 'PARTIAL',
+        };
+      }),
+    [],
+  );
+
+  const rows = useMemo(() => {
+    const q = query.trim().toLowerCase();
+    return baseRows.filter((r) => {
+      if (q) {
+        const hay = `${r.student.firstName} ${r.student.lastName} ${r.student.admissionNo}`.toLowerCase();
+        if (!hay.includes(q)) return false;
+      }
+      if (formFilter !== 'All forms' && r.student.form !== formFilter) return false;
+      if (statusFilter === 'Paid' && r.status !== 'PAID') return false;
+      if (statusFilter === 'Partially paid' && r.status !== 'PARTIAL') return false;
+      if (statusFilter === 'Overdue' && r.status === 'PAID') return false;
+      return true;
+    });
+  }, [baseRows, query, formFilter, statusFilter]);
 
   const paidCount = rows.filter((r) => r.status === 'PAID').length;
   const partialCount = rows.filter((r) => r.status === 'PARTIAL').length;
   const outstandingSum = rows.reduce((s, r) => s + Number(r.outstanding), 0);
+
+  function nudge(studentId: string, name: string) {
+    setNudged((curr) => {
+      const next = new Set(curr);
+      next.add(studentId);
+      return next;
+    });
+    setToast(`Gentle nudge sent to ${name}'s parent · SMS + in-app`);
+  }
+
+  function exportLedger() {
+    setExporting(true);
+    setTimeout(() => {
+      setExporting(false);
+      setToast(`Exported ${rows.length} rows to CSV`);
+    }, 1100);
+  }
 
   return (
     <div className="space-y-8">
@@ -59,29 +111,53 @@ export default function AdminFeesPage() {
             aria-hidden
           />
           <input
+            value={query}
+            onChange={(e) => setQuery(e.target.value)}
             className="h-11 w-full rounded-full border border-line bg-card pl-9 pr-3 text-small text-ink placeholder:text-muted focus:border-brand-primary focus:outline-none focus:ring-2 focus:ring-brand-primary/20"
             placeholder="Search by student name or admission number…"
           />
         </div>
-        <select className="h-11 rounded-full border border-line bg-card px-4 text-small font-semibold text-ink transition-colors hover:bg-surface focus:border-brand-primary focus:outline-none focus:ring-2 focus:ring-brand-primary/20">
+        <select
+          value={formFilter}
+          onChange={(e) => setFormFilter(e.target.value)}
+          className="h-11 rounded-full border border-line bg-card px-4 text-small font-semibold text-ink transition-colors hover:bg-surface focus:border-brand-primary focus:outline-none focus:ring-2 focus:ring-brand-primary/20"
+        >
           <option>All forms</option>
           <option>Form 1</option>
           <option>Form 2</option>
           <option>Form 3</option>
+          <option>Form 4</option>
         </select>
-        <select className="h-11 rounded-full border border-line bg-card px-4 text-small font-semibold text-ink transition-colors hover:bg-surface focus:border-brand-primary focus:outline-none focus:ring-2 focus:ring-brand-primary/20">
+        <select
+          value={statusFilter}
+          onChange={(e) => setStatusFilter(e.target.value)}
+          className="h-11 rounded-full border border-line bg-card px-4 text-small font-semibold text-ink transition-colors hover:bg-surface focus:border-brand-primary focus:outline-none focus:ring-2 focus:ring-brand-primary/20"
+        >
           <option>Any status</option>
           <option>Paid</option>
           <option>Partially paid</option>
           <option>Overdue</option>
         </select>
-        <button className="inline-flex h-11 items-center gap-2 rounded-full border border-line bg-card px-4 text-small font-semibold text-ink transition-colors hover:bg-surface">
+        <button
+          type="button"
+          onClick={() => setToast('Advanced filters — currency, invoice date range, house — coming soon')}
+          className="inline-flex h-11 items-center gap-2 rounded-full border border-line bg-card px-4 text-small font-semibold text-ink transition-colors hover:bg-surface"
+        >
           <Filter className="h-4 w-4" strokeWidth={1.75} aria-hidden />
           More filters
         </button>
-        <button className="inline-flex h-11 items-center gap-2 rounded-full bg-brand-primary px-5 text-small font-semibold text-white shadow-card-sm transition hover:bg-brand-primary/90 hover:shadow-card-md">
-          <Download className="h-4 w-4" strokeWidth={1.75} aria-hidden />
-          Export
+        <button
+          type="button"
+          onClick={exportLedger}
+          disabled={exporting}
+          className="inline-flex h-11 items-center gap-2 rounded-full bg-brand-primary px-5 text-small font-semibold text-white shadow-card-sm transition hover:bg-brand-primary/90 hover:shadow-card-md disabled:opacity-60"
+        >
+          {exporting ? (
+            <Loader2 className="h-4 w-4 animate-spin" strokeWidth={1.75} aria-hidden />
+          ) : (
+            <Download className="h-4 w-4" strokeWidth={1.75} aria-hidden />
+          )}
+          {exporting ? 'Exporting…' : 'Export'}
         </button>
       </div>
 
@@ -89,7 +165,9 @@ export default function AdminFeesPage() {
       <section className="overflow-hidden rounded-lg border border-line bg-card shadow-card-sm">
         <header className="flex items-center justify-between border-b border-line px-5 py-3.5">
           <h2 className="text-small font-semibold text-ink">Term 2 2026</h2>
-          <p className="text-micro text-muted">Showing {rows.length} of 428 students</p>
+          <p className="text-micro text-muted">
+            Showing {rows.length} of {baseRows.length} students
+          </p>
         </header>
         <div className="overflow-x-auto">
           <table className="w-full text-small">
@@ -152,8 +230,19 @@ export default function AdminFeesPage() {
                   <td className="px-4 py-3 text-right">
                     {r.status === 'PAID' ? (
                       <span className="text-micro text-muted">—</span>
+                    ) : nudged.has(r.student.id) ? (
+                      <span className="inline-flex items-center gap-1 text-micro font-semibold text-success">
+                        <Check className="h-3 w-3" strokeWidth={2} aria-hidden />
+                        Nudged
+                      </span>
                     ) : (
-                      <button className="text-micro font-semibold text-brand-primary hover:underline underline-offset-4">
+                      <button
+                        type="button"
+                        onClick={() =>
+                          nudge(r.student.id, `${r.student.firstName} ${r.student.lastName}`)
+                        }
+                        className="text-micro font-semibold text-brand-primary transition-colors hover:underline underline-offset-4"
+                      >
                         Gentle nudge
                       </button>
                     )}
@@ -164,6 +253,16 @@ export default function AdminFeesPage() {
           </table>
         </div>
       </section>
+
+      {toast ? (
+        <div
+          role="status"
+          className="fixed bottom-6 left-1/2 z-40 -translate-x-1/2 rounded-full bg-ink px-4 py-2 text-micro font-semibold text-white shadow-card-md"
+        >
+          <Check className="mr-1 inline-block h-3.5 w-3.5" strokeWidth={2} aria-hidden />
+          {toast}
+        </div>
+      ) : null}
     </div>
   );
 }
