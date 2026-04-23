@@ -14,8 +14,8 @@ import {
   X,
 } from 'lucide-react';
 
-import { EditorialCard, SectionEyebrow } from '@/components/student/primitives';
-import { ChildColourDot, ParentPageHeader, ParentStatusPill } from '@/components/parent/primitives';
+import { Badge } from '@/components/ui/badge';
+import { ChildColourDot } from '@/components/parent/primitives';
 import {
   PARENT_CHILDREN,
   PARENT_EVENTS,
@@ -24,20 +24,21 @@ import {
 } from '@/lib/mock/parent-extras';
 
 /**
- * Parent calendar — §10.
+ * Parent calendar — card-dense redesign.
  *
- *   - Month grid on desktop, list below on mobile
- *   - Events coloured by kind; colour-coded by child when affecting only one
- *   - Upcoming events strip below the grid
- *   - RSVP + permission-slip status per event
+ *   - KPI tile row (Events / Upcoming / RSVPs / Permissions)
+ *   - Child filter pills + kind legend
+ *   - Month grid in a card, civic typography
+ *   - Upcoming list with coloured date block
+ *   - Event preview modal
  */
-const KIND_COLOUR: Record<ParentCalendarKind, { dot: string; label: string }> = {
-  academic: { dot: 'bg-earth', label: 'Academic' },
-  sports: { dot: 'bg-ok', label: 'Sports' },
-  cultural: { dot: 'bg-ochre', label: 'Cultural' },
-  'parent-only': { dot: 'bg-terracotta', label: 'Parent-only' },
-  holiday: { dot: 'bg-stone', label: 'Holiday' },
-  trip: { dot: 'bg-terracotta', label: 'Trip' },
+const KIND_COLOUR: Record<ParentCalendarKind, { dot: string; badge: 'brand' | 'success' | 'warning' | 'info' | 'neutral' | 'gold'; label: string }> = {
+  academic: { dot: 'bg-brand-primary', badge: 'brand', label: 'Academic' },
+  sports: { dot: 'bg-success', badge: 'success', label: 'Sports' },
+  cultural: { dot: 'bg-brand-accent', badge: 'gold', label: 'Cultural' },
+  'parent-only': { dot: 'bg-warning', badge: 'warning', label: 'Parent-only' },
+  holiday: { dot: 'bg-muted', badge: 'neutral', label: 'Holiday' },
+  trip: { dot: 'bg-info', badge: 'info', label: 'Trip' },
 };
 
 export default function ParentCalendarPage() {
@@ -99,6 +100,13 @@ export default function ParentCalendarPage() {
       .slice(0, 5);
   }, [events]);
 
+  const rsvpNeeded = upcoming.filter(
+    (e) => e.kind === 'parent-only' && !effectiveRsvp(e),
+  ).length;
+  const permsNeeded = upcoming.filter(
+    (e) => e.requiresPermission && !hasPermission(e),
+  ).length;
+
   function toggleChild(id: string) {
     setActiveChildIds((prev) =>
       prev.includes(id) ? prev.filter((x) => x !== id) : [...prev, id],
@@ -106,27 +114,51 @@ export default function ParentCalendarPage() {
   }
 
   return (
-    <div className="space-y-6">
-      <ParentPageHeader
-        eyebrow="Calendar"
-        title="What&rsquo;s coming up,"
-        accent="for your family."
-        subtitle="All events across all children, colour-coded by kind."
-        right={
-          <button
-            type="button"
-            onClick={exportIcs}
-            className="inline-flex h-10 items-center gap-2 rounded border border-sand bg-white px-3 font-sans text-[13px] font-medium text-earth hover:bg-sand-light"
-          >
-            <Download className="h-4 w-4" strokeWidth={1.5} aria-hidden />
-            Export ICS
-          </button>
-        }
-      />
+    <div className="space-y-8">
+      {/* Header */}
+      <header className="flex flex-wrap items-end justify-between gap-4">
+        <div>
+          <p className="text-small text-muted">Calendar</p>
+          <h1 className="mt-1 text-[clamp(1.75rem,3vw,2.25rem)] font-bold leading-tight tracking-tight text-ink">
+            What&rsquo;s coming up for your family
+          </h1>
+          <p className="mt-2 text-small text-muted">
+            All events across all children, colour-coded by kind.
+          </p>
+        </div>
+        <button
+          type="button"
+          onClick={exportIcs}
+          className="inline-flex h-11 items-center gap-2 rounded-full border border-line bg-card px-4 text-small font-semibold text-ink transition-colors hover:bg-surface"
+        >
+          <Download className="h-4 w-4" strokeWidth={1.75} aria-hidden />
+          Export ICS
+        </button>
+      </header>
 
-      {/* Child filters */}
-      <div className="flex flex-wrap items-center gap-2">
-        <span className="font-sans text-[12px] text-stone">Show events for:</span>
+      {/* KPI tiles */}
+      <ul className="grid grid-cols-2 gap-3 sm:grid-cols-4">
+        <KpiTile label="Events visible" value={String(events.length)} sub="This month & beyond" />
+        <KpiTile label="Upcoming" value={String(upcoming.length)} sub="Next 14 days" tone="brand" />
+        <KpiTile
+          label="RSVPs needed"
+          value={String(rsvpNeeded)}
+          sub={rsvpNeeded === 0 ? 'All caught up' : 'Parent-only events'}
+          tone={rsvpNeeded > 0 ? 'warning' : 'success'}
+        />
+        <KpiTile
+          label="Permissions"
+          value={String(permsNeeded)}
+          sub={permsNeeded === 0 ? 'All signed' : 'Slips pending'}
+          tone={permsNeeded > 0 ? 'warning' : 'success'}
+        />
+      </ul>
+
+      {/* Child filters + kind legend */}
+      <div className="flex flex-wrap items-center gap-2 rounded-lg border border-line bg-card p-4 shadow-card-sm">
+        <span className="text-micro font-semibold uppercase tracking-[0.12em] text-muted">
+          Show for:
+        </span>
         {PARENT_CHILDREN.map((c) => {
           const active = activeChildIds.includes(c.id);
           return (
@@ -136,10 +168,10 @@ export default function ParentCalendarPage() {
               onClick={() => toggleChild(c.id)}
               aria-pressed={active}
               className={[
-                'inline-flex h-8 items-center gap-2 rounded-full border px-3 font-sans text-[12px] font-medium transition-colors',
+                'inline-flex h-8 items-center gap-2 rounded-full border px-3 text-micro font-semibold transition-colors',
                 active
-                  ? 'border-sand bg-white text-ink'
-                  : 'border-sand bg-cream text-stone line-through',
+                  ? 'border-brand-primary/30 bg-brand-primary/5 text-ink'
+                  : 'border-line bg-surface text-muted line-through',
               ].join(' ')}
             >
               <ChildColourDot tone={c.colourTone} />
@@ -147,7 +179,7 @@ export default function ParentCalendarPage() {
             </button>
           );
         })}
-        <span className="ml-auto flex flex-wrap items-center gap-3 font-sans text-[11px] text-stone">
+        <span className="ml-auto flex flex-wrap items-center gap-3 text-micro text-muted">
           {(Object.keys(KIND_COLOUR) as ParentCalendarKind[]).map((k) => (
             <span key={k} className="inline-flex items-center gap-1.5">
               <span className={`h-1.5 w-1.5 rounded-full ${KIND_COLOUR[k].dot}`} aria-hidden />
@@ -157,69 +189,67 @@ export default function ParentCalendarPage() {
         </span>
       </div>
 
-      {/* Month header */}
-      <div className="flex items-center justify-between">
-        <h2 className="font-display text-[22px] text-ink">
-          {cursor.toLocaleDateString('en-ZW', { month: 'long', year: 'numeric' })}
-        </h2>
-        <div className="flex items-center gap-1">
-          <button
-            type="button"
-            onClick={() =>
-              setCursor(new Date(cursor.getFullYear(), cursor.getMonth() - 1, 1))
-            }
-            className="flex h-9 w-9 items-center justify-center rounded border border-sand bg-white text-stone hover:bg-sand-light"
-            aria-label="Previous month"
-          >
-            <ChevronLeft className="h-4 w-4" strokeWidth={1.5} />
-          </button>
-          <button
-            type="button"
-            onClick={() => setCursor(new Date('2026-05-01'))}
-            className="inline-flex h-9 items-center rounded border border-sand bg-white px-3 font-sans text-[12px] font-medium text-earth hover:bg-sand-light"
-          >
-            Today
-          </button>
-          <button
-            type="button"
-            onClick={() =>
-              setCursor(new Date(cursor.getFullYear(), cursor.getMonth() + 1, 1))
-            }
-            className="flex h-9 w-9 items-center justify-center rounded border border-sand bg-white text-stone hover:bg-sand-light"
-            aria-label="Next month"
-          >
-            <ChevronRight className="h-4 w-4" strokeWidth={1.5} />
-          </button>
-        </div>
-      </div>
-
-      {/* Month grid */}
-      <EditorialCard className="overflow-hidden">
-        <div className="grid grid-cols-7 border-b border-sand bg-sand-light/30 text-center">
+      {/* Month header + grid */}
+      <section className="overflow-hidden rounded-lg border border-line bg-card shadow-card-sm">
+        <header className="flex items-center justify-between border-b border-line px-5 py-3.5">
+          <h2 className="text-small font-semibold text-ink">
+            {cursor.toLocaleDateString('en-ZW', { month: 'long', year: 'numeric' })}
+          </h2>
+          <div className="flex items-center gap-1">
+            <button
+              type="button"
+              onClick={() =>
+                setCursor(new Date(cursor.getFullYear(), cursor.getMonth() - 1, 1))
+              }
+              className="flex h-9 w-9 items-center justify-center rounded-full border border-line bg-card text-muted transition-colors hover:bg-surface hover:text-ink"
+              aria-label="Previous month"
+            >
+              <ChevronLeft className="h-4 w-4" strokeWidth={1.75} />
+            </button>
+            <button
+              type="button"
+              onClick={() => setCursor(new Date('2026-05-01'))}
+              className="inline-flex h-9 items-center rounded-full border border-line bg-card px-3 text-micro font-semibold text-ink transition-colors hover:bg-surface"
+            >
+              Today
+            </button>
+            <button
+              type="button"
+              onClick={() =>
+                setCursor(new Date(cursor.getFullYear(), cursor.getMonth() + 1, 1))
+              }
+              className="flex h-9 w-9 items-center justify-center rounded-full border border-line bg-card text-muted transition-colors hover:bg-surface hover:text-ink"
+              aria-label="Next month"
+            >
+              <ChevronRight className="h-4 w-4" strokeWidth={1.75} />
+            </button>
+          </div>
+        </header>
+        <div className="grid grid-cols-7 border-b border-line bg-surface/60 text-center">
           {['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'].map((d) => (
             <div
               key={d}
-              className="py-2 font-sans text-[10px] font-semibold uppercase tracking-[0.14em] text-stone"
+              className="py-2 text-micro font-semibold uppercase tracking-[0.12em] text-muted"
             >
               {d}
             </div>
           ))}
         </div>
-        <div className="grid grid-cols-7 text-[12px]">
+        <div className="grid grid-cols-7">
           {monthGrid.map((cell, i) => (
             <div
               key={i}
               className={[
-                'min-h-[84px] border-b border-r border-sand-light p-1.5',
-                cell.inMonth ? 'bg-white' : 'bg-cream/60',
-                cell.isToday ? 'bg-sand-light/40' : '',
+                'min-h-[96px] border-b border-r border-line p-2',
+                cell.inMonth ? 'bg-card' : 'bg-surface/40',
+                cell.isToday ? 'bg-brand-primary/5' : '',
               ].join(' ')}
             >
               <p
                 className={[
-                  'font-sans text-[11px] tabular-nums',
-                  cell.inMonth ? 'text-ink' : 'text-stone/60',
-                  cell.isToday ? 'font-semibold text-terracotta' : '',
+                  'text-micro tabular-nums',
+                  cell.inMonth ? 'text-ink' : 'text-muted/60',
+                  cell.isToday ? 'font-bold text-brand-primary' : '',
                 ].join(' ')}
               >
                 {cell.day}
@@ -230,35 +260,37 @@ export default function ParentCalendarPage() {
                     <button
                       type="button"
                       onClick={() => setPreview(e)}
-                      className="flex w-full items-center gap-1 truncate rounded-sm bg-sand-light/60 px-1 py-0.5 text-left hover:bg-sand"
+                      className="flex w-full items-center gap-1 truncate rounded-sm bg-surface px-1 py-0.5 text-left transition-colors hover:bg-brand-primary/5"
                       title={`${e.title} · ${e.time ?? ''}`}
                     >
                       <span
                         className={`h-1.5 w-1.5 flex-none rounded-full ${KIND_COLOUR[e.kind].dot}`}
                         aria-hidden
                       />
-                      <span className="truncate font-sans text-[10px] text-ink">{e.title}</span>
+                      <span className="truncate text-micro text-ink">{e.title}</span>
                     </button>
                   </li>
                 ))}
                 {cell.events.length > 3 ? (
-                  <li className="font-sans text-[10px] text-stone">+ {cell.events.length - 3} more</li>
+                  <li className="text-micro text-muted">+ {cell.events.length - 3} more</li>
                 ) : null}
               </ul>
             </div>
           ))}
         </div>
-      </EditorialCard>
+      </section>
 
       {/* Upcoming */}
-      <EditorialCard className="overflow-hidden">
-        <div className="flex items-center justify-between border-b border-sand px-6 py-4">
-          <SectionEyebrow>Upcoming</SectionEyebrow>
-          <span className="font-sans text-[12px] text-stone">
-            {upcoming.length} events in the next 14 days
-          </span>
-        </div>
-        <ul className="divide-y divide-sand-light">
+      <section className="overflow-hidden rounded-lg border border-line bg-card shadow-card-sm">
+        <header className="flex items-center justify-between border-b border-line px-5 py-3.5">
+          <div>
+            <h2 className="text-small font-semibold text-ink">Upcoming</h2>
+            <p className="text-micro text-muted">
+              {upcoming.length} events in the next 14 days
+            </p>
+          </div>
+        </header>
+        <ul className="divide-y divide-line">
           {upcoming.map((e) => {
             const r = effectiveRsvp(e);
             const perm = hasPermission(e);
@@ -267,27 +299,28 @@ export default function ParentCalendarPage() {
                 <button
                   type="button"
                   onClick={() => setPreview(e)}
-                  className="flex w-full items-center gap-4 px-6 py-4 text-left transition-colors hover:bg-sand-light/40"
+                  className="flex w-full items-center gap-4 px-5 py-4 text-left transition-colors hover:bg-surface/60"
                 >
-                  <div className="w-14 flex-none text-center">
-                    <p className="font-sans text-[10px] uppercase tracking-[0.14em] text-stone">
+                  <div className="flex w-14 flex-none flex-col items-center justify-center rounded-md border border-line bg-surface/40 py-2">
+                    <p className="text-micro uppercase tracking-[0.1em] text-muted">
                       {new Date(e.date).toLocaleDateString('en-ZW', { month: 'short' })}
                     </p>
-                    <p className="font-display text-[20px] text-ink">
+                    <p className="text-h3 font-bold tabular-nums text-ink">
                       {new Date(e.date).getDate()}
                     </p>
                   </div>
                   <div className="min-w-0 flex-1">
-                    <p className="flex items-center gap-2 font-sans text-[11px] font-semibold uppercase tracking-[0.14em] text-earth">
-                      <span className={`h-1.5 w-1.5 rounded-full ${KIND_COLOUR[e.kind].dot}`} aria-hidden />
-                      {KIND_COLOUR[e.kind].label}
-                    </p>
-                    <p className="mt-1 font-display text-[17px] text-ink">{e.title}</p>
-                    <p className="font-sans text-[12px] text-stone">
+                    <div className="flex items-center gap-2">
+                      <Badge tone={KIND_COLOUR[e.kind].badge} dot>
+                        {KIND_COLOUR[e.kind].label}
+                      </Badge>
+                    </div>
+                    <p className="mt-1 truncate text-small font-semibold text-ink">{e.title}</p>
+                    <p className="text-micro text-muted">
                       {e.time ? `${e.time} · ` : ''}
                       {e.location ?? 'Harare Heritage Academy'}
                     </p>
-                    <div className="mt-1 flex items-center gap-1">
+                    <div className="mt-1.5 flex items-center gap-1.5">
                       {e.affectedChildIds.map((id) => {
                         const c = PARENT_CHILDREN.find((x) => x.id === id);
                         if (!c) return null;
@@ -295,7 +328,7 @@ export default function ParentCalendarPage() {
                           <span
                             key={id}
                             title={`Affects ${c.firstName}`}
-                            className="inline-flex items-center gap-1 rounded border border-sand bg-cream px-1.5 py-0.5 font-sans text-[10px] text-stone"
+                            className="inline-flex items-center gap-1 rounded-full border border-line bg-surface/60 px-2 py-0.5 text-micro text-muted"
                           >
                             <ChildColourDot tone={c.colourTone} />
                             {c.firstName}
@@ -305,22 +338,32 @@ export default function ParentCalendarPage() {
                     </div>
                   </div>
                   {e.requiresPermission && !perm ? (
-                    <ParentStatusPill state="action-required">Permission needed</ParentStatusPill>
+                    <Badge tone="warning" dot>
+                      Permission needed
+                    </Badge>
                   ) : e.requiresPermission && perm ? (
-                    <ParentStatusPill state="booked">Permission granted</ParentStatusPill>
+                    <Badge tone="success" dot>
+                      Permission granted
+                    </Badge>
                   ) : r === 'yes' ? (
-                    <ParentStatusPill state="booked">RSVP&rsquo;d yes</ParentStatusPill>
+                    <Badge tone="success" dot>
+                      RSVP&rsquo;d yes
+                    </Badge>
                   ) : r === 'no' ? (
-                    <ParentStatusPill state="acknowledged">Declined</ParentStatusPill>
+                    <Badge tone="neutral" dot>
+                      Declined
+                    </Badge>
                   ) : e.kind === 'parent-only' ? (
-                    <ParentStatusPill state="action-required">RSVP needed</ParentStatusPill>
+                    <Badge tone="warning" dot>
+                      RSVP needed
+                    </Badge>
                   ) : null}
                 </button>
               </li>
             );
           })}
         </ul>
-      </EditorialCard>
+      </section>
 
       {preview ? (
         <EventPreview
@@ -338,7 +381,7 @@ export default function ParentCalendarPage() {
       {toast ? (
         <div
           role="status"
-          className="fixed bottom-6 left-1/2 z-40 -translate-x-1/2 rounded-full bg-ink px-4 py-2 font-sans text-[12px] font-semibold text-cream shadow-e3"
+          className="fixed bottom-6 left-1/2 z-40 -translate-x-1/2 rounded-full bg-ink px-4 py-2 text-micro font-semibold text-white shadow-card-md"
         >
           <Check className="mr-1 inline-block h-3.5 w-3.5" strokeWidth={2} aria-hidden />
           {toast}
@@ -372,55 +415,55 @@ function EventPreview({
     >
       <div
         onClick={(e) => e.stopPropagation()}
-        className="relative flex max-h-[88vh] w-full max-w-md flex-col overflow-hidden rounded bg-white shadow-e3"
+        className="relative flex max-h-[88vh] w-full max-w-md flex-col overflow-hidden rounded-lg border border-line bg-card shadow-card-md"
       >
-        <div className="flex items-start justify-between gap-3 border-b border-sand px-6 py-4">
+        <div className="flex items-start justify-between gap-3 border-b border-line px-6 py-4">
           <div>
-            <p className="flex items-center gap-2 font-sans text-[11px] font-semibold uppercase tracking-[0.14em] text-earth">
-              <span className={`h-1.5 w-1.5 rounded-full ${KIND_COLOUR[event.kind].dot}`} aria-hidden />
+            <Badge tone={KIND_COLOUR[event.kind].badge} dot>
               {KIND_COLOUR[event.kind].label}
-            </p>
-            <h2 className="mt-1 font-display text-[20px] text-ink">{event.title}</h2>
+            </Badge>
+            <h2 className="mt-2 text-h3 text-ink">{event.title}</h2>
           </div>
           <button
             type="button"
             onClick={onClose}
             aria-label="Close"
-            className="rounded p-2 text-stone transition-colors hover:bg-sand-light hover:text-ink"
+            className="rounded-full p-2 text-muted transition-colors hover:bg-surface hover:text-ink"
           >
-            <X className="h-5 w-5" strokeWidth={1.5} />
+            <X className="h-5 w-5" strokeWidth={1.75} />
           </button>
         </div>
-        <div className="space-y-3 px-6 py-5 font-sans text-[13px] text-stone">
+        <div className="space-y-3 px-6 py-5 text-small text-muted">
           <p className="flex items-center gap-2">
-            <CalendarIcon className="h-4 w-4 text-earth" strokeWidth={1.5} aria-hidden />
-            {new Date(event.date).toLocaleDateString('en-ZW', {
-              weekday: 'long',
-              day: 'numeric',
-              month: 'long',
-              year: 'numeric',
-            })}
+            <CalendarIcon className="h-4 w-4 text-brand-primary" strokeWidth={1.75} aria-hidden />
+            <span className="text-ink">
+              {new Date(event.date).toLocaleDateString('en-ZW', {
+                weekday: 'long',
+                day: 'numeric',
+                month: 'long',
+                year: 'numeric',
+              })}
+            </span>
             {event.time ? <span>· {event.time}</span> : null}
           </p>
           {event.location ? (
             <p className="flex items-center gap-2">
-              <MapPin className="h-4 w-4 text-earth" strokeWidth={1.5} aria-hidden />
-              {event.location}
+              <MapPin className="h-4 w-4 text-brand-primary" strokeWidth={1.75} aria-hidden />
+              <span className="text-ink">{event.location}</span>
             </p>
           ) : null}
-          {/* description field not on ParentEvent — omit */}
           <div>
-            <p className="font-sans text-[11px] font-semibold uppercase tracking-[0.14em] text-stone">
+            <p className="text-micro font-semibold uppercase tracking-[0.12em] text-muted">
               Who this affects
             </p>
-            <div className="mt-2 flex flex-wrap gap-1">
+            <div className="mt-2 flex flex-wrap gap-1.5">
               {event.affectedChildIds.map((id) => {
                 const c = PARENT_CHILDREN.find((x) => x.id === id);
                 if (!c) return null;
                 return (
                   <span
                     key={id}
-                    className="inline-flex items-center gap-1 rounded border border-sand bg-cream px-1.5 py-0.5 font-sans text-[11px] text-stone"
+                    className="inline-flex items-center gap-1 rounded-full border border-line bg-surface px-2 py-0.5 text-micro text-ink"
                   >
                     <ChildColourDot tone={c.colourTone} />
                     {c.firstName}
@@ -430,19 +473,19 @@ function EventPreview({
             </div>
           </div>
         </div>
-        <div className="flex items-center justify-between gap-2 border-t border-sand bg-sand-light/40 px-6 py-4">
+        <div className="flex items-center justify-between gap-2 border-t border-line bg-surface/40 px-6 py-4">
           {event.requiresPermission && !hasPermission ? (
             <button
               type="button"
               onClick={onGrantPermission}
-              className="btn-terracotta"
+              className="inline-flex h-10 items-center gap-2 rounded-full bg-brand-primary px-4 text-small font-semibold text-white shadow-card-sm transition hover:bg-brand-primary/90 hover:shadow-card-md"
             >
-              <FileCheck2 className="h-4 w-4" strokeWidth={1.5} aria-hidden />
+              <FileCheck2 className="h-4 w-4" strokeWidth={1.75} aria-hidden />
               Grant permission
             </button>
           ) : event.requiresPermission ? (
-            <span className="inline-flex items-center gap-2 font-sans text-[13px] font-medium text-ok">
-              <FileCheck2 className="h-4 w-4" strokeWidth={1.5} aria-hidden />
+            <span className="inline-flex items-center gap-2 text-small font-semibold text-success">
+              <FileCheck2 className="h-4 w-4" strokeWidth={1.75} aria-hidden />
               Permission granted
             </span>
           ) : (
@@ -451,23 +494,23 @@ function EventPreview({
                 type="button"
                 onClick={() => onRsvp('yes')}
                 className={[
-                  'inline-flex h-10 items-center gap-2 rounded border px-3 font-sans text-[13px] font-medium transition-colors',
+                  'inline-flex h-10 items-center gap-2 rounded-full border px-4 text-small font-semibold transition-colors',
                   rsvp === 'yes'
-                    ? 'border-ok bg-[#F0F6F2] text-ok'
-                    : 'border-sand bg-white text-earth hover:bg-sand-light',
+                    ? 'border-success/30 bg-success/5 text-success'
+                    : 'border-line bg-card text-ink hover:bg-surface',
                 ].join(' ')}
               >
-                <CalendarCheck className="h-4 w-4" strokeWidth={1.5} aria-hidden />
+                <CalendarCheck className="h-4 w-4" strokeWidth={1.75} aria-hidden />
                 {rsvp === 'yes' ? 'Going' : 'RSVP yes'}
               </button>
               <button
                 type="button"
                 onClick={() => onRsvp('no')}
                 className={[
-                  'inline-flex h-10 items-center rounded border px-3 font-sans text-[13px] font-medium transition-colors',
+                  'inline-flex h-10 items-center rounded-full border px-4 text-small font-semibold transition-colors',
                   rsvp === 'no'
-                    ? 'border-stone/50 bg-sand text-ink'
-                    : 'border-sand bg-white text-stone hover:bg-sand-light hover:text-ink',
+                    ? 'border-line bg-surface text-ink'
+                    : 'border-line bg-card text-muted hover:bg-surface hover:text-ink',
                 ].join(' ')}
               >
                 Can&rsquo;t make it
@@ -477,14 +520,36 @@ function EventPreview({
           <button
             type="button"
             onClick={onClose}
-            className="font-sans text-[13px] text-stone hover:text-ink"
+            className="text-small text-muted transition-colors hover:text-ink"
           >
-            <Clock className="mr-1 inline-block h-3 w-3" strokeWidth={1.5} aria-hidden />
+            <Clock className="mr-1 inline-block h-3 w-3" strokeWidth={1.75} aria-hidden />
             Close
           </button>
         </div>
       </div>
     </div>
+  );
+}
+
+function KpiTile({
+  label,
+  value,
+  sub,
+  tone,
+}: {
+  label: string;
+  value: string;
+  sub?: string;
+  tone?: 'brand' | 'success' | 'warning';
+}) {
+  const valueColor =
+    tone === 'warning' ? 'text-warning' : tone === 'success' ? 'text-success' : tone === 'brand' ? 'text-brand-primary' : 'text-ink';
+  return (
+    <li className="rounded-lg border border-line bg-card p-5 shadow-card-sm">
+      <p className="text-micro font-semibold uppercase tracking-[0.12em] text-muted">{label}</p>
+      <p className={`mt-2 text-h2 tabular-nums ${valueColor}`}>{value}</p>
+      {sub ? <p className="mt-1 text-micro text-muted">{sub}</p> : null}
+    </li>
   );
 }
 
