@@ -1,12 +1,11 @@
+import Image from 'next/image';
 import Link from 'next/link';
 import {
   ArrowRight,
-  Banknote,
   CheckCircle2,
   CreditCard,
   FileDown,
   Receipt,
-  Smartphone,
   Upload,
 } from 'lucide-react';
 
@@ -26,22 +25,63 @@ import { FEES_SUMMARY } from '@/lib/mock/student-extras';
  */
 
 const PAYMENT_METHODS = [
-  { name: 'EcoCash',          icon: Smartphone, settle: 'Real-time', tone: 'success' },
-  { name: 'OneMoney',         icon: Smartphone, settle: 'Real-time', tone: 'info' },
-  { name: 'InnBucks',         icon: Smartphone, settle: 'Real-time', tone: 'warning' },
-  { name: 'ZIPIT',            icon: Banknote,   settle: 'Instant',   tone: 'brand' },
-  { name: 'CBZ / Stanbic / ZB', icon: Banknote, settle: 'Same-day',  tone: 'info' },
-  { name: 'Visa / Mastercard', icon: CreditCard, settle: 'Real-time', tone: 'gold' },
-  { name: 'Upload slip',      icon: Upload,     settle: 'Reconciled', tone: 'brand' },
-] as const;
-
-const TONE_STYLES: Record<'brand' | 'success' | 'info' | 'warning' | 'gold', string> = {
-  brand: 'bg-brand-primary/10 text-brand-primary',
-  success: 'bg-success/10 text-success',
-  info: 'bg-info/10 text-info',
-  warning: 'bg-warning/10 text-warning',
-  gold: 'bg-brand-accent/15 text-brand-accent',
-};
+  {
+    name: 'EcoCash',
+    settle: 'Real-time',
+    tone: 'success' as const,
+    sub: 'Econet',
+    logo: '/payments/ecocash.png',
+    logoBg: 'bg-[#E10600]',
+  },
+  {
+    name: 'OneMoney',
+    settle: 'Real-time',
+    tone: 'info' as const,
+    sub: 'NetOne',
+    logo: '/payments/onemoney.png',
+    logoBg: 'bg-[#FFD800]',
+  },
+  {
+    name: 'InnBucks',
+    settle: 'Real-time',
+    tone: 'warning' as const,
+    sub: 'Innscor',
+    logo: '/payments/innbucks.svg',
+    logoBg: 'bg-[#0B6B3A]',
+  },
+  {
+    name: 'ZIPIT',
+    settle: 'Instant',
+    tone: 'brand' as const,
+    sub: 'ZimSwitch',
+    logo: '/payments/zimswitch.jpg',
+    logoBg: 'bg-white',
+  },
+  {
+    name: 'Bank transfer',
+    settle: 'Same-day',
+    tone: 'info' as const,
+    sub: 'CBZ · Stanbic · ZB',
+    logo: '/payments/bank-transfer.svg',
+    logoBg: 'bg-white',
+  },
+  {
+    name: 'Visa / Mastercard',
+    settle: 'Real-time',
+    tone: 'gold' as const,
+    sub: 'International',
+    logo: '/payments/card-brands.svg',
+    logoBg: 'bg-white',
+  },
+  {
+    name: 'Upload bank slip',
+    settle: 'Reconciled',
+    tone: 'brand' as const,
+    sub: 'Manual deposit',
+    logo: '',
+    logoBg: 'bg-brand-primary/10',
+  },
+];
 
 export default function FeesPage() {
   const payments = PAYMENTS.filter((p) => p.studentId === 's-farai');
@@ -158,15 +198,28 @@ export default function FeesPage() {
         </header>
         <ul className="grid grid-cols-2 gap-3 p-5 sm:grid-cols-3 xl:grid-cols-4">
           {PAYMENT_METHODS.map((m) => {
-            const Icon = m.icon;
-            const isUpload = m.name === 'Upload slip';
+            const isUpload = m.name === 'Upload bank slip';
             const inner = (
               <div className="hover-lift group flex h-full flex-col gap-2 rounded-lg border border-line bg-card p-4 transition-colors hover:border-brand-primary/30">
-                <span className={`inline-flex h-10 w-10 items-center justify-center rounded-md ${TONE_STYLES[m.tone as keyof typeof TONE_STYLES]}`}>
-                  <Icon className="h-4 w-4" strokeWidth={1.75} aria-hidden />
+                <span
+                  className={`inline-flex h-12 w-12 items-center justify-center overflow-hidden rounded-md border border-line ${m.logoBg}`}
+                >
+                  {isUpload ? (
+                    <Upload className="h-5 w-5 text-brand-primary" strokeWidth={1.75} aria-hidden />
+                  ) : (
+                    <Image
+                      src={m.logo}
+                      alt={m.name}
+                      width={96}
+                      height={64}
+                      className="max-h-full max-w-full object-contain p-1"
+                      unoptimized
+                    />
+                  )}
                 </span>
                 <p className="text-small font-semibold text-ink">{m.name}</p>
-                <Badge tone={m.tone === 'gold' ? 'gold' : m.tone === 'warning' ? 'warning' : m.tone === 'info' ? 'info' : m.tone === 'success' ? 'success' : 'brand'} dot>
+                <p className="text-micro text-muted">{m.sub}</p>
+                <Badge tone={m.tone === 'gold' ? 'gold' : m.tone} dot>
                   {m.settle}
                 </Badge>
               </div>
@@ -178,7 +231,9 @@ export default function FeesPage() {
                     {inner}
                   </Link>
                 ) : (
-                  inner
+                  <Link href="/parent/fees" className="block h-full">
+                    {inner}
+                  </Link>
                 )}
               </li>
             );

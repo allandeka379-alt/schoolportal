@@ -1,0 +1,14 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 180 60" role="img" aria-label="Visa and Mastercard accepted">
+  <!-- Visa -->
+  <g transform="translate(0 8)">
+    <rect width="82" height="44" rx="6" fill="#1A1F71"/>
+    <text x="41" y="30" text-anchor="middle" font-family="Arial, sans-serif" font-weight="900" font-style="italic" font-size="20" fill="#ffffff" letter-spacing="1">VISA</text>
+  </g>
+  <!-- Mastercard -->
+  <g transform="translate(98 8)">
+    <rect width="82" height="44" rx="6" fill="#FFFFFF" stroke="#E2E8F0"/>
+    <circle cx="33" cy="22" r="13" fill="#EB001B"/>
+    <circle cx="49" cy="22" r="13" fill="#F79E1B"/>
+    <path d="M41 11.5 a15 15 0 0 0 0 21 a15 15 0 0 0 0 -21 z" fill="#FF5F00"/>
+  </g>
+</svg>
