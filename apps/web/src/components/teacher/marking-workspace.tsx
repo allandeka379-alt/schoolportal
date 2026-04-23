@@ -4,12 +4,17 @@ import Link from 'next/link';
 import { useEffect, useMemo, useState } from 'react';
 import {
   ArrowLeft,
+  BellRing,
+  Check,
   CheckCircle2,
   ChevronRight,
   Circle,
   CircleDot,
+  Download,
   Flag,
   Highlighter,
+  Loader2,
+  Mail,
   Mic,
   MinusSquare,
   PenSquare,
@@ -18,10 +23,14 @@ import {
   Shapes,
   Sparkles,
   Type,
+  Users,
+  X,
 } from 'lucide-react';
 
+import { Badge } from '@/components/ui/badge';
 import { EditorialAvatar } from '@/components/student/primitives';
 import { SUBMISSIONS_PS7, type Submission } from '@/lib/mock/teacher-extras';
+import { buildGenericDoc, downloadPdf } from '@/lib/pdf/generate';
 
 import { TeacherStatusPill } from './primitives';
 
@@ -65,6 +74,9 @@ export function MarkingWorkspace({
   const [published, setPublished] = useState(false);
   const [autoSavedAt, setAutoSavedAt] = useState<number>(Date.now());
   const [flash, setFlash] = useState<string | null>(null);
+  const [confirmReleaseOpen, setConfirmReleaseOpen] = useState(false);
+  const [releasing, setReleasing] = useState(false);
+  const [releasedAt, setReleasedAt] = useState<number | null>(null);
 
   const filtered = useMemo(() => {
     if (filter === 'all') return submissions;
@@ -157,38 +169,71 @@ export function MarkingWorkspace({
     }
   }
 
+  function askRelease() {
+    setConfirmReleaseOpen(true);
+  }
+
   function releaseAll() {
-    setPublished(true);
-    setFlash('Released · parents and students notified');
-    setTimeout(() => setFlash(null), 2600);
+    setConfirmReleaseOpen(false);
+    setReleasing(true);
+    setTimeout(() => {
+      setReleasing(false);
+      setPublished(true);
+      setReleasedAt(Date.now());
+    }, 1100);
+  }
+
+  function downloadSummary() {
+    const marked = submissions.filter((s) => s.mark !== undefined);
+    const avg =
+      marked.reduce((sum, s) => sum + (s.mark ?? 0), 0) / Math.max(marked.length, 1);
+    const lines = marked.map((s) => ({
+      label: s.studentName,
+      value: `${s.mark ?? 0} / ${s.outOf}`,
+    }));
+    downloadPdf(
+      `HHA-${assignmentTitle.replace(/\s+/g, '-')}-marks.pdf`,
+      buildGenericDoc({
+        title: `${assignmentTitle} · marks`,
+        eyebrow: `HHA · ${classLabel}`,
+        subtitle: `Released ${releasedAt ? new Date(releasedAt).toLocaleString('en-ZW') : 'today'}`,
+        fields: [
+          { label: 'Students marked', value: `${marked.length} of ${submissions.length}` },
+          { label: 'Class average', value: `${Math.round(avg)}%` },
+          { label: 'Max marks', value: String(maxMarks) },
+        ],
+        lines,
+        footer: 'Marks released to students + parents. Moderated by the HOD before archival.',
+      }),
+    );
   }
 
   return (
     <div className="flex min-h-[calc(100vh-11rem)] flex-col">
       {/* Header strip */}
-      <div className="mb-5 flex flex-wrap items-center justify-between gap-3 border-b border-sand pb-5">
+      <div className="mb-5 flex flex-wrap items-center justify-between gap-3 border-b border-line pb-5">
         <div className="flex items-center gap-3">
           <Link
             href="/teacher/assignments"
-            className="inline-flex h-9 w-9 items-center justify-center rounded text-stone transition-colors hover:bg-sand-light hover:text-ink"
+            className="inline-flex h-10 w-10 items-center justify-center rounded-full border border-line bg-card text-muted transition-colors hover:bg-surface hover:text-ink"
             aria-label="Back"
           >
-            <ArrowLeft className="h-4 w-4" strokeWidth={1.5} />
+            <ArrowLeft className="h-4 w-4" strokeWidth={1.75} />
           </Link>
           <div>
-            <p className="font-sans text-[11px] font-semibold uppercase tracking-[0.18em] text-earth">
+            <p className="text-micro font-semibold uppercase tracking-[0.12em] text-brand-primary">
               Marking · {classLabel}
             </p>
-            <h1 className="mt-1 font-display text-[22px] text-ink">{assignmentTitle}</h1>
+            <h1 className="mt-0.5 text-h2 text-ink">{assignmentTitle}</h1>
           </div>
         </div>
         <div className="flex items-center gap-2">
           {flash ? (
-            <span className="inline-flex h-8 items-center rounded-full bg-ink px-3 font-sans text-[11px] font-semibold text-cream">
+            <span className="inline-flex h-8 items-center rounded-full bg-ink px-3 text-micro font-semibold text-white">
               {flash}
             </span>
           ) : (
-            <span className="font-sans text-[12px] text-stone">
+            <span className="text-micro text-muted">
               Auto-saved{' '}
               {new Date(autoSavedAt).toLocaleTimeString('en-ZW', {
                 hour: '2-digit',
@@ -196,29 +241,42 @@ export function MarkingWorkspace({
               })}
             </span>
           )}
-          <span className="font-sans text-[12px] text-stone">
+          <span className="text-micro text-muted">
             · {markedCount} of {submissions.length} marked
           </span>
           {published ? (
-            <span className="inline-flex h-9 items-center gap-2 rounded border border-ok/40 bg-[#F0F6F2] px-3 font-sans text-[12px] font-semibold text-ok">
-              <CheckCircle2 className="h-4 w-4" strokeWidth={1.5} aria-hidden />
-              Released
-            </span>
+            <>
+              <Badge tone="success" dot>
+                Released
+              </Badge>
+              <button
+                type="button"
+                onClick={downloadSummary}
+                className="inline-flex h-10 items-center gap-2 rounded-full border border-line bg-card px-3 text-micro font-semibold text-ink transition-colors hover:bg-surface"
+              >
+                <Download className="h-3.5 w-3.5" strokeWidth={1.75} aria-hidden />
+                Marks PDF
+              </button>
+            </>
           ) : (
             <button
               type="button"
-              onClick={releaseAll}
-              disabled={!allMarked}
+              onClick={askRelease}
+              disabled={!allMarked || releasing}
               title={allMarked ? undefined : 'Finish marking every submission before release'}
               className={[
-                'inline-flex h-9 items-center gap-2 rounded border px-3 font-sans text-[12px] font-semibold transition-colors',
+                'inline-flex h-10 items-center gap-2 rounded-full px-4 text-small font-semibold transition-colors',
                 allMarked
-                  ? 'border-terracotta bg-terracotta text-cream hover:bg-[#A74627]'
-                  : 'border-sand bg-white text-stone cursor-not-allowed',
+                  ? 'bg-brand-primary text-white shadow-card-sm hover:bg-brand-primary/90 hover:shadow-card-md'
+                  : 'border border-line bg-card text-muted cursor-not-allowed',
               ].join(' ')}
             >
-              <Send className="h-3.5 w-3.5" strokeWidth={1.5} aria-hidden />
-              Release to students
+              {releasing ? (
+                <Loader2 className="h-3.5 w-3.5 animate-spin" strokeWidth={1.75} aria-hidden />
+              ) : (
+                <Send className="h-3.5 w-3.5" strokeWidth={1.75} aria-hidden />
+              )}
+              {releasing ? 'Releasing…' : 'Release to students'}
             </button>
           )}
         </div>
@@ -533,15 +591,304 @@ export function MarkingWorkspace({
           </div>
 
           {published ? (
-            <div className="border-t border-sand bg-[#F0F6F2] px-5 py-3">
-              <p className="flex items-center gap-2 font-sans text-[11px] text-ok">
-                <CheckCircle2 className="h-3.5 w-3.5" strokeWidth={1.5} aria-hidden />
+            <div className="border-t border-line bg-success/[0.05] px-5 py-3">
+              <p className="flex items-center gap-2 text-micro text-success">
+                <CheckCircle2 className="h-3.5 w-3.5" strokeWidth={1.75} aria-hidden />
                 Grades released · {submissions.filter((s) => s.mark !== undefined).length} students
                 notified
               </p>
             </div>
           ) : null}
         </aside>
+      </div>
+
+      {confirmReleaseOpen ? (
+        <div
+          role="dialog"
+          aria-modal="true"
+          onClick={() => setConfirmReleaseOpen(false)}
+          className="fixed inset-0 z-50 flex items-center justify-center bg-ink/50 p-4"
+        >
+          <div
+            onClick={(e) => e.stopPropagation()}
+            className="w-full max-w-md overflow-hidden rounded-lg border border-line bg-card shadow-card-md"
+          >
+            <header className="border-b border-line px-6 py-4">
+              <p className="text-micro font-semibold uppercase tracking-[0.12em] text-brand-primary">
+                Release marks
+              </p>
+              <h3 className="text-h3 text-ink">Confirm release to students</h3>
+            </header>
+            <div className="space-y-3 p-6">
+              <div className="rounded-md border border-line bg-surface/40 p-4 text-small">
+                <p className="font-semibold text-ink">{assignmentTitle}</p>
+                <p className="mt-1 text-micro text-muted">{classLabel}</p>
+                <div className="mt-3 grid grid-cols-3 gap-2 text-center">
+                  <div className="rounded-md bg-card p-2">
+                    <p className="text-micro uppercase tracking-[0.12em] text-muted">Marked</p>
+                    <p className="mt-0.5 text-h3 tabular-nums text-ink">
+                      {submissions.filter((s) => s.mark !== undefined).length}
+                    </p>
+                  </div>
+                  <div className="rounded-md bg-card p-2">
+                    <p className="text-micro uppercase tracking-[0.12em] text-muted">Avg</p>
+                    <p className="mt-0.5 text-h3 tabular-nums text-ink">
+                      {Math.round(
+                        submissions.reduce((sum, s) => sum + (s.mark ?? 0), 0) /
+                          Math.max(
+                            submissions.filter((s) => s.mark !== undefined).length,
+                            1,
+                          ),
+                      )}
+                      %
+                    </p>
+                  </div>
+                  <div className="rounded-md bg-card p-2">
+                    <p className="text-micro uppercase tracking-[0.12em] text-muted">Max</p>
+                    <p className="mt-0.5 text-h3 tabular-nums text-ink">{maxMarks}</p>
+                  </div>
+                </div>
+              </div>
+              <p className="rounded-md border border-warning/25 bg-warning/[0.05] p-3 text-small text-ink">
+                Students + parents see the mark, rubric breakdown and comment as soon as you
+                release. You cannot edit marks after release — only the HOD can unlock.
+              </p>
+            </div>
+            <footer className="flex items-center justify-end gap-2 border-t border-line bg-card px-6 py-4">
+              <button
+                type="button"
+                onClick={() => setConfirmReleaseOpen(false)}
+                className="inline-flex h-10 items-center gap-2 rounded-full border border-line bg-card px-4 text-small font-semibold text-ink transition-colors hover:bg-surface"
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                onClick={releaseAll}
+                className="inline-flex h-10 items-center gap-2 rounded-full bg-brand-primary px-4 text-small font-semibold text-white shadow-card-sm transition hover:bg-brand-primary/90 hover:shadow-card-md"
+              >
+                <Send className="h-4 w-4" strokeWidth={1.75} aria-hidden />
+                Release to {submissions.filter((s) => s.mark !== undefined).length} students
+              </button>
+            </footer>
+          </div>
+        </div>
+      ) : null}
+
+      {published && releasedAt ? (
+        <ReleasedMarksModal
+          submissions={submissions}
+          assignmentTitle={assignmentTitle}
+          classLabel={classLabel}
+          maxMarks={maxMarks}
+          releasedAt={releasedAt}
+          onDismiss={() => setReleasedAt(null)}
+          onDownload={downloadSummary}
+        />
+      ) : null}
+    </div>
+  );
+}
+
+function ReleasedMarksModal({
+  submissions,
+  assignmentTitle,
+  classLabel,
+  maxMarks,
+  releasedAt,
+  onDismiss,
+  onDownload,
+}: {
+  submissions: Submission[];
+  assignmentTitle: string;
+  classLabel: string;
+  maxMarks: number;
+  releasedAt: number;
+  onDismiss: () => void;
+  onDownload: () => void;
+}) {
+  const marked = submissions.filter((s) => s.mark !== undefined);
+  const avg =
+    marked.reduce((sum, s) => sum + (s.mark ?? 0), 0) / Math.max(marked.length, 1);
+  const topFive = [...marked]
+    .sort((a, b) => (b.mark ?? 0) - (a.mark ?? 0))
+    .slice(0, 5);
+  const bottomThree = [...marked]
+    .sort((a, b) => (a.mark ?? 0) - (b.mark ?? 0))
+    .slice(0, 3);
+
+  return (
+    <div
+      role="dialog"
+      aria-modal="true"
+      className="fixed inset-0 z-50 flex items-center justify-center bg-ink/50 p-4"
+    >
+      <div className="flex max-h-[92vh] w-full max-w-xl flex-col overflow-hidden rounded-lg border border-line bg-card shadow-card-md">
+        <div className="bg-success px-6 py-5 text-white">
+          <div className="flex items-start justify-between gap-3">
+            <div className="flex items-center gap-3">
+              <span className="inline-flex h-10 w-10 items-center justify-center rounded-full bg-white/15">
+                <CheckCircle2 className="h-5 w-5" strokeWidth={1.75} aria-hidden />
+              </span>
+              <div>
+                <p className="text-micro font-semibold uppercase tracking-[0.12em] text-white/80">
+                  Marks released
+                </p>
+                <h3 className="text-h3">{assignmentTitle}</h3>
+              </div>
+            </div>
+            <button
+              type="button"
+              onClick={onDismiss}
+              aria-label="Close"
+              className="rounded-full p-2 text-white/80 hover:bg-white/10 hover:text-white"
+            >
+              <X className="h-5 w-5" strokeWidth={1.75} />
+            </button>
+          </div>
+          <div className="mt-3 flex flex-wrap items-center gap-3 text-micro text-white/90">
+            <span className="inline-flex items-center gap-1.5">
+              <Users className="h-3.5 w-3.5" strokeWidth={1.75} aria-hidden />
+              {marked.length} students in {classLabel}
+            </span>
+            <span className="inline-flex items-center gap-1.5">
+              <Check className="h-3.5 w-3.5" strokeWidth={1.75} aria-hidden />
+              Released{' '}
+              {new Date(releasedAt).toLocaleTimeString('en-ZW', {
+                hour: '2-digit',
+                minute: '2-digit',
+              })}
+            </span>
+          </div>
+        </div>
+
+        <div className="space-y-5 overflow-y-auto p-6">
+          {/* KPIs */}
+          <div className="grid grid-cols-3 gap-2">
+            <div className="rounded-md border border-line bg-surface/40 p-3 text-center">
+              <p className="text-micro font-semibold uppercase tracking-[0.12em] text-muted">Avg</p>
+              <p className="mt-1 text-h2 tabular-nums text-ink">{Math.round(avg)}%</p>
+            </div>
+            <div className="rounded-md border border-line bg-surface/40 p-3 text-center">
+              <p className="text-micro font-semibold uppercase tracking-[0.12em] text-muted">
+                Highest
+              </p>
+              <p className="mt-1 text-h2 tabular-nums text-ink">{marked[0]?.outOf ?? maxMarks}</p>
+            </div>
+            <div className="rounded-md border border-line bg-surface/40 p-3 text-center">
+              <p className="text-micro font-semibold uppercase tracking-[0.12em] text-muted">
+                Submissions
+              </p>
+              <p className="mt-1 text-h2 tabular-nums text-ink">
+                {marked.length}/{submissions.length}
+              </p>
+            </div>
+          </div>
+
+          {/* Notifications */}
+          <div>
+            <p className="text-micro font-semibold uppercase tracking-[0.12em] text-muted">
+              Just sent
+            </p>
+            <ul className="mt-2 space-y-2">
+              <li className="flex items-center gap-3 rounded-md border border-line bg-card p-3">
+                <span className="inline-flex h-8 w-8 items-center justify-center rounded-md bg-brand-primary/10 text-brand-primary">
+                  <BellRing className="h-4 w-4" strokeWidth={1.75} aria-hidden />
+                </span>
+                <div className="min-w-0 flex-1">
+                  <p className="text-small font-semibold text-ink">Student push + email</p>
+                  <p className="text-micro text-muted">
+                    {marked.length} students notified with mark + rubric + comment
+                  </p>
+                </div>
+                <Check className="h-4 w-4 text-success" strokeWidth={2} aria-hidden />
+              </li>
+              <li className="flex items-center gap-3 rounded-md border border-line bg-card p-3">
+                <span className="inline-flex h-8 w-8 items-center justify-center rounded-md bg-info/10 text-info">
+                  <Mail className="h-4 w-4" strokeWidth={1.75} aria-hidden />
+                </span>
+                <div className="min-w-0 flex-1">
+                  <p className="text-small font-semibold text-ink">Parent dashboard</p>
+                  <p className="text-micro text-muted">
+                    Mark appears on the parent&rsquo;s Progress tab next login
+                  </p>
+                </div>
+                <Check className="h-4 w-4 text-success" strokeWidth={2} aria-hidden />
+              </li>
+              <li className="flex items-center gap-3 rounded-md border border-line bg-card p-3">
+                <span className="inline-flex h-8 w-8 items-center justify-center rounded-md bg-success/10 text-success">
+                  <CheckCircle2 className="h-4 w-4" strokeWidth={1.75} aria-hidden />
+                </span>
+                <div className="min-w-0 flex-1">
+                  <p className="text-small font-semibold text-ink">Gradebook updated</p>
+                  <p className="text-micro text-muted">
+                    Marks live in the Term 2 gradebook · feeds the end-of-term report
+                  </p>
+                </div>
+                <Check className="h-4 w-4 text-success" strokeWidth={2} aria-hidden />
+              </li>
+            </ul>
+          </div>
+
+          {/* Top + attention */}
+          <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+            <div className="rounded-md border border-line bg-card p-3">
+              <p className="text-micro font-semibold uppercase tracking-[0.12em] text-brand-primary">
+                Top marks
+              </p>
+              <ul className="mt-2 space-y-1.5">
+                {topFive.map((s, i) => (
+                  <li key={s.id} className="flex items-center justify-between text-small">
+                    <span className="text-ink">
+                      {i + 1}. {s.studentName}
+                    </span>
+                    <span className="font-mono tabular-nums text-ink">
+                      {s.mark}/{s.outOf}
+                    </span>
+                  </li>
+                ))}
+              </ul>
+            </div>
+            <div className="rounded-md border border-warning/25 bg-warning/[0.04] p-3">
+              <p className="text-micro font-semibold uppercase tracking-[0.12em] text-warning">
+                Needs follow-up
+              </p>
+              <ul className="mt-2 space-y-1.5">
+                {bottomThree.map((s) => (
+                  <li key={s.id} className="flex items-center justify-between text-small">
+                    <span className="text-ink">{s.studentName}</span>
+                    <span className="font-mono tabular-nums text-warning">
+                      {s.mark}/{s.outOf}
+                    </span>
+                  </li>
+                ))}
+              </ul>
+              <p className="mt-2 text-micro text-muted">
+                Parent dashboards mark these as &ldquo;attention items&rdquo; — consider a brief
+                message.
+              </p>
+            </div>
+          </div>
+        </div>
+
+        <footer className="flex flex-wrap items-center justify-end gap-2 border-t border-line bg-card px-6 py-4">
+          <button
+            type="button"
+            onClick={onDownload}
+            className="inline-flex h-10 items-center gap-2 rounded-full border border-line bg-card px-4 text-small font-semibold text-ink transition-colors hover:bg-surface"
+          >
+            <Download className="h-4 w-4" strokeWidth={1.75} aria-hidden />
+            Download marks PDF
+          </button>
+          <button
+            type="button"
+            onClick={onDismiss}
+            className="inline-flex h-10 items-center gap-2 rounded-full bg-brand-primary px-5 text-small font-semibold text-white shadow-card-sm transition hover:bg-brand-primary/90 hover:shadow-card-md"
+          >
+            Done
+            <Check className="h-4 w-4" strokeWidth={1.75} aria-hidden />
+          </button>
+        </footer>
       </div>
     </div>
   );
