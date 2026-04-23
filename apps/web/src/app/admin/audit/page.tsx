@@ -1,11 +1,13 @@
 'use client';
 
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import {
   AlertTriangle,
   Bell,
+  Check,
   Download,
   Info,
+  Loader2,
   Search,
   ShieldAlert,
   ShieldCheck,
@@ -35,6 +37,22 @@ export default function AuditLogPage() {
   const [query, setQuery] = useState('');
   const [severity, setSeverity] = useState<AuditSeverity | 'ALL'>('ALL');
   const [selected, setSelected] = useState<AuditEntry | null>(AUDIT_LOG[0] ?? null);
+  const [exporting, setExporting] = useState(false);
+  const [toast, setToast] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (!toast) return;
+    const t = setTimeout(() => setToast(null), 2600);
+    return () => clearTimeout(t);
+  }, [toast]);
+
+  function exportLog() {
+    setExporting(true);
+    setTimeout(() => {
+      setExporting(false);
+      setToast(`Exported ${AUDIT_LOG.length} entries · SHA-256 footer ${Math.random().toString(36).slice(-6)}`);
+    }, 1100);
+  }
 
   const filtered = useMemo(() => {
     const q = query.trim().toLowerCase();
@@ -142,10 +160,16 @@ export default function AuditLogPage() {
         </div>
         <button
           type="button"
-          className="inline-flex h-10 items-center gap-2 rounded-full border border-line bg-card px-3 text-micro font-semibold text-ink transition-colors hover:bg-surface"
+          onClick={exportLog}
+          disabled={exporting}
+          className="inline-flex h-10 items-center gap-2 rounded-full border border-line bg-card px-3 text-micro font-semibold text-ink transition-colors hover:bg-surface disabled:opacity-60"
         >
-          <Download className="h-3.5 w-3.5" strokeWidth={1.75} aria-hidden />
-          Export (hash-stamped)
+          {exporting ? (
+            <Loader2 className="h-3.5 w-3.5 animate-spin" strokeWidth={1.75} aria-hidden />
+          ) : (
+            <Download className="h-3.5 w-3.5" strokeWidth={1.75} aria-hidden />
+          )}
+          {exporting ? 'Exporting…' : 'Export (hash-stamped)'}
         </button>
       </div>
 
@@ -208,6 +232,16 @@ export default function AuditLogPage() {
           {selected ? <AuditDetail entry={selected} /> : <DetailPlaceholder />}
         </section>
       </div>
+
+      {toast ? (
+        <div
+          role="status"
+          className="fixed bottom-6 left-1/2 z-40 -translate-x-1/2 rounded-full bg-ink px-4 py-2 text-micro font-semibold text-white shadow-card-md"
+        >
+          <Check className="mr-1 inline-block h-3.5 w-3.5" strokeWidth={2} aria-hidden />
+          {toast}
+        </div>
+      ) : null}
     </div>
   );
 }

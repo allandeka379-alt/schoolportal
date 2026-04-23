@@ -1,13 +1,15 @@
 'use client';
 
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import {
   BarChart3,
+  Check,
   ClipboardList,
   Download,
   FileText,
   GraduationCap,
   Landmark,
+  Loader2,
   PiggyBank,
 } from 'lucide-react';
 
@@ -34,6 +36,28 @@ const CATEGORY_LABEL: Record<ReportCategory, string> = {
 
 export default function ReportsPage() {
   const [category, setCategory] = useState<ReportCategory | 'ALL'>('ALL');
+  const [busy, setBusy] = useState<null | { id: string; kind: 'open' | 'download' | 'analytics' }>(null);
+  const [toast, setToast] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (!toast) return;
+    const t = setTimeout(() => setToast(null), 2600);
+    return () => clearTimeout(t);
+  }, [toast]);
+
+  function run(report: AdminReport, kind: 'open' | 'download' | 'analytics') {
+    setBusy({ id: report.id, kind });
+    setTimeout(() => {
+      setBusy(null);
+      setToast(
+        kind === 'open'
+          ? `Opened ${report.name} in viewer`
+          : kind === 'download'
+          ? `Downloaded ${report.name} (${report.format})`
+          : `Analytics for ${report.name} — 6-month trend ready`,
+      );
+    }, 900);
+  }
 
   const filtered = useMemo(
     () =>
@@ -142,7 +166,14 @@ export default function ReportsPage() {
       {/* Report catalogue */}
       <ul className="grid grid-cols-1 gap-4 lg:grid-cols-2">
         {filtered.map((r) => (
-          <ReportCard key={r.id} report={r} />
+          <ReportCard
+            key={r.id}
+            report={r}
+            onOpen={() => run(r, 'open')}
+            onDownload={() => run(r, 'download')}
+            onAnalytics={() => run(r, 'analytics')}
+            busyKind={busy?.id === r.id ? busy.kind : null}
+          />
         ))}
       </ul>
 
@@ -157,6 +188,16 @@ export default function ReportsPage() {
           Custom reports can be composed via the academic office — turnaround is 72 hours.
         </p>
       </aside>
+
+      {toast ? (
+        <div
+          role="status"
+          className="fixed bottom-6 left-1/2 z-40 -translate-x-1/2 rounded-full bg-ink px-4 py-2 text-micro font-semibold text-white shadow-card-md"
+        >
+          <Check className="mr-1 inline-block h-3.5 w-3.5" strokeWidth={2} aria-hidden />
+          {toast}
+        </div>
+      ) : null}
     </div>
   );
 }
@@ -183,7 +224,19 @@ function KpiTile({
   );
 }
 
-function ReportCard({ report }: { report: AdminReport }) {
+function ReportCard({
+  report,
+  onOpen,
+  onDownload,
+  onAnalytics,
+  busyKind,
+}: {
+  report: AdminReport;
+  onOpen: () => void;
+  onDownload: () => void;
+  onAnalytics: () => void;
+  busyKind: 'open' | 'download' | 'analytics' | null;
+}) {
   const categoryTone: Record<ReportCategory, 'brand' | 'success' | 'warning' | 'info'> = {
     STATUTORY: 'warning',
     BOARD: 'brand',
@@ -225,24 +278,42 @@ function ReportCard({ report }: { report: AdminReport }) {
         <div className="flex items-center gap-1">
           <button
             type="button"
+            onClick={onOpen}
+            disabled={busyKind !== null}
             aria-label="Open report"
-            className="rounded-full p-2 text-muted transition-colors hover:bg-surface hover:text-ink"
+            className="rounded-full p-2 text-muted transition-colors hover:bg-surface hover:text-ink disabled:opacity-60"
           >
-            <FileText className="h-3.5 w-3.5" strokeWidth={1.75} />
+            {busyKind === 'open' ? (
+              <Loader2 className="h-3.5 w-3.5 animate-spin" strokeWidth={1.75} />
+            ) : (
+              <FileText className="h-3.5 w-3.5" strokeWidth={1.75} />
+            )}
           </button>
           <button
             type="button"
+            onClick={onDownload}
+            disabled={busyKind !== null}
             aria-label="Download"
-            className="rounded-full p-2 text-muted transition-colors hover:bg-surface hover:text-ink"
+            className="rounded-full p-2 text-muted transition-colors hover:bg-surface hover:text-ink disabled:opacity-60"
           >
-            <Download className="h-3.5 w-3.5" strokeWidth={1.75} />
+            {busyKind === 'download' ? (
+              <Loader2 className="h-3.5 w-3.5 animate-spin" strokeWidth={1.75} />
+            ) : (
+              <Download className="h-3.5 w-3.5" strokeWidth={1.75} />
+            )}
           </button>
           <button
             type="button"
+            onClick={onAnalytics}
+            disabled={busyKind !== null}
             aria-label="Open analytics"
-            className="rounded-full p-2 text-muted transition-colors hover:bg-surface hover:text-ink"
+            className="rounded-full p-2 text-muted transition-colors hover:bg-surface hover:text-ink disabled:opacity-60"
           >
-            <BarChart3 className="h-3.5 w-3.5" strokeWidth={1.75} />
+            {busyKind === 'analytics' ? (
+              <Loader2 className="h-3.5 w-3.5 animate-spin" strokeWidth={1.75} />
+            ) : (
+              <BarChart3 className="h-3.5 w-3.5" strokeWidth={1.75} />
+            )}
           </button>
         </div>
       </div>
