@@ -95,18 +95,21 @@ export function Hero() {
 
   return (
     <section id="top" className="relative isolate overflow-hidden pt-[64px]">
-      {/* Background photo */}
+      {/* Background photo — Junior High School students, Masvingo */}
       <div className="absolute inset-0 -z-10" aria-hidden>
         <Image
-          src="https://images.unsplash.com/photo-1509062522246-3755977927d7?w=1920&q=75&auto=format&fit=crop"
+          src="/landing/jhs-students.jpg"
           alt=""
           fill
           priority
           sizes="100vw"
-          className="object-cover"
+          className="object-cover object-[center_30%]"
         />
-        <div className="absolute inset-0 bg-gradient-to-r from-white via-white/92 to-white/25" />
-        <div className="absolute inset-0 bg-gradient-to-b from-white/30 via-transparent to-surface" />
+        {/* Soft left-to-right wash so the text is always readable */}
+        <div className="absolute inset-0 bg-gradient-to-r from-white via-white/90 to-white/10" />
+        {/* Top + bottom fades that blend the photo into the page */}
+        <div className="absolute inset-0 bg-gradient-to-b from-white/40 via-transparent to-surface" />
+        {/* Subtle grain for the print-feel */}
         <div className="absolute inset-0 bg-grain opacity-40 mix-blend-multiply" />
       </div>
 
