@@ -115,7 +115,7 @@ export default function FeesPage() {
               Statement
             </button>
             <Link
-              href="/parent/fees/upload"
+              href="/parent/fees"
               className="inline-flex h-11 items-center gap-2 rounded-full bg-brand-primary px-5 text-small font-semibold text-white shadow-card-sm transition hover:bg-brand-primary/90 hover:shadow-card-md"
             >
               {isPaid ? 'View history' : 'Pay now'}

@@ -1,12 +1,14 @@
 'use client';
 
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import {
   ArrowUpRight,
+  Check,
   CheckCircle2,
   Clock,
   Download,
   Filter,
+  Loader2,
   Printer,
   Receipt as ReceiptIcon,
   Search,
@@ -46,6 +48,40 @@ export default function ReceiptsPage() {
   const [query, setQuery] = useState('');
   const [statusFilter, setStatusFilter] = useState<ReceiptStatus | 'ALL'>('ALL');
   const [selected, setSelected] = useState<SchoolReceipt | null>(RECEIPTS[0] ?? null);
+  const [busy, setBusy] = useState<null | 'csv' | 'pdf' | 'print' | 'filters'>(null);
+  const [toast, setToast] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (!toast) return;
+    const t = setTimeout(() => setToast(null), 2800);
+    return () => clearTimeout(t);
+  }, [toast]);
+
+  function exportCsv() {
+    setBusy('csv');
+    setTimeout(() => {
+      setBusy(null);
+      setToast(`Exported ${RECEIPTS.length} receipts to CSV`);
+    }, 1000);
+  }
+
+  function downloadPdf() {
+    if (!selected) return;
+    setBusy('pdf');
+    setTimeout(() => {
+      setBusy(null);
+      setToast(`Downloaded ${selected.ref}.pdf`);
+    }, 900);
+  }
+
+  function printReceipt() {
+    if (!selected) return;
+    setBusy('print');
+    setTimeout(() => {
+      setBusy(null);
+      setToast(`Sent ${selected.ref} to the default printer`);
+    }, 800);
+  }
 
   const filtered = useMemo(() => {
     const q = query.trim().toLowerCase();
@@ -131,6 +167,7 @@ export default function ReceiptsPage() {
         </div>
         <button
           type="button"
+          onClick={() => setToast('More filters are on the way — currency, amount band, class')}
           className="inline-flex h-10 items-center gap-2 rounded-full border border-line bg-card px-3 text-micro font-semibold text-ink transition-colors hover:bg-surface"
         >
           <Filter className="h-3.5 w-3.5" strokeWidth={1.75} aria-hidden />
@@ -138,10 +175,16 @@ export default function ReceiptsPage() {
         </button>
         <button
           type="button"
-          className="inline-flex h-10 items-center gap-2 rounded-full border border-line bg-card px-3 text-micro font-semibold text-ink transition-colors hover:bg-surface"
+          onClick={exportCsv}
+          disabled={busy === 'csv'}
+          className="inline-flex h-10 items-center gap-2 rounded-full border border-line bg-card px-3 text-micro font-semibold text-ink transition-colors hover:bg-surface disabled:opacity-60"
         >
-          <Download className="h-3.5 w-3.5" strokeWidth={1.75} aria-hidden />
-          Export CSV
+          {busy === 'csv' ? (
+            <Loader2 className="h-3.5 w-3.5 animate-spin" strokeWidth={1.75} aria-hidden />
+          ) : (
+            <Download className="h-3.5 w-3.5" strokeWidth={1.75} aria-hidden />
+          )}
+          {busy === 'csv' ? 'Exporting…' : 'Export CSV'}
         </button>
       </div>
 
@@ -232,9 +275,28 @@ export default function ReceiptsPage() {
         </section>
 
         <section className="xl:col-span-1">
-          {selected ? <ReceiptDetail receipt={selected} /> : <DetailPlaceholder />}
+          {selected ? (
+            <ReceiptDetail
+              receipt={selected}
+              onDownload={downloadPdf}
+              onPrint={printReceipt}
+              busy={busy === 'pdf' ? 'pdf' : busy === 'print' ? 'print' : null}
+            />
+          ) : (
+            <DetailPlaceholder />
+          )}
         </section>
       </div>
+
+      {toast ? (
+        <div
+          role="status"
+          className="fixed bottom-6 left-1/2 z-40 -translate-x-1/2 rounded-full bg-ink px-4 py-2 text-micro font-semibold text-white shadow-card-md"
+        >
+          <Check className="mr-1 inline-block h-3.5 w-3.5" strokeWidth={2} aria-hidden />
+          {toast}
+        </div>
+      ) : null}
     </div>
   );
 }
@@ -269,7 +331,17 @@ function KpiTile({
   );
 }
 
-function ReceiptDetail({ receipt }: { receipt: SchoolReceipt }) {
+function ReceiptDetail({
+  receipt,
+  onDownload,
+  onPrint,
+  busy,
+}: {
+  receipt: SchoolReceipt;
+  onDownload: () => void;
+  onPrint: () => void;
+  busy: 'pdf' | 'print' | null;
+}) {
   const reconciled = receipt.status === 'RECONCILED';
   return (
     <article className="overflow-hidden rounded-lg border border-line bg-card shadow-card-sm">
@@ -335,17 +407,29 @@ function ReceiptDetail({ receipt }: { receipt: SchoolReceipt }) {
         <div className="mt-5 flex flex-wrap items-center gap-2">
           <button
             type="button"
-            className="inline-flex h-10 items-center gap-2 rounded-full border border-line bg-card px-3 text-micro font-semibold text-ink transition-colors hover:bg-surface"
+            onClick={onDownload}
+            disabled={busy === 'pdf'}
+            className="inline-flex h-10 items-center gap-2 rounded-full border border-line bg-card px-3 text-micro font-semibold text-ink transition-colors hover:bg-surface disabled:opacity-60"
           >
-            <Download className="h-3.5 w-3.5" strokeWidth={1.75} aria-hidden />
-            PDF
+            {busy === 'pdf' ? (
+              <Loader2 className="h-3.5 w-3.5 animate-spin" strokeWidth={1.75} aria-hidden />
+            ) : (
+              <Download className="h-3.5 w-3.5" strokeWidth={1.75} aria-hidden />
+            )}
+            {busy === 'pdf' ? 'Preparing…' : 'PDF'}
           </button>
           <button
             type="button"
-            className="inline-flex h-10 items-center gap-2 rounded-full border border-line bg-card px-3 text-micro font-semibold text-ink transition-colors hover:bg-surface"
+            onClick={onPrint}
+            disabled={busy === 'print'}
+            className="inline-flex h-10 items-center gap-2 rounded-full border border-line bg-card px-3 text-micro font-semibold text-ink transition-colors hover:bg-surface disabled:opacity-60"
           >
-            <Printer className="h-3.5 w-3.5" strokeWidth={1.75} aria-hidden />
-            Print
+            {busy === 'print' ? (
+              <Loader2 className="h-3.5 w-3.5 animate-spin" strokeWidth={1.75} aria-hidden />
+            ) : (
+              <Printer className="h-3.5 w-3.5" strokeWidth={1.75} aria-hidden />
+            )}
+            {busy === 'print' ? 'Sending…' : 'Print'}
           </button>
           {receipt.slipId ? (
             <a

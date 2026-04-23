@@ -1,15 +1,18 @@
 'use client';
 
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import {
   AlertCircle,
   BellRing,
+  Check,
   CheckCircle2,
   Languages,
+  Loader2,
   MessageSquare,
   Pin,
   Send,
   Users,
+  X,
 } from 'lucide-react';
 
 import { Badge } from '@/components/ui/badge';
@@ -38,6 +41,40 @@ const AUDIENCE_OPTIONS: AnnouncementAudience[] = [
 const inputClass =
   'h-11 w-full rounded-md border border-line bg-card px-3 text-small text-ink placeholder:text-muted focus:border-brand-primary focus:outline-none focus:ring-2 focus:ring-brand-primary/20';
 
+interface LocalAnnouncement {
+  id: string;
+  title: string;
+  body: string;
+  audience: AnnouncementAudience[];
+  audienceSize: number;
+  urgent: boolean;
+  pinned: boolean;
+  publishedAt: string;
+  publishedBy: string;
+  translatedTo: ('SN' | 'ND')[];
+  requiresAck: boolean;
+  smsFallback: boolean;
+  views?: number;
+  ackCount?: number;
+  status: 'published' | 'scheduled' | 'draft';
+}
+
+const RECIPIENT_MAP: Record<AnnouncementAudience, number> = {
+  SCHOOL: 428,
+  FORM_1: 98,
+  FORM_2: 108,
+  FORM_3: 116,
+  FORM_4: 78,
+  FORM_3B: 28,
+  STAFF: 42,
+  PARENTS: 284,
+  BOARDERS: 112,
+  SAVANNA_HOUSE: 107,
+  HERITAGE_HOUSE: 107,
+  MSASA_HOUSE: 107,
+  GRANITE_HOUSE: 107,
+};
+
 export default function AnnouncementsAdminPage() {
   const [title, setTitle] = useState('');
   const [body, setBody] = useState('');
@@ -48,6 +85,17 @@ export default function AnnouncementsAdminPage() {
   const [requireAck, setRequireAck] = useState(false);
   const [smsFallback, setSmsFallback] = useState(false);
   const [selectedId, setSelectedId] = useState<string>(SCHOOL_ANNOUNCEMENTS[0]!.id);
+  const [local, setLocal] = useState<LocalAnnouncement[]>([]);
+  const [busy, setBusy] = useState<null | 'publish' | 'draft' | 'schedule'>(null);
+  const [scheduleOpen, setScheduleOpen] = useState(false);
+  const [scheduleAt, setScheduleAt] = useState('2026-04-24T07:30');
+  const [toast, setToast] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (!toast) return;
+    const t = setTimeout(() => setToast(null), 2800);
+    return () => clearTimeout(t);
+  }, [toast]);
 
   function toggleAudience(a: AnnouncementAudience) {
     setAudience((curr) =>
@@ -55,31 +103,140 @@ export default function AnnouncementsAdminPage() {
     );
   }
 
-  const selected =
-    SCHOOL_ANNOUNCEMENTS.find((a) => a.id === selectedId) ?? SCHOOL_ANNOUNCEMENTS[0]!;
+  const feed = useMemo(() => {
+    const locals: SchoolAnnouncement[] = local.map((l) => ({
+      id: l.id,
+      title: l.title,
+      body: l.body,
+      audience: l.audience,
+      audienceSize: l.audienceSize,
+      urgent: l.urgent,
+      pinned: l.pinned,
+      publishedAt: l.publishedAt,
+      publishedBy: l.publishedBy,
+      publishedByRole: 'BURSAR',
+      translatedTo: l.translatedTo,
+      requiresAck: l.requiresAck,
+      smsFallback: l.smsFallback,
+      views: l.views,
+      ackCount: l.ackCount,
+    }));
+    return [...locals, ...SCHOOL_ANNOUNCEMENTS];
+  }, [local]);
+
+  const selected = feed.find((a) => a.id === selectedId) ?? feed[0]!;
 
   const reachEstimate = useMemo(() => {
     if (audience.includes('SCHOOL')) return 428;
-    const map: Record<AnnouncementAudience, number> = {
-      SCHOOL: 428,
-      FORM_1: 98,
-      FORM_2: 108,
-      FORM_3: 116,
-      FORM_4: 78,
-      FORM_3B: 28,
-      STAFF: 42,
-      PARENTS: 284,
-      BOARDERS: 112,
-      SAVANNA_HOUSE: 107,
-      HERITAGE_HOUSE: 107,
-      MSASA_HOUSE: 107,
-      GRANITE_HOUSE: 107,
-    };
     return Math.min(
-      audience.reduce((sum, a) => sum + map[a], 0),
+      audience.reduce((sum, a) => sum + RECIPIENT_MAP[a], 0),
       428,
     );
   }, [audience]);
+
+  function resetComposer() {
+    setTitle('');
+    setBody('');
+    setAudience(['SCHOOL']);
+    setUrgent(false);
+    setPinned(false);
+    setRequireAck(false);
+    setSmsFallback(false);
+  }
+
+  function canSubmit() {
+    return title.trim().length > 0 && body.trim().length > 0 && audience.length > 0;
+  }
+
+  function publishNow() {
+    if (!canSubmit()) {
+      setToast('Add a title and body before publishing');
+      return;
+    }
+    setBusy('publish');
+    setTimeout(() => {
+      const id = `ann-${Date.now()}`;
+      const announcement: LocalAnnouncement = {
+        id,
+        title: title.trim(),
+        body: body.trim(),
+        audience: [...audience],
+        audienceSize: reachEstimate,
+        urgent,
+        pinned,
+        publishedAt: new Date().toISOString(),
+        publishedBy: 'Bursar · M. Moyo',
+        translatedTo: autoTranslate ? (['SN', 'ND'] as ('SN' | 'ND')[]) : ([] as ('SN' | 'ND')[]),
+        requiresAck: requireAck,
+        smsFallback,
+        views: 0,
+        ackCount: requireAck ? 0 : undefined,
+        status: 'published',
+      };
+      setLocal((curr) => [announcement, ...curr]);
+      setSelectedId(id);
+      setBusy(null);
+      resetComposer();
+      setToast(
+        `Published · ${reachEstimate.toLocaleString('en-ZW')} recipients${smsFallback ? ' · SMS fallback queued' : ''}`,
+      );
+    }, 1100);
+  }
+
+  function saveDraft() {
+    if (!title.trim() && !body.trim()) {
+      setToast('Nothing to save yet');
+      return;
+    }
+    setBusy('draft');
+    setTimeout(() => {
+      setBusy(null);
+      setToast('Draft saved · find it in your drafts folder');
+    }, 600);
+  }
+
+  function schedule() {
+    if (!canSubmit()) {
+      setToast('Add a title and body before scheduling');
+      return;
+    }
+    setScheduleOpen(true);
+  }
+
+  function confirmSchedule() {
+    setScheduleOpen(false);
+    setBusy('schedule');
+    setTimeout(() => {
+      const id = `ann-${Date.now()}`;
+      const announcement: LocalAnnouncement = {
+        id,
+        title: title.trim(),
+        body: body.trim(),
+        audience: [...audience],
+        audienceSize: reachEstimate,
+        urgent,
+        pinned,
+        publishedAt: new Date(scheduleAt).toISOString(),
+        publishedBy: 'Bursar · M. Moyo',
+        translatedTo: autoTranslate ? (['SN', 'ND'] as ('SN' | 'ND')[]) : ([] as ('SN' | 'ND')[]),
+        requiresAck: requireAck,
+        smsFallback,
+        status: 'scheduled',
+      };
+      setLocal((curr) => [announcement, ...curr]);
+      setSelectedId(id);
+      setBusy(null);
+      resetComposer();
+      setToast(
+        `Scheduled for ${new Date(scheduleAt).toLocaleString('en-ZW', {
+          day: '2-digit',
+          month: 'short',
+          hour: '2-digit',
+          minute: '2-digit',
+        })}`,
+      );
+    }, 700);
+  }
 
   return (
     <div className="space-y-8">
@@ -181,20 +338,33 @@ export default function AnnouncementsAdminPage() {
               <div className="flex flex-wrap items-center gap-2 border-t border-line pt-4">
                 <button
                   type="button"
-                  className="inline-flex h-11 items-center gap-2 rounded-full bg-brand-primary px-5 text-small font-semibold text-white shadow-card-sm transition hover:bg-brand-primary/90 hover:shadow-card-md"
+                  onClick={publishNow}
+                  disabled={busy !== null}
+                  className="inline-flex h-11 items-center gap-2 rounded-full bg-brand-primary px-5 text-small font-semibold text-white shadow-card-sm transition hover:bg-brand-primary/90 hover:shadow-card-md disabled:opacity-60"
                 >
-                  <Send className="h-4 w-4" strokeWidth={1.75} aria-hidden />
-                  Publish now
+                  {busy === 'publish' ? (
+                    <Loader2 className="h-4 w-4 animate-spin" strokeWidth={1.75} aria-hidden />
+                  ) : (
+                    <Send className="h-4 w-4" strokeWidth={1.75} aria-hidden />
+                  )}
+                  {busy === 'publish' ? 'Publishing…' : 'Publish now'}
                 </button>
                 <button
                   type="button"
-                  className="inline-flex h-11 items-center gap-2 rounded-full border border-line bg-card px-4 text-small font-semibold text-ink transition-colors hover:bg-surface"
+                  onClick={saveDraft}
+                  disabled={busy !== null}
+                  className="inline-flex h-11 items-center gap-2 rounded-full border border-line bg-card px-4 text-small font-semibold text-ink transition-colors hover:bg-surface disabled:opacity-60"
                 >
-                  Save draft
+                  {busy === 'draft' ? (
+                    <Loader2 className="h-4 w-4 animate-spin" strokeWidth={1.75} aria-hidden />
+                  ) : null}
+                  {busy === 'draft' ? 'Saving…' : 'Save draft'}
                 </button>
                 <button
                   type="button"
-                  className="inline-flex h-11 items-center gap-2 rounded-full border border-line bg-card px-4 text-small font-semibold text-ink transition-colors hover:bg-surface"
+                  onClick={schedule}
+                  disabled={busy !== null}
+                  className="inline-flex h-11 items-center gap-2 rounded-full border border-line bg-card px-4 text-small font-semibold text-ink transition-colors hover:bg-surface disabled:opacity-60"
                 >
                   Schedule…
                 </button>
@@ -304,6 +474,81 @@ export default function AnnouncementsAdminPage() {
           <AnnouncementDetail announcement={selected} />
         </section>
       </div>
+
+      {scheduleOpen ? (
+        <div
+          role="dialog"
+          aria-modal="true"
+          onClick={() => setScheduleOpen(false)}
+          className="fixed inset-0 z-50 flex items-center justify-center bg-ink/50 p-4"
+        >
+          <div
+            onClick={(e) => e.stopPropagation()}
+            className="w-full max-w-md overflow-hidden rounded-lg border border-line bg-card shadow-card-md"
+          >
+            <header className="flex items-center justify-between border-b border-line px-6 py-4">
+              <div>
+                <p className="text-micro font-semibold uppercase tracking-[0.12em] text-brand-primary">
+                  Schedule
+                </p>
+                <h3 className="text-h3 text-ink">Pick a release time</h3>
+              </div>
+              <button
+                type="button"
+                onClick={() => setScheduleOpen(false)}
+                aria-label="Close"
+                className="rounded-full p-2 text-muted transition-colors hover:bg-surface hover:text-ink"
+              >
+                <X className="h-5 w-5" strokeWidth={1.75} />
+              </button>
+            </header>
+            <div className="space-y-4 p-6">
+              <label className="block">
+                <span className="mb-2 block text-micro font-semibold uppercase tracking-[0.12em] text-muted">
+                  Release at
+                </span>
+                <input
+                  type="datetime-local"
+                  value={scheduleAt}
+                  onChange={(e) => setScheduleAt(e.target.value)}
+                  className={inputClass}
+                />
+              </label>
+              <p className="rounded-md border border-info/25 bg-info/[0.04] p-3 text-small text-ink">
+                The announcement will stay as a scheduled draft until the chosen moment, then release
+                to {reachEstimate} recipients.
+              </p>
+            </div>
+            <footer className="flex items-center justify-end gap-2 border-t border-line bg-card px-6 py-4">
+              <button
+                type="button"
+                onClick={() => setScheduleOpen(false)}
+                className="inline-flex h-10 items-center gap-2 rounded-full border border-line bg-card px-4 text-small font-semibold text-ink transition-colors hover:bg-surface"
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                onClick={confirmSchedule}
+                className="inline-flex h-10 items-center gap-2 rounded-full bg-brand-primary px-4 text-small font-semibold text-white shadow-card-sm transition hover:bg-brand-primary/90 hover:shadow-card-md"
+              >
+                <CheckCircle2 className="h-4 w-4" strokeWidth={1.75} aria-hidden />
+                Schedule
+              </button>
+            </footer>
+          </div>
+        </div>
+      ) : null}
+
+      {toast ? (
+        <div
+          role="status"
+          className="fixed bottom-6 left-1/2 z-40 -translate-x-1/2 rounded-full bg-ink px-4 py-2 text-micro font-semibold text-white shadow-card-md"
+        >
+          <Check className="mr-1 inline-block h-3.5 w-3.5" strokeWidth={2} aria-hidden />
+          {toast}
+        </div>
+      ) : null}
     </div>
   );
 }
