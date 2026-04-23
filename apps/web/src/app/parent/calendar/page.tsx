@@ -1,7 +1,18 @@
 'use client';
 
-import { useMemo, useState } from 'react';
-import { Calendar as CalendarIcon, ChevronLeft, ChevronRight, Download } from 'lucide-react';
+import { useEffect, useMemo, useState } from 'react';
+import {
+  Calendar as CalendarIcon,
+  CalendarCheck,
+  Check,
+  ChevronLeft,
+  ChevronRight,
+  Clock,
+  Download,
+  FileCheck2,
+  MapPin,
+  X,
+} from 'lucide-react';
 
 import { EditorialCard, SectionEyebrow } from '@/components/student/primitives';
 import { ChildColourDot, ParentPageHeader, ParentStatusPill } from '@/components/parent/primitives';
@@ -34,6 +45,16 @@ export default function ParentCalendarPage() {
   const [activeChildIds, setActiveChildIds] = useState<string[]>(
     PARENT_CHILDREN.map((c) => c.id),
   );
+  const [rsvps, setRsvps] = useState<Record<string, 'yes' | 'no'>>({});
+  const [permissions, setPermissions] = useState<Set<string>>(new Set());
+  const [preview, setPreview] = useState<ParentEvent | null>(null);
+  const [toast, setToast] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (!toast) return;
+    const t = setTimeout(() => setToast(null), 2400);
+    return () => clearTimeout(t);
+  }, [toast]);
 
   const events = useMemo(
     () =>
@@ -42,6 +63,32 @@ export default function ParentCalendarPage() {
       ),
     [activeChildIds],
   );
+
+  function rsvp(id: string, answer: 'yes' | 'no') {
+    setRsvps((curr) => ({ ...curr, [id]: answer }));
+    setToast(answer === 'yes' ? 'RSVP confirmed' : 'RSVP declined — school notified');
+  }
+
+  function grantPermission(id: string) {
+    setPermissions((curr) => {
+      const next = new Set(curr);
+      next.add(id);
+      return next;
+    });
+    setToast('Permission granted · slip logged to office');
+  }
+
+  function exportIcs() {
+    setToast('Calendar (.ics) downloading — subscribe in Apple/Google Calendar');
+  }
+
+  function effectiveRsvp(e: ParentEvent): 'yes' | 'no' | null {
+    return rsvps[e.id] ?? e.rsvp ?? null;
+  }
+
+  function hasPermission(e: ParentEvent): boolean {
+    return permissions.has(e.id) || e.permissionGranted === true;
+  }
 
   const monthGrid = useMemo(() => buildMonthGrid(cursor, events), [cursor, events]);
   const upcoming = useMemo(() => {
@@ -68,6 +115,7 @@ export default function ParentCalendarPage() {
         right={
           <button
             type="button"
+            onClick={exportIcs}
             className="inline-flex h-10 items-center gap-2 rounded border border-sand bg-white px-3 font-sans text-[13px] font-medium text-earth hover:bg-sand-light"
           >
             <Download className="h-4 w-4" strokeWidth={1.5} aria-hidden />
@@ -178,16 +226,19 @@ export default function ParentCalendarPage() {
               </p>
               <ul className="mt-1 space-y-0.5">
                 {cell.events.slice(0, 3).map((e) => (
-                  <li
-                    key={e.id}
-                    className="flex items-center gap-1 truncate rounded-sm bg-sand-light/60 px-1 py-0.5"
-                    title={`${e.title} · ${e.time ?? ''}`}
-                  >
-                    <span
-                      className={`h-1.5 w-1.5 flex-none rounded-full ${KIND_COLOUR[e.kind].dot}`}
-                      aria-hidden
-                    />
-                    <span className="truncate font-sans text-[10px] text-ink">{e.title}</span>
+                  <li key={e.id}>
+                    <button
+                      type="button"
+                      onClick={() => setPreview(e)}
+                      className="flex w-full items-center gap-1 truncate rounded-sm bg-sand-light/60 px-1 py-0.5 text-left hover:bg-sand"
+                      title={`${e.title} · ${e.time ?? ''}`}
+                    >
+                      <span
+                        className={`h-1.5 w-1.5 flex-none rounded-full ${KIND_COLOUR[e.kind].dot}`}
+                        aria-hidden
+                      />
+                      <span className="truncate font-sans text-[10px] text-ink">{e.title}</span>
+                    </button>
                   </li>
                 ))}
                 {cell.events.length > 3 ? (
@@ -208,57 +259,231 @@ export default function ParentCalendarPage() {
           </span>
         </div>
         <ul className="divide-y divide-sand-light">
-          {upcoming.map((e) => (
-            <li key={e.id} className="flex items-center gap-4 px-6 py-4">
-              <div className="w-14 flex-none text-center">
-                <p className="font-sans text-[10px] uppercase tracking-[0.14em] text-stone">
-                  {new Date(e.date).toLocaleDateString('en-ZW', { month: 'short' })}
-                </p>
-                <p className="font-display text-[20px] text-ink">{new Date(e.date).getDate()}</p>
-              </div>
-              <div className="min-w-0 flex-1">
-                <p className="flex items-center gap-2 font-sans text-[11px] font-semibold uppercase tracking-[0.14em] text-earth">
-                  <span className={`h-1.5 w-1.5 rounded-full ${KIND_COLOUR[e.kind].dot}`} aria-hidden />
-                  {KIND_COLOUR[e.kind].label}
-                </p>
-                <p className="mt-1 font-display text-[17px] text-ink">{e.title}</p>
-                <p className="font-sans text-[12px] text-stone">
-                  {e.time ? `${e.time} · ` : ''}
-                  {e.location ?? 'Harare Heritage Academy'}
-                </p>
-                <div className="mt-1 flex items-center gap-1">
-                  {e.affectedChildIds.map((id) => {
-                    const c = PARENT_CHILDREN.find((x) => x.id === id);
-                    if (!c) return null;
-                    return (
-                      <span
-                        key={id}
-                        title={`Affects ${c.firstName}`}
-                        className="inline-flex items-center gap-1 rounded border border-sand bg-cream px-1.5 py-0.5 font-sans text-[10px] text-stone"
-                      >
-                        <ChildColourDot tone={c.colourTone} />
-                        {c.firstName}
-                      </span>
-                    );
-                  })}
-                </div>
-              </div>
-              {e.requiresPermission && !e.permissionGranted ? (
-                <ParentStatusPill state="action-required">Permission needed</ParentStatusPill>
-              ) : e.rsvp === 'yes' ? (
-                <ParentStatusPill state="booked">RSVP&rsquo;d yes</ParentStatusPill>
-              ) : e.rsvp === null && e.kind === 'parent-only' ? (
+          {upcoming.map((e) => {
+            const r = effectiveRsvp(e);
+            const perm = hasPermission(e);
+            return (
+              <li key={e.id}>
                 <button
                   type="button"
-                  className="inline-flex h-8 items-center rounded border border-sand bg-white px-3 font-sans text-[12px] font-medium text-earth hover:bg-sand-light"
+                  onClick={() => setPreview(e)}
+                  className="flex w-full items-center gap-4 px-6 py-4 text-left transition-colors hover:bg-sand-light/40"
                 >
-                  RSVP
+                  <div className="w-14 flex-none text-center">
+                    <p className="font-sans text-[10px] uppercase tracking-[0.14em] text-stone">
+                      {new Date(e.date).toLocaleDateString('en-ZW', { month: 'short' })}
+                    </p>
+                    <p className="font-display text-[20px] text-ink">
+                      {new Date(e.date).getDate()}
+                    </p>
+                  </div>
+                  <div className="min-w-0 flex-1">
+                    <p className="flex items-center gap-2 font-sans text-[11px] font-semibold uppercase tracking-[0.14em] text-earth">
+                      <span className={`h-1.5 w-1.5 rounded-full ${KIND_COLOUR[e.kind].dot}`} aria-hidden />
+                      {KIND_COLOUR[e.kind].label}
+                    </p>
+                    <p className="mt-1 font-display text-[17px] text-ink">{e.title}</p>
+                    <p className="font-sans text-[12px] text-stone">
+                      {e.time ? `${e.time} · ` : ''}
+                      {e.location ?? 'Harare Heritage Academy'}
+                    </p>
+                    <div className="mt-1 flex items-center gap-1">
+                      {e.affectedChildIds.map((id) => {
+                        const c = PARENT_CHILDREN.find((x) => x.id === id);
+                        if (!c) return null;
+                        return (
+                          <span
+                            key={id}
+                            title={`Affects ${c.firstName}`}
+                            className="inline-flex items-center gap-1 rounded border border-sand bg-cream px-1.5 py-0.5 font-sans text-[10px] text-stone"
+                          >
+                            <ChildColourDot tone={c.colourTone} />
+                            {c.firstName}
+                          </span>
+                        );
+                      })}
+                    </div>
+                  </div>
+                  {e.requiresPermission && !perm ? (
+                    <ParentStatusPill state="action-required">Permission needed</ParentStatusPill>
+                  ) : e.requiresPermission && perm ? (
+                    <ParentStatusPill state="booked">Permission granted</ParentStatusPill>
+                  ) : r === 'yes' ? (
+                    <ParentStatusPill state="booked">RSVP&rsquo;d yes</ParentStatusPill>
+                  ) : r === 'no' ? (
+                    <ParentStatusPill state="acknowledged">Declined</ParentStatusPill>
+                  ) : e.kind === 'parent-only' ? (
+                    <ParentStatusPill state="action-required">RSVP needed</ParentStatusPill>
+                  ) : null}
                 </button>
-              ) : null}
-            </li>
-          ))}
+              </li>
+            );
+          })}
         </ul>
       </EditorialCard>
+
+      {preview ? (
+        <EventPreview
+          event={preview}
+          rsvp={effectiveRsvp(preview)}
+          hasPermission={hasPermission(preview)}
+          onClose={() => setPreview(null)}
+          onRsvp={(answer) => {
+            rsvp(preview.id, answer);
+          }}
+          onGrantPermission={() => grantPermission(preview.id)}
+        />
+      ) : null}
+
+      {toast ? (
+        <div
+          role="status"
+          className="fixed bottom-6 left-1/2 z-40 -translate-x-1/2 rounded-full bg-ink px-4 py-2 font-sans text-[12px] font-semibold text-cream shadow-e3"
+        >
+          <Check className="mr-1 inline-block h-3.5 w-3.5" strokeWidth={2} aria-hidden />
+          {toast}
+        </div>
+      ) : null}
+    </div>
+  );
+}
+
+function EventPreview({
+  event,
+  rsvp,
+  hasPermission,
+  onClose,
+  onRsvp,
+  onGrantPermission,
+}: {
+  event: ParentEvent;
+  rsvp: 'yes' | 'no' | null;
+  hasPermission: boolean;
+  onClose: () => void;
+  onRsvp: (answer: 'yes' | 'no') => void;
+  onGrantPermission: () => void;
+}) {
+  return (
+    <div
+      role="dialog"
+      aria-modal="true"
+      onClick={onClose}
+      className="fixed inset-0 z-50 flex items-center justify-center bg-ink/50 p-4"
+    >
+      <div
+        onClick={(e) => e.stopPropagation()}
+        className="relative flex max-h-[88vh] w-full max-w-md flex-col overflow-hidden rounded bg-white shadow-e3"
+      >
+        <div className="flex items-start justify-between gap-3 border-b border-sand px-6 py-4">
+          <div>
+            <p className="flex items-center gap-2 font-sans text-[11px] font-semibold uppercase tracking-[0.14em] text-earth">
+              <span className={`h-1.5 w-1.5 rounded-full ${KIND_COLOUR[event.kind].dot}`} aria-hidden />
+              {KIND_COLOUR[event.kind].label}
+            </p>
+            <h2 className="mt-1 font-display text-[20px] text-ink">{event.title}</h2>
+          </div>
+          <button
+            type="button"
+            onClick={onClose}
+            aria-label="Close"
+            className="rounded p-2 text-stone transition-colors hover:bg-sand-light hover:text-ink"
+          >
+            <X className="h-5 w-5" strokeWidth={1.5} />
+          </button>
+        </div>
+        <div className="space-y-3 px-6 py-5 font-sans text-[13px] text-stone">
+          <p className="flex items-center gap-2">
+            <CalendarIcon className="h-4 w-4 text-earth" strokeWidth={1.5} aria-hidden />
+            {new Date(event.date).toLocaleDateString('en-ZW', {
+              weekday: 'long',
+              day: 'numeric',
+              month: 'long',
+              year: 'numeric',
+            })}
+            {event.time ? <span>· {event.time}</span> : null}
+          </p>
+          {event.location ? (
+            <p className="flex items-center gap-2">
+              <MapPin className="h-4 w-4 text-earth" strokeWidth={1.5} aria-hidden />
+              {event.location}
+            </p>
+          ) : null}
+          {/* description field not on ParentEvent — omit */}
+          <div>
+            <p className="font-sans text-[11px] font-semibold uppercase tracking-[0.14em] text-stone">
+              Who this affects
+            </p>
+            <div className="mt-2 flex flex-wrap gap-1">
+              {event.affectedChildIds.map((id) => {
+                const c = PARENT_CHILDREN.find((x) => x.id === id);
+                if (!c) return null;
+                return (
+                  <span
+                    key={id}
+                    className="inline-flex items-center gap-1 rounded border border-sand bg-cream px-1.5 py-0.5 font-sans text-[11px] text-stone"
+                  >
+                    <ChildColourDot tone={c.colourTone} />
+                    {c.firstName}
+                  </span>
+                );
+              })}
+            </div>
+          </div>
+        </div>
+        <div className="flex items-center justify-between gap-2 border-t border-sand bg-sand-light/40 px-6 py-4">
+          {event.requiresPermission && !hasPermission ? (
+            <button
+              type="button"
+              onClick={onGrantPermission}
+              className="btn-terracotta"
+            >
+              <FileCheck2 className="h-4 w-4" strokeWidth={1.5} aria-hidden />
+              Grant permission
+            </button>
+          ) : event.requiresPermission ? (
+            <span className="inline-flex items-center gap-2 font-sans text-[13px] font-medium text-ok">
+              <FileCheck2 className="h-4 w-4" strokeWidth={1.5} aria-hidden />
+              Permission granted
+            </span>
+          ) : (
+            <div className="flex items-center gap-2">
+              <button
+                type="button"
+                onClick={() => onRsvp('yes')}
+                className={[
+                  'inline-flex h-10 items-center gap-2 rounded border px-3 font-sans text-[13px] font-medium transition-colors',
+                  rsvp === 'yes'
+                    ? 'border-ok bg-[#F0F6F2] text-ok'
+                    : 'border-sand bg-white text-earth hover:bg-sand-light',
+                ].join(' ')}
+              >
+                <CalendarCheck className="h-4 w-4" strokeWidth={1.5} aria-hidden />
+                {rsvp === 'yes' ? 'Going' : 'RSVP yes'}
+              </button>
+              <button
+                type="button"
+                onClick={() => onRsvp('no')}
+                className={[
+                  'inline-flex h-10 items-center rounded border px-3 font-sans text-[13px] font-medium transition-colors',
+                  rsvp === 'no'
+                    ? 'border-stone/50 bg-sand text-ink'
+                    : 'border-sand bg-white text-stone hover:bg-sand-light hover:text-ink',
+                ].join(' ')}
+              >
+                Can&rsquo;t make it
+              </button>
+            </div>
+          )}
+          <button
+            type="button"
+            onClick={onClose}
+            className="font-sans text-[13px] text-stone hover:text-ink"
+          >
+            <Clock className="mr-1 inline-block h-3 w-3" strokeWidth={1.5} aria-hidden />
+            Close
+          </button>
+        </div>
+      </div>
     </div>
   );
 }

@@ -1,12 +1,20 @@
 'use client';
 
-import { useMemo, useState } from 'react';
-import { CalendarCheck, Clock, Info, MapPin, Video } from 'lucide-react';
+import { useEffect, useMemo, useState } from 'react';
+import { CalendarCheck, Check, CheckCircle2, Clock, Info, MapPin, Video, X } from 'lucide-react';
 
 import { EditorialAvatar, EditorialCard, SectionEyebrow } from '@/components/student/primitives';
 import { ChildColourDot, ParentPageHeader, ParentStatusPill } from '@/components/parent/primitives';
 import { useSelectedChild } from '@/components/parent/selected-child-context';
 import { MEETING_SLOTS, MEETING_TEACHERS, slotState } from '@/lib/mock/parent-extras';
+
+interface Booking {
+  teacherIdx: number;
+  slotIdx: number;
+  mode: 'video' | 'in-person';
+  note: string;
+  confirmedAt: string;
+}
 
 /**
  * Parent meetings — §12.
@@ -16,6 +24,8 @@ import { MEETING_SLOTS, MEETING_TEACHERS, slotState } from '@/lib/mock/parent-ex
  *     grey = booked by another parent, break = break)
  *   - In-person / video toggle per booking
  *   - Optional "what would you like to discuss" note
+ *   - Multi-booking: lock in several teachers across the evening, each
+ *     appears as a confirmed chip you can cancel
  */
 export default function ParentMeetingsPage() {
   const { selectedChild } = useSelectedChild();
@@ -25,6 +35,14 @@ export default function ParentMeetingsPage() {
   });
   const [mode, setMode] = useState<'in-person' | 'video'>('video');
   const [note, setNote] = useState('');
+  const [bookings, setBookings] = useState<Booking[]>([]);
+  const [toast, setToast] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (!toast) return;
+    const t = setTimeout(() => setToast(null), 2400);
+    return () => clearTimeout(t);
+  }, [toast]);
 
   const selectedSlotLabel = useMemo(() => {
     if (!selection) return null;
@@ -33,6 +51,45 @@ export default function ParentMeetingsPage() {
     if (!t || !s) return null;
     return `${t.name} · ${s}`;
   }, [selection]);
+
+  function isBooked(teacherIdx: number, slotIdx: number) {
+    return bookings.some((b) => b.teacherIdx === teacherIdx && b.slotIdx === slotIdx);
+  }
+
+  function teacherHasBooking(teacherIdx: number) {
+    return bookings.some((b) => b.teacherIdx === teacherIdx);
+  }
+
+  function confirm() {
+    if (!selection) return;
+    // Replace any existing booking for the same teacher
+    setBookings((curr) => [
+      ...curr.filter((b) => b.teacherIdx !== selection.teacherIdx),
+      {
+        teacherIdx: selection.teacherIdx,
+        slotIdx: selection.slotIdx,
+        mode,
+        note: note.trim(),
+        confirmedAt: new Date().toLocaleString('en-ZW', {
+          day: '2-digit',
+          month: 'short',
+          hour: '2-digit',
+          minute: '2-digit',
+        }),
+      },
+    ]);
+    const teacher = MEETING_TEACHERS[selection.teacherIdx];
+    const slot = MEETING_SLOTS[selection.slotIdx];
+    setToast(`Booked · ${teacher?.name} · ${slot}`);
+    setSelection(null);
+    setNote('');
+  }
+
+  function cancelBooking(teacherIdx: number) {
+    const teacher = MEETING_TEACHERS[teacherIdx];
+    setBookings((curr) => curr.filter((b) => b.teacherIdx !== teacherIdx));
+    setToast(`Cancelled ${teacher?.name} meeting`);
+  }
 
   return (
     <div className="space-y-8">
@@ -124,14 +181,20 @@ export default function ParentMeetingsPage() {
                   </td>
                   {MEETING_SLOTS.map((s, sIdx) => {
                     const state = slotState(tIdx, sIdx);
+                    const isBookedByMe = isBooked(tIdx, sIdx);
                     const isSelected =
                       selection?.teacherIdx === tIdx && selection?.slotIdx === sIdx;
-                    const effective = isSelected ? 'booked-mine' : state;
+                    const effective = isBookedByMe
+                      ? 'booked-mine'
+                      : isSelected
+                      ? 'selecting'
+                      : state;
                     const classes = {
-                      'available': 'bg-sand-light/50 hover:bg-[#E6F0E9] hover:border-ok cursor-pointer',
-                      'booked-mine': 'bg-terracotta text-cream cursor-pointer',
+                      available: 'bg-sand-light/50 hover:bg-[#E6F0E9] hover:border-ok cursor-pointer',
+                      selecting: 'bg-ochre/30 border-ochre text-earth cursor-pointer',
+                      'booked-mine': 'bg-ok text-cream cursor-pointer',
                       'booked-other': 'bg-sand cursor-not-allowed',
-                      'break': 'bg-cream/60 cursor-not-allowed',
+                      break: 'bg-cream/60 cursor-not-allowed',
                     }[effective];
                     return (
                       <td key={s} className="px-1 py-1.5">
@@ -139,13 +202,16 @@ export default function ParentMeetingsPage() {
                           type="button"
                           disabled={state === 'booked-other' || state === 'break'}
                           onClick={() => {
-                            if (state === 'available' || state === 'booked-mine') {
-                              setSelection(
-                                selection?.teacherIdx === tIdx && selection?.slotIdx === sIdx
-                                  ? null
-                                  : { teacherIdx: tIdx, slotIdx: sIdx },
-                              );
+                            if (state === 'break' || state === 'booked-other') return;
+                            if (isBookedByMe) {
+                              cancelBooking(tIdx);
+                              return;
                             }
+                            setSelection(
+                              selection?.teacherIdx === tIdx && selection?.slotIdx === sIdx
+                                ? null
+                                : { teacherIdx: tIdx, slotIdx: sIdx },
+                            );
                           }}
                           className={[
                             'h-8 w-full rounded border border-sand font-sans text-[11px] font-semibold transition-colors',
@@ -155,9 +221,11 @@ export default function ParentMeetingsPage() {
                         >
                           {state === 'break'
                             ? '—'
-                            : effective === 'booked-mine'
+                            : isBookedByMe
                             ? '✓'
-                            : effective === 'booked-other'
+                            : isSelected
+                            ? '…'
+                            : state === 'booked-other'
                             ? '—'
                             : ''}
                         </button>
@@ -175,7 +243,9 @@ export default function ParentMeetingsPage() {
       <EditorialCard className="p-6">
         <div className="flex flex-wrap items-start justify-between gap-4">
           <div>
-            <SectionEyebrow>Your selection</SectionEyebrow>
+            <SectionEyebrow>
+              {selection ? 'Your selection' : bookings.length > 0 ? 'Your bookings' : 'Pick a slot'}
+            </SectionEyebrow>
             {selection ? (
               <>
                 <p className="mt-2 font-display text-[22px] text-ink">{selectedSlotLabel}</p>
@@ -184,21 +254,32 @@ export default function ParentMeetingsPage() {
                   10 minutes · {mode === 'video' ? 'joins in-portal' : 'Main hall'}
                 </p>
               </>
-            ) : (
+            ) : bookings.length > 0 ? (
               <p className="mt-2 font-serif text-[15px] text-stone">
-                Pick a slot above to book.
+                {bookings.length} confirmed · tap a cell above to add or change
               </p>
+            ) : (
+              <p className="mt-2 font-serif text-[15px] text-stone">Pick a slot above to book.</p>
             )}
           </div>
           <div className="flex items-center gap-2">
             <button
               type="button"
               disabled={!selection}
+              onClick={() => {
+                setSelection(null);
+                setNote('');
+              }}
               className="inline-flex h-10 items-center rounded border border-sand bg-white px-3 font-sans text-[13px] font-medium text-earth hover:bg-sand-light disabled:opacity-40"
             >
-              Cancel
+              Clear selection
             </button>
-            <button type="button" disabled={!selection} className="btn-terracotta disabled:opacity-40">
+            <button
+              type="button"
+              disabled={!selection}
+              onClick={confirm}
+              className="btn-terracotta disabled:opacity-40"
+            >
               <CalendarCheck className="h-4 w-4" strokeWidth={1.5} aria-hidden />
               Confirm booking
             </button>
@@ -219,6 +300,42 @@ export default function ParentMeetingsPage() {
             />
           </div>
         ) : null}
+
+        {bookings.length > 0 ? (
+          <ul className="mt-5 space-y-2 border-t border-sand pt-5">
+            {bookings.map((b) => {
+              const teacher = MEETING_TEACHERS[b.teacherIdx];
+              const slot = MEETING_SLOTS[b.slotIdx];
+              if (!teacher || !slot) return null;
+              return (
+                <li
+                  key={`${b.teacherIdx}-${b.slotIdx}`}
+                  className="flex flex-wrap items-center gap-3 rounded border border-ok/40 bg-[#F0F6F2] px-4 py-3"
+                >
+                  <CheckCircle2 className="h-5 w-5 flex-none text-ok" strokeWidth={1.5} aria-hidden />
+                  <div className="min-w-0 flex-1">
+                    <p className="font-sans text-[14px] font-medium text-ink">
+                      {teacher.name} · {slot}
+                    </p>
+                    <p className="mt-0.5 flex flex-wrap items-center gap-2 font-sans text-[12px] text-stone">
+                      {teacher.subject} · {b.mode === 'video' ? 'Video (in-portal)' : 'Main hall'} ·
+                      confirmed {b.confirmedAt}
+                      {b.note ? <span className="italic text-earth">· “{b.note}”</span> : null}
+                    </p>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => cancelBooking(b.teacherIdx)}
+                    className="inline-flex h-8 items-center gap-1 rounded border border-sand bg-white px-2.5 font-sans text-[12px] font-medium text-stone hover:bg-sand-light hover:text-ink"
+                  >
+                    <X className="h-3 w-3" strokeWidth={1.5} aria-hidden />
+                    Cancel
+                  </button>
+                </li>
+              );
+            })}
+          </ul>
+        ) : null}
       </EditorialCard>
 
       <div className="rounded border border-sand bg-sand-light/60 px-5 py-4">
@@ -230,6 +347,16 @@ export default function ParentMeetingsPage() {
           </span>
         </p>
       </div>
+
+      {toast ? (
+        <div
+          role="status"
+          className="fixed bottom-6 left-1/2 z-40 -translate-x-1/2 rounded-full bg-ink px-4 py-2 font-sans text-[12px] font-semibold text-cream shadow-e3"
+        >
+          <Check className="mr-1 inline-block h-3.5 w-3.5" strokeWidth={2} aria-hidden />
+          {toast}
+        </div>
+      ) : null}
     </div>
   );
 }

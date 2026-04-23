@@ -1,7 +1,16 @@
 'use client';
 
-import { useMemo, useState } from 'react';
-import { AlertTriangle, Download, FilePlus, SendHorizontal } from 'lucide-react';
+import { useEffect, useMemo, useState } from 'react';
+import {
+  AlertTriangle,
+  Check,
+  CheckCircle2,
+  Download,
+  FilePlus,
+  Paperclip,
+  SendHorizontal,
+  X,
+} from 'lucide-react';
 
 import { EditorialCard, SectionEyebrow } from '@/components/student/primitives';
 import { HeatmapCell, ParentPageHeader, ParentStatusPill } from '@/components/parent/primitives';
@@ -48,6 +57,15 @@ export default function ParentAttendancePage() {
   if (currentWeek.length > 0) weeks.push(currentWeek);
 
   const [explainingId, setExplainingId] = useState<string | null>(null);
+  const [submitted, setSubmitted] = useState<Record<string, { category: string; reason: string; attachment?: string }>>({});
+  const [plannedOpen, setPlannedOpen] = useState(false);
+  const [toast, setToast] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (!toast) return;
+    const t = setTimeout(() => setToast(null), 2400);
+    return () => clearTimeout(t);
+  }, [toast]);
 
   return (
     <div className="space-y-8">
@@ -58,6 +76,7 @@ export default function ParentAttendancePage() {
         right={
           <button
             type="button"
+            onClick={() => setPlannedOpen(true)}
             className="inline-flex h-10 items-center gap-2 rounded border border-sand bg-white px-3 font-sans text-[13px] font-medium text-earth hover:bg-sand-light"
           >
             <FilePlus className="h-4 w-4" strokeWidth={1.5} aria-hidden />
@@ -134,17 +153,25 @@ export default function ParentAttendancePage() {
           </p>
         ) : (
           <ul className="divide-y divide-sand-light">
-            {absences.map((a) => (
-              <li key={a.id}>
-                <AbsenceRow
-                  entry={a}
-                  explaining={explainingId === a.id}
-                  onExplain={() => setExplainingId(a.id)}
-                  onCancel={() => setExplainingId(null)}
-                  onSubmit={() => setExplainingId(null)}
-                />
-              </li>
-            ))}
+            {absences.map((a) => {
+              const mine = submitted[a.id];
+              return (
+                <li key={a.id}>
+                  <AbsenceRow
+                    entry={a}
+                    submittedExcuse={mine}
+                    explaining={explainingId === a.id}
+                    onExplain={() => setExplainingId(a.id)}
+                    onCancel={() => setExplainingId(null)}
+                    onSubmit={(payload) => {
+                      setSubmitted((curr) => ({ ...curr, [a.id]: payload }));
+                      setExplainingId(null);
+                      setToast('Excuse submitted · form teacher notified');
+                    }}
+                  />
+                </li>
+              );
+            })}
           </ul>
         )}
       </EditorialCard>
@@ -164,31 +191,181 @@ export default function ParentAttendancePage() {
           </span>
         </p>
       </div>
+
+      {plannedOpen ? (
+        <PlannedAbsenceModal
+          childName={selectedChild.firstName}
+          onClose={() => setPlannedOpen(false)}
+          onSubmit={() => {
+            setPlannedOpen(false);
+            setToast('Planned absence logged · office and form teacher notified');
+          }}
+        />
+      ) : null}
+
+      {toast ? (
+        <div
+          role="status"
+          className="fixed bottom-6 left-1/2 z-40 -translate-x-1/2 rounded-full bg-ink px-4 py-2 font-sans text-[12px] font-semibold text-cream shadow-e3"
+        >
+          <Check className="mr-1 inline-block h-3.5 w-3.5" strokeWidth={2} aria-hidden />
+          {toast}
+        </div>
+      ) : null}
+    </div>
+  );
+}
+
+function PlannedAbsenceModal({
+  childName,
+  onClose,
+  onSubmit,
+}: {
+  childName: string;
+  onClose: () => void;
+  onSubmit: () => void;
+}) {
+  const [from, setFrom] = useState('');
+  const [to, setTo] = useState('');
+  const [category, setCategory] = useState('family');
+  const [reason, setReason] = useState('');
+
+  function submit(e: React.FormEvent) {
+    e.preventDefault();
+    if (!from.trim() || !to.trim()) return;
+    onSubmit();
+  }
+
+  return (
+    <div
+      role="dialog"
+      aria-modal="true"
+      onClick={onClose}
+      className="fixed inset-0 z-50 flex items-center justify-center bg-ink/50 p-4"
+    >
+      <form
+        onSubmit={submit}
+        onClick={(e) => e.stopPropagation()}
+        className="relative flex w-full max-w-md flex-col overflow-hidden rounded bg-white shadow-e3"
+      >
+        <div className="flex items-center justify-between border-b border-sand px-6 py-4">
+          <h2 className="font-display text-[20px] text-ink">Notify a planned absence</h2>
+          <button
+            type="button"
+            onClick={onClose}
+            aria-label="Close"
+            className="rounded p-2 text-stone transition-colors hover:bg-sand-light hover:text-ink"
+          >
+            <X className="h-5 w-5" strokeWidth={1.5} />
+          </button>
+        </div>
+        <div className="space-y-4 p-6">
+          <p className="font-sans text-[13px] text-stone">
+            Give the school 24-hour notice so the form teacher can plan cover work for {childName}.
+          </p>
+          <div className="grid grid-cols-2 gap-3">
+            <label>
+              <span className="mb-2 block font-mono text-[11px] font-medium uppercase tracking-[0.14em] text-stone">
+                From
+              </span>
+              <input
+                type="date"
+                value={from}
+                onChange={(e) => setFrom(e.target.value)}
+                className="input-boxed"
+                required
+              />
+            </label>
+            <label>
+              <span className="mb-2 block font-mono text-[11px] font-medium uppercase tracking-[0.14em] text-stone">
+                Until
+              </span>
+              <input
+                type="date"
+                value={to}
+                onChange={(e) => setTo(e.target.value)}
+                className="input-boxed"
+                required
+              />
+            </label>
+          </div>
+          <label>
+            <span className="mb-2 block font-mono text-[11px] font-medium uppercase tracking-[0.14em] text-stone">
+              Reason
+            </span>
+            <select
+              value={category}
+              onChange={(e) => setCategory(e.target.value)}
+              className="input-boxed"
+            >
+              <option value="family">Family matter</option>
+              <option value="medical">Medical appointment</option>
+              <option value="religious">Religious observance</option>
+              <option value="other">Other</option>
+            </select>
+          </label>
+          <label>
+            <span className="mb-2 block font-mono text-[11px] font-medium uppercase tracking-[0.14em] text-stone">
+              Note to form teacher (optional)
+            </span>
+            <textarea
+              rows={3}
+              value={reason}
+              onChange={(e) => setReason(e.target.value)}
+              className="w-full rounded border border-sand bg-white p-3 font-serif text-[14px] text-ink placeholder-stone focus:border-terracotta focus:outline-none"
+              placeholder="Any context you'd like to share."
+            />
+          </label>
+        </div>
+        <div className="flex items-center justify-end gap-2 border-t border-sand bg-white px-6 py-4">
+          <button
+            type="button"
+            onClick={onClose}
+            className="inline-flex h-10 items-center gap-2 rounded border border-sand bg-white px-3 font-sans text-[13px] font-medium text-stone hover:bg-sand-light"
+          >
+            Cancel
+          </button>
+          <button type="submit" className="btn-terracotta">
+            <SendHorizontal className="h-4 w-4" strokeWidth={1.5} aria-hidden />
+            Log absence
+          </button>
+        </div>
+      </form>
     </div>
   );
 }
 
 function AbsenceRow({
   entry,
+  submittedExcuse,
   explaining,
   onExplain,
   onCancel,
   onSubmit,
 }: {
   entry: AttendanceEntry;
+  submittedExcuse?: { category: string; reason: string; attachment?: string };
   explaining: boolean;
   onExplain: () => void;
   onCancel: () => void;
-  onSubmit: () => void;
+  onSubmit: (payload: { category: string; reason: string; attachment?: string }) => void;
 }) {
   const [reason, setReason] = useState('');
   const [category, setCategory] = useState('medical');
+  const [attachment, setAttachment] = useState<string | null>(null);
 
   const date = new Date(entry.date).toLocaleDateString('en-ZW', {
     weekday: 'short',
     day: 'numeric',
     month: 'short',
   });
+
+  function onFileSelected(e: React.ChangeEvent<HTMLInputElement>) {
+    const f = e.target.files?.[0];
+    if (f) setAttachment(`${f.name} · ${(f.size / 1024).toFixed(0)} KB`);
+  }
+
+  const effectiveStatus = submittedExcuse ? 'pending-verification' : null;
 
   return (
     <div className="px-6 py-4">
@@ -213,20 +390,38 @@ function AbsenceRow({
           {entry.document ? (
             <p className="mt-1 font-sans text-[12px] text-terracotta">📎 {entry.document}</p>
           ) : null}
+          {submittedExcuse ? (
+            <div className="mt-2 rounded border border-ok/40 bg-[#F0F6F2] px-3 py-2 font-sans text-[12px] text-ok">
+              <p className="flex items-center gap-2">
+                <CheckCircle2 className="h-3.5 w-3.5" strokeWidth={2} aria-hidden />
+                Submitted · {submittedExcuse.category}
+                {submittedExcuse.attachment ? ` · ${submittedExcuse.attachment}` : ''}
+              </p>
+              {submittedExcuse.reason ? (
+                <p className="mt-1 italic text-stone">&ldquo;{submittedExcuse.reason}&rdquo;</p>
+              ) : null}
+            </div>
+          ) : null}
         </div>
         <div className="flex flex-col items-end gap-2">
           <ParentStatusPill
             state={
-              entry.status === 'excused'
+              effectiveStatus === 'pending-verification'
+                ? 'pending-verification'
+                : entry.status === 'excused'
                 ? 'acknowledged'
                 : entry.status === 'under-review'
                 ? 'pending-verification'
                 : 'action-required'
             }
           >
-            {entry.status === 'under-review' ? 'under review' : entry.status}
+            {effectiveStatus === 'pending-verification'
+              ? 'under review'
+              : entry.status === 'under-review'
+              ? 'under review'
+              : entry.status}
           </ParentStatusPill>
-          {entry.status === 'unexcused' && !explaining ? (
+          {entry.status === 'unexcused' && !explaining && !submittedExcuse ? (
             <button
               type="button"
               onClick={onExplain}
@@ -242,7 +437,7 @@ function AbsenceRow({
         <form
           onSubmit={(e) => {
             e.preventDefault();
-            onSubmit();
+            onSubmit({ category, reason, attachment: attachment ?? undefined });
           }}
           className="mt-4 rounded border border-sand bg-sand-light/60 p-4"
         >
@@ -280,12 +475,16 @@ function AbsenceRow({
             </div>
           </div>
           <div className="mt-3 flex items-center justify-between">
-            <button
-              type="button"
-              className="inline-flex items-center gap-1.5 font-sans text-[13px] font-medium text-stone hover:text-earth"
-            >
-              📎 Attach a doctor&rsquo;s note
-            </button>
+            <label className="inline-flex items-center gap-1.5 font-sans text-[13px] font-medium text-stone hover:text-earth cursor-pointer">
+              <Paperclip className="h-3.5 w-3.5" strokeWidth={1.5} aria-hidden />
+              {attachment ? attachment : 'Attach a doctor\u2019s note'}
+              <input
+                type="file"
+                accept="image/*,application/pdf"
+                onChange={onFileSelected}
+                className="sr-only"
+              />
+            </label>
             <div className="flex gap-2">
               <button
                 type="button"
