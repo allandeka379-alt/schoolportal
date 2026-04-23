@@ -23,5 +23,5 @@ export async function signInAction(formData: FormData): Promise<{ error?: string
 
 export async function signOutAction(): Promise<void> {
   await signOutSession();
-  redirect('/sign-in');
+  redirect('/');
 }
