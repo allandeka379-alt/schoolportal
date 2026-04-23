@@ -2,30 +2,34 @@
 
 import Link from 'next/link';
 import { useMemo, useState } from 'react';
-import { ChevronDown, ChevronRight, Search, SlidersHorizontal, X } from 'lucide-react';
+import {
+  AlertTriangle,
+  BookOpenCheck,
+  CheckCircle2,
+  ChevronDown,
+  ChevronRight,
+  ClipboardCheck,
+  Clock,
+  FileBadge2,
+  Filter,
+  Plus,
+  Search,
+  X,
+} from 'lucide-react';
 
+import { Badge } from '@/components/ui/badge';
 import { ASSIGNMENTS_FOR_FARAI, type DemoAssignment } from '@/lib/mock/fixtures';
 import { dueLabel, subjectNameByCode } from '@/lib/mock/student-extras';
 
-import {
-  EditorialCard,
-  SectionEyebrow,
-  StatusPill,
-  StudentEmptyState,
-} from '@/components/student/primitives';
-
 /**
- * Assignments list — §06 of the spec.
+ * Student assignments — card-dense list.
  *
- * Grouping (fixed order):
- *   1. Overdue              (default expanded)
- *   2. Due This Week        (default expanded)
- *   3. Due Later            (default collapsed)
- *   4. Submitted            (default collapsed)
- *   5. Marked               (default collapsed)
- *
- * Search + subject + status filters are fully live. Filter bar reflects
- * the number of items visible after filtering.
+ *   Hero strip with four status KPIs
+ *   Search + subject + status filters in a single pill bar
+ *   Five collapsible groups (Overdue / Due this week / Later /
+ *   Submitted / Marked)
+ *   Each row is a card: coloured icon square, title + metadata, due
+ *   badge, grade badge when marked, chevron affordance
  */
 
 type StatusFilter = 'ALL' | 'OPEN' | 'SUBMITTED' | 'RETURNED' | 'LATE';
@@ -33,9 +37,9 @@ type StatusFilter = 'ALL' | 'OPEN' | 'SUBMITTED' | 'RETURNED' | 'LATE';
 interface Group {
   key: string;
   heading: string;
-  tone: 'danger' | 'default' | 'neutral' | 'success' | 'marked';
-  expanded: boolean;
+  description: string;
   items: DemoAssignment[];
+  tone: 'danger' | 'warning' | 'brand' | 'info' | 'success';
 }
 
 function buildGroups(assignments: readonly DemoAssignment[]): Group[] {
@@ -76,11 +80,11 @@ function buildGroups(assignments: readonly DemoAssignment[]): Group[] {
   later.sort(sortByDue);
 
   return [
-    { key: 'overdue', heading: 'Overdue', tone: 'danger', expanded: true, items: overdue },
-    { key: 'this-week', heading: 'Due This Week', tone: 'default', expanded: true, items: thisWeek },
-    { key: 'later', heading: 'Due Later', tone: 'neutral', expanded: false, items: later },
-    { key: 'submitted', heading: 'Submitted — Awaiting Mark', tone: 'success', expanded: false, items: submitted },
-    { key: 'marked', heading: 'Marked', tone: 'marked', expanded: false, items: marked },
+    { key: 'overdue',   heading: 'Overdue',                 description: 'Submit as soon as you can',           items: overdue,   tone: 'danger' },
+    { key: 'this-week', heading: 'Due this week',           description: 'Plan your evenings',                  items: thisWeek,  tone: 'warning' },
+    { key: 'later',     heading: 'Due later',               description: 'On the horizon',                       items: later,     tone: 'brand' },
+    { key: 'submitted', heading: 'Submitted · waiting mark',description: 'Teacher has your work',                 items: submitted, tone: 'info' },
+    { key: 'marked',    heading: 'Marked',                  description: 'Your grades are back',                 items: marked,    tone: 'success' },
   ];
 }
 
@@ -115,6 +119,11 @@ export default function AssignmentsListPage() {
   const totalVisible = filtered.length;
   const hasFilters = query.length > 0 || subject !== 'ALL' || status !== 'ALL';
 
+  const kpiOverdue = groups.find((g) => g.key === 'overdue')?.items.length ?? 0;
+  const kpiDueThisWeek = groups.find((g) => g.key === 'this-week')?.items.length ?? 0;
+  const kpiSubmitted = groups.find((g) => g.key === 'submitted')?.items.length ?? 0;
+  const kpiMarked = groups.find((g) => g.key === 'marked')?.items.length ?? 0;
+
   function toggleGroup(key: string) {
     setCollapsed((prev) => {
       const next = new Set(prev);
@@ -132,43 +141,71 @@ export default function AssignmentsListPage() {
 
   return (
     <div className="space-y-8">
+      {/* Header */}
       <header className="flex flex-wrap items-end justify-between gap-4">
         <div>
-          <SectionEyebrow>Assignments</SectionEyebrow>
-          <h1 className="mt-2 font-display text-[clamp(1.75rem,3vw,2.25rem)] text-ink">
-            Every piece of work,{' '}
-            <span className="italic font-light text-terracotta">in one list.</span>
+          <p className="text-small text-muted">Everything due, submitted, or returned</p>
+          <h1 className="mt-1 text-[clamp(1.75rem,3vw,2.25rem)] font-bold leading-tight tracking-tight text-ink">
+            Assignments
           </h1>
-          <p className="mt-2 font-sans text-[13px] text-stone">
-            {totalVisible} of {ASSIGNMENTS_FOR_FARAI.length} assignments visible
-            {hasFilters ? ' after filters' : ''}.
+          <p className="mt-2 text-small text-muted">
+            {totalVisible} of {ASSIGNMENTS_FOR_FARAI.length} visible
+            {hasFilters ? ' after filters' : ''}
           </p>
         </div>
       </header>
 
+      {/* KPI strip */}
+      <ul className="grid grid-cols-2 gap-3 sm:grid-cols-4">
+        <KpiCard
+          label="Overdue"
+          value={kpiOverdue}
+          icon={<AlertTriangle className="h-5 w-5" strokeWidth={1.75} aria-hidden />}
+          tone="danger"
+        />
+        <KpiCard
+          label="Due this week"
+          value={kpiDueThisWeek}
+          icon={<Clock className="h-5 w-5" strokeWidth={1.75} aria-hidden />}
+          tone="warning"
+        />
+        <KpiCard
+          label="Submitted"
+          value={kpiSubmitted}
+          icon={<ClipboardCheck className="h-5 w-5" strokeWidth={1.75} aria-hidden />}
+          tone="info"
+        />
+        <KpiCard
+          label="Marked"
+          value={kpiMarked}
+          icon={<BookOpenCheck className="h-5 w-5" strokeWidth={1.75} aria-hidden />}
+          tone="success"
+        />
+      </ul>
+
       {/* Filter bar */}
-      <EditorialCard className="flex flex-wrap items-center gap-3 p-4">
-        <div className="relative flex-1 min-w-[200px]">
+      <div className="flex flex-wrap items-center gap-3 rounded-lg border border-line bg-card p-3 shadow-card-sm">
+        <div className="relative flex-1 min-w-[220px]">
           <Search
-            className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-stone"
-            strokeWidth={1.5}
+            className="pointer-events-none absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-muted"
+            strokeWidth={1.75}
             aria-hidden
           />
           <input
             type="search"
             value={query}
             onChange={(e) => setQuery(e.target.value)}
-            placeholder="Search title, teacher, subject, instructions…"
-            className="h-10 w-full rounded border border-sand bg-white pl-9 pr-3 font-sans text-[14px] text-ink placeholder-stone focus:border-terracotta focus:outline-none"
+            placeholder="Search title, teacher, subject…"
+            className="h-10 w-full rounded-full border border-line bg-surface pl-10 pr-9 text-small text-ink placeholder-muted/80 transition-colors focus:border-brand-primary focus:outline-none focus:ring-4 focus:ring-brand-primary/10"
           />
           {query ? (
             <button
               type="button"
               onClick={() => setQuery('')}
               aria-label="Clear search"
-              className="absolute right-2 top-1/2 -translate-y-1/2 rounded p-1 text-stone hover:bg-sand-light hover:text-ink"
+              className="absolute right-2 top-1/2 -translate-y-1/2 rounded-full p-1 text-muted hover:bg-line hover:text-ink"
             >
-              <X className="h-3.5 w-3.5" strokeWidth={1.5} />
+              <X className="h-3.5 w-3.5" strokeWidth={1.75} />
             </button>
           ) : null}
         </div>
@@ -178,10 +215,7 @@ export default function AssignmentsListPage() {
           onChange={(v) => setSubject(v)}
           options={[
             { value: 'ALL', label: 'All subjects' },
-            ...subjects.map((code) => ({
-              value: code,
-              label: `${code} · ${subjectNameByCode(code)}`,
-            })),
+            ...subjects.map((code) => ({ value: code, label: subjectNameByCode(code) })),
           ]}
         />
         <FilterSelect
@@ -200,47 +234,79 @@ export default function AssignmentsListPage() {
           <button
             type="button"
             onClick={clearFilters}
-            className="inline-flex h-10 items-center gap-2 rounded border border-sand bg-white px-3 font-sans text-[13px] font-medium text-stone hover:bg-sand-light hover:text-ink"
+            className="inline-flex h-10 items-center gap-1.5 rounded-full border border-line bg-surface px-3 text-small font-medium text-muted transition-colors hover:bg-card hover:text-ink"
           >
-            <X className="h-3.5 w-3.5" strokeWidth={1.5} aria-hidden />
+            <X className="h-3.5 w-3.5" strokeWidth={1.75} aria-hidden />
             Clear
           </button>
         ) : (
           <button
             type="button"
-            className="inline-flex h-10 items-center gap-2 rounded border border-sand bg-white px-3 font-sans text-[13px] font-medium text-earth hover:bg-sand-light"
+            className="inline-flex h-10 items-center gap-1.5 rounded-full border border-line bg-surface px-3 text-small font-medium text-ink transition-colors hover:bg-card"
           >
-            <SlidersHorizontal className="h-4 w-4" strokeWidth={1.5} aria-hidden />
-            More filters
+            <Filter className="h-3.5 w-3.5" strokeWidth={1.75} aria-hidden />
+            More
           </button>
         )}
-      </EditorialCard>
+      </div>
 
       {/* Groups */}
       <div className="space-y-6">
-        {groups.length === 0 || totalVisible === 0 ? (
-          <EditorialCard>
-            <StudentEmptyState
-              heading={hasFilters ? 'No matches.' : 'Nothing here.'}
-              body={
-                hasFilters
-                  ? 'Try clearing a filter, or broaden your search.'
-                  : 'Check back soon — teachers set new work regularly.'
-              }
-            />
-          </EditorialCard>
+        {totalVisible === 0 ? (
+          <EmptyPanel
+            heading={hasFilters ? 'No matches.' : 'Nothing here.'}
+            body={
+              hasFilters
+                ? 'Try clearing a filter or broadening your search.'
+                : 'Check back — teachers set new work regularly.'
+            }
+          />
         ) : (
-          groups.map((g) => (
-            <AssignmentGroup
-              key={g.key}
-              group={g}
-              collapsed={collapsed.has(g.key)}
-              onToggle={() => toggleGroup(g.key)}
-            />
-          ))
+          groups.map((g) =>
+            g.items.length === 0 ? null : (
+              <AssignmentGroup
+                key={g.key}
+                group={g}
+                collapsed={collapsed.has(g.key)}
+                onToggle={() => toggleGroup(g.key)}
+              />
+            ),
+          )
         )}
       </div>
     </div>
+  );
+}
+
+/* ------------------------------------------------------------------ */
+
+function KpiCard({
+  label,
+  value,
+  icon,
+  tone,
+}: {
+  label: string;
+  value: number;
+  icon: React.ReactNode;
+  tone: 'danger' | 'warning' | 'info' | 'success';
+}) {
+  const toneStyles = {
+    danger: 'bg-danger/10 text-danger',
+    warning: 'bg-warning/10 text-warning',
+    info: 'bg-info/10 text-info',
+    success: 'bg-success/10 text-success',
+  }[tone];
+  return (
+    <li className="rounded-lg border border-line bg-card p-4 shadow-card-sm">
+      <div className="flex items-center justify-between">
+        <p className="text-micro font-semibold uppercase tracking-[0.12em] text-muted">{label}</p>
+        <span className={`inline-flex h-9 w-9 items-center justify-center rounded-md ${toneStyles}`}>
+          {icon}
+        </span>
+      </div>
+      <p className="mt-3 text-h1 tabular-nums text-ink">{value}</p>
+    </li>
   );
 }
 
@@ -261,7 +327,7 @@ function FilterSelect({
       <select
         value={value}
         onChange={(e) => onChange(e.target.value)}
-        className="h-10 appearance-none rounded border border-sand bg-white pl-3 pr-9 font-sans text-[13px] font-medium text-earth hover:bg-sand-light focus:border-terracotta focus:outline-none"
+        className="h-10 appearance-none rounded-full border border-line bg-surface pl-4 pr-9 text-small font-medium text-ink transition-colors hover:bg-card focus:border-brand-primary focus:outline-none"
       >
         {options.map((o) => (
           <option key={o.value} value={o.value}>
@@ -270,8 +336,8 @@ function FilterSelect({
         ))}
       </select>
       <ChevronDown
-        className="pointer-events-none absolute right-2 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-stone"
-        strokeWidth={1.5}
+        className="pointer-events-none absolute right-3 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-muted"
+        strokeWidth={1.75}
         aria-hidden
       />
     </label>
@@ -287,34 +353,43 @@ function AssignmentGroup({
   collapsed: boolean;
   onToggle: () => void;
 }) {
-  if (group.items.length === 0) return null;
+  const toneStyles = {
+    danger: 'bg-danger/10 text-danger',
+    warning: 'bg-warning/10 text-warning',
+    brand: 'bg-brand-primary/10 text-brand-primary',
+    info: 'bg-info/10 text-info',
+    success: 'bg-success/10 text-success',
+  }[group.tone];
 
   return (
-    <section>
+    <section className="overflow-hidden rounded-lg border border-line bg-card shadow-card-sm">
       <button
         type="button"
         onClick={onToggle}
-        className="mb-3 flex w-full items-center gap-2 text-left font-sans text-[11px] font-semibold uppercase tracking-[0.18em] text-stone transition-colors hover:text-ink"
+        className="flex w-full items-center gap-3 border-b border-line px-5 py-3.5 text-left transition-colors hover:bg-surface"
       >
-        <ChevronRight
-          className={[
-            'h-3.5 w-3.5 transition-transform',
-            collapsed ? '' : 'rotate-90',
-          ].join(' ')}
-          strokeWidth={1.5}
-          aria-hidden
-        />
-        {group.heading}
-        <span className="rounded bg-sand px-1.5 py-0.5 text-[11px] text-earth">
-          {group.items.length}
+        <span className={`inline-flex h-8 w-8 flex-none items-center justify-center rounded-md ${toneStyles}`}>
+          <ChevronRight
+            className={['h-4 w-4 transition-transform', collapsed ? '' : 'rotate-90'].join(' ')}
+            strokeWidth={2}
+            aria-hidden
+          />
         </span>
+        <div className="min-w-0 flex-1">
+          <div className="flex items-center gap-2">
+            <h2 className="text-small font-semibold text-ink">{group.heading}</h2>
+            <Badge tone={group.tone === 'brand' ? 'brand' : group.tone === 'danger' ? 'danger' : group.tone === 'warning' ? 'warning' : group.tone === 'info' ? 'info' : 'success'}>
+              {group.items.length}
+            </Badge>
+          </div>
+          <p className="text-micro text-muted">{group.description}</p>
+        </div>
       </button>
-
       {!collapsed ? (
-        <ul className="space-y-2">
+        <ul className="divide-y divide-line">
           {group.items.map((a) => (
             <li key={a.id}>
-              <AssignmentRow assignment={a} group={group.key} />
+              <AssignmentRow assignment={a} groupTone={group.tone} />
             </li>
           ))}
         </ul>
@@ -323,76 +398,88 @@ function AssignmentGroup({
   );
 }
 
-function AssignmentRow({ assignment, group }: { assignment: DemoAssignment; group: string }) {
+function AssignmentRow({
+  assignment,
+  groupTone,
+}: {
+  assignment: DemoAssignment;
+  groupTone: Group['tone'];
+}) {
   const due = dueLabel(assignment.dueAt);
-  const pill =
-    assignment.status === 'RETURNED'
-      ? 'marked'
-      : assignment.status === 'SUBMITTED'
-      ? 'submitted'
-      : assignment.status === 'LATE'
-      ? 'overdue'
-      : group === 'overdue'
-      ? 'overdue'
-      : 'pending';
+  const isMarked = assignment.status === 'RETURNED';
+  const isSubmitted = assignment.status === 'SUBMITTED';
 
-  const surface =
-    group === 'overdue'
-      ? 'bg-[#FDF2F1] border-[#F3D4D1]'
-      : group === 'marked'
-      ? 'bg-[#F5F2FB] border-[#E4DEF1]'
-      : group === 'submitted'
-      ? 'bg-[#F0F6F2] border-[#D7E5DC]'
-      : 'bg-white border-sand';
+  const iconTone = {
+    danger: 'bg-danger/10 text-danger',
+    warning: 'bg-warning/10 text-warning',
+    brand: 'bg-brand-primary/10 text-brand-primary',
+    info: 'bg-info/10 text-info',
+    success: 'bg-success/10 text-success',
+  }[groupTone];
+
+  const dueBadge: 'danger' | 'warning' | 'info' =
+    due.tone === 'overdue' || due.tone === 'due-today'
+      ? 'danger'
+      : due.tone === 'soon'
+      ? 'warning'
+      : 'info';
+
+  const pct = isMarked && assignment.markAwarded !== undefined
+    ? (assignment.markAwarded / assignment.maxMarks) * 100
+    : null;
+
+  const markBadge: 'success' | 'info' | 'warning' | 'danger' =
+    pct === null ? 'info' : pct >= 80 ? 'success' : pct >= 60 ? 'info' : pct >= 50 ? 'warning' : 'danger';
 
   return (
     <Link
       href={`/student/assignments/${assignment.id}`}
-      className={`group flex items-center gap-5 rounded border px-6 transition-all duration-200 ease-out-soft hover:-translate-y-px hover:shadow-e2 ${surface}`}
-      style={{ minHeight: 88 }}
+      className="group flex items-center gap-4 px-5 py-4 transition-colors hover:bg-surface"
     >
-      <div className="min-w-0 flex-1 py-4">
-        <p className="font-sans text-[11px] font-semibold uppercase tracking-[0.16em] text-stone">
-          {subjectNameByCode(assignment.subjectCode)}
-        </p>
-        <p className="mt-1 truncate font-display text-[18px] leading-snug text-ink group-hover:text-earth">
+      <span className={`inline-flex h-10 w-10 flex-none items-center justify-center rounded-md ${iconTone}`}>
+        <FileBadge2 className="h-4 w-4" strokeWidth={1.75} aria-hidden />
+      </span>
+      <div className="min-w-0 flex-1">
+        <p className="truncate text-small font-semibold text-ink group-hover:text-brand-primary">
           {assignment.title}
         </p>
-        <p className="mt-1 flex items-center gap-3 font-sans text-[13px] text-stone">
-          <span>{assignment.teacher}</span>
-          <span>·</span>
-          <span
-            className={
-              due.tone === 'overdue' || due.tone === 'due-today'
-                ? 'text-danger font-medium'
-                : due.tone === 'soon'
-                ? 'text-ochre font-medium'
-                : 'text-stone'
-            }
-          >
-            {due.label}
-          </span>
+        <p className="text-micro text-muted">
+          {subjectNameByCode(assignment.subjectCode)} · {assignment.teacher}
         </p>
       </div>
-
-      {assignment.status === 'RETURNED' && assignment.markAwarded !== undefined ? (
-        <div className="flex-none text-right">
-          <span className="font-display text-[22px] tabular-nums text-ink">
+      {isMarked && assignment.markAwarded !== undefined ? (
+        <>
+          <Badge tone={markBadge}>{Math.round(pct ?? 0)}%</Badge>
+          <span className="hidden text-small font-bold tabular-nums text-ink sm:inline-block">
             {assignment.markAwarded}
+            <span className="text-micro text-muted"> / {assignment.maxMarks}</span>
           </span>
-          <span className="font-sans text-[13px] text-stone"> /{assignment.maxMarks}</span>
-        </div>
-      ) : null}
-
-      <div className="flex-none">
-        <StatusPill state={pill} />
-      </div>
-
+        </>
+      ) : isSubmitted ? (
+        <Badge tone="info" dot>
+          <CheckCircle2 className="h-3 w-3" strokeWidth={2} aria-hidden />
+          Submitted
+        </Badge>
+      ) : (
+        <Badge tone={dueBadge} dot>
+          {due.label}
+        </Badge>
+      )}
       <ChevronRight
-        className="h-5 w-5 flex-none text-stone transition-transform group-hover:translate-x-0.5 group-hover:text-terracotta"
-        strokeWidth={1.5}
+        className="h-4 w-4 flex-none text-muted transition-transform group-hover:translate-x-0.5 group-hover:text-brand-primary"
+        strokeWidth={1.75}
         aria-hidden
       />
     </Link>
+  );
+}
+
+function EmptyPanel({ heading, body }: { heading: string; body: string }) {
+  return (
+    <section className="rounded-lg border border-dashed border-line bg-card p-10 text-center shadow-card-sm">
+      <Plus className="mx-auto h-8 w-8 text-muted/50" strokeWidth={1.25} aria-hidden />
+      <p className="mt-3 text-small font-semibold text-ink">{heading}</p>
+      <p className="mt-1 text-small text-muted">{body}</p>
+    </section>
   );
 }
