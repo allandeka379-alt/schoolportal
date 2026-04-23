@@ -1,5 +1,8 @@
+'use client';
+
 import Link from 'next/link';
-import { ChevronRight, Search, SlidersHorizontal } from 'lucide-react';
+import { useMemo, useState } from 'react';
+import { ChevronDown, ChevronRight, Search, SlidersHorizontal, X } from 'lucide-react';
 
 import { ASSIGNMENTS_FOR_FARAI, type DemoAssignment } from '@/lib/mock/fixtures';
 import { dueLabel, subjectNameByCode } from '@/lib/mock/student-extras';
@@ -20,15 +23,17 @@ import {
  *   3. Due Later            (default collapsed)
  *   4. Submitted            (default collapsed)
  *   5. Marked               (default collapsed)
- *   6. Archived             (default collapsed)
  *
- * Each row is 88px tall on desktop, colour-coded by group via a subtle
- * left surface.
+ * Search + subject + status filters are fully live. Filter bar reflects
+ * the number of items visible after filtering.
  */
+
+type StatusFilter = 'ALL' | 'OPEN' | 'SUBMITTED' | 'RETURNED' | 'LATE';
 
 interface Group {
   key: string;
   heading: string;
+  tone: 'danger' | 'default' | 'neutral' | 'success' | 'marked';
   expanded: boolean;
   items: DemoAssignment[];
 }
@@ -71,16 +76,59 @@ function buildGroups(assignments: readonly DemoAssignment[]): Group[] {
   later.sort(sortByDue);
 
   return [
-    { key: 'overdue', heading: 'Overdue', expanded: true, items: overdue },
-    { key: 'this-week', heading: 'Due This Week', expanded: true, items: thisWeek },
-    { key: 'later', heading: 'Due Later', expanded: false, items: later },
-    { key: 'submitted', heading: 'Submitted — Awaiting Mark', expanded: false, items: submitted },
-    { key: 'marked', heading: 'Marked', expanded: false, items: marked },
+    { key: 'overdue', heading: 'Overdue', tone: 'danger', expanded: true, items: overdue },
+    { key: 'this-week', heading: 'Due This Week', tone: 'default', expanded: true, items: thisWeek },
+    { key: 'later', heading: 'Due Later', tone: 'neutral', expanded: false, items: later },
+    { key: 'submitted', heading: 'Submitted — Awaiting Mark', tone: 'success', expanded: false, items: submitted },
+    { key: 'marked', heading: 'Marked', tone: 'marked', expanded: false, items: marked },
   ];
 }
 
+function uniqueSubjectCodes(assignments: readonly DemoAssignment[]): string[] {
+  return [...new Set(assignments.map((a) => a.subjectCode))].sort();
+}
+
 export default function AssignmentsListPage() {
-  const groups = buildGroups(ASSIGNMENTS_FOR_FARAI);
+  const [query, setQuery] = useState('');
+  const [subject, setSubject] = useState<string>('ALL');
+  const [status, setStatus] = useState<StatusFilter>('ALL');
+  const [collapsed, setCollapsed] = useState<Set<string>>(new Set(['later', 'marked']));
+
+  const subjects = useMemo(() => uniqueSubjectCodes(ASSIGNMENTS_FOR_FARAI), []);
+
+  const filtered = useMemo(() => {
+    const q = query.trim().toLowerCase();
+    return ASSIGNMENTS_FOR_FARAI.filter((a) => {
+      if (subject !== 'ALL' && a.subjectCode !== subject) return false;
+      if (status !== 'ALL' && a.status !== status) return false;
+      if (!q) return true;
+      return (
+        a.title.toLowerCase().includes(q) ||
+        a.teacher.toLowerCase().includes(q) ||
+        subjectNameByCode(a.subjectCode).toLowerCase().includes(q) ||
+        a.instructions.toLowerCase().includes(q)
+      );
+    });
+  }, [query, subject, status]);
+
+  const groups = buildGroups(filtered);
+  const totalVisible = filtered.length;
+  const hasFilters = query.length > 0 || subject !== 'ALL' || status !== 'ALL';
+
+  function toggleGroup(key: string) {
+    setCollapsed((prev) => {
+      const next = new Set(prev);
+      if (next.has(key)) next.delete(key);
+      else next.add(key);
+      return next;
+    });
+  }
+
+  function clearFilters() {
+    setQuery('');
+    setSubject('ALL');
+    setStatus('ALL');
+  }
 
   return (
     <div className="space-y-8">
@@ -91,6 +139,10 @@ export default function AssignmentsListPage() {
             Every piece of work,{' '}
             <span className="italic font-light text-terracotta">in one list.</span>
           </h1>
+          <p className="mt-2 font-sans text-[13px] text-stone">
+            {totalVisible} of {ASSIGNMENTS_FOR_FARAI.length} assignments visible
+            {hasFilters ? ' after filters' : ''}.
+          </p>
         </div>
       </header>
 
@@ -104,68 +156,161 @@ export default function AssignmentsListPage() {
           />
           <input
             type="search"
-            placeholder="Search assignments…"
+            value={query}
+            onChange={(e) => setQuery(e.target.value)}
+            placeholder="Search title, teacher, subject, instructions…"
             className="h-10 w-full rounded border border-sand bg-white pl-9 pr-3 font-sans text-[14px] text-ink placeholder-stone focus:border-terracotta focus:outline-none"
           />
+          {query ? (
+            <button
+              type="button"
+              onClick={() => setQuery('')}
+              aria-label="Clear search"
+              className="absolute right-2 top-1/2 -translate-y-1/2 rounded p-1 text-stone hover:bg-sand-light hover:text-ink"
+            >
+              <X className="h-3.5 w-3.5" strokeWidth={1.5} />
+            </button>
+          ) : null}
         </div>
-        <Dropdown label="Subject" />
-        <Dropdown label="Status" />
-        <Dropdown label="Date range" />
-        <button
-          type="button"
-          className="inline-flex h-10 items-center gap-2 rounded border border-sand bg-white px-3 font-sans text-[13px] font-medium text-earth hover:bg-sand-light"
-        >
-          <SlidersHorizontal className="h-4 w-4" strokeWidth={1.5} aria-hidden />
-          More filters
-        </button>
+        <FilterSelect
+          label="Subject"
+          value={subject}
+          onChange={(v) => setSubject(v)}
+          options={[
+            { value: 'ALL', label: 'All subjects' },
+            ...subjects.map((code) => ({
+              value: code,
+              label: `${code} · ${subjectNameByCode(code)}`,
+            })),
+          ]}
+        />
+        <FilterSelect
+          label="Status"
+          value={status}
+          onChange={(v) => setStatus(v as StatusFilter)}
+          options={[
+            { value: 'ALL', label: 'All statuses' },
+            { value: 'OPEN', label: 'Open' },
+            { value: 'SUBMITTED', label: 'Submitted' },
+            { value: 'RETURNED', label: 'Marked' },
+            { value: 'LATE', label: 'Late' },
+          ]}
+        />
+        {hasFilters ? (
+          <button
+            type="button"
+            onClick={clearFilters}
+            className="inline-flex h-10 items-center gap-2 rounded border border-sand bg-white px-3 font-sans text-[13px] font-medium text-stone hover:bg-sand-light hover:text-ink"
+          >
+            <X className="h-3.5 w-3.5" strokeWidth={1.5} aria-hidden />
+            Clear
+          </button>
+        ) : (
+          <button
+            type="button"
+            className="inline-flex h-10 items-center gap-2 rounded border border-sand bg-white px-3 font-sans text-[13px] font-medium text-earth hover:bg-sand-light"
+          >
+            <SlidersHorizontal className="h-4 w-4" strokeWidth={1.5} aria-hidden />
+            More filters
+          </button>
+        )}
       </EditorialCard>
 
       {/* Groups */}
       <div className="space-y-6">
-        {groups.map((g) => (
-          <AssignmentGroup key={g.key} group={g} />
-        ))}
+        {groups.length === 0 || totalVisible === 0 ? (
+          <EditorialCard>
+            <StudentEmptyState
+              heading={hasFilters ? 'No matches.' : 'Nothing here.'}
+              body={
+                hasFilters
+                  ? 'Try clearing a filter, or broaden your search.'
+                  : 'Check back soon — teachers set new work regularly.'
+              }
+            />
+          </EditorialCard>
+        ) : (
+          groups.map((g) => (
+            <AssignmentGroup
+              key={g.key}
+              group={g}
+              collapsed={collapsed.has(g.key)}
+              onToggle={() => toggleGroup(g.key)}
+            />
+          ))
+        )}
       </div>
     </div>
   );
 }
 
-function Dropdown({ label }: { label: string }) {
+function FilterSelect({
+  label,
+  value,
+  onChange,
+  options,
+}: {
+  label: string;
+  value: string;
+  onChange: (v: string) => void;
+  options: { value: string; label: string }[];
+}) {
   return (
-    <button
-      type="button"
-      className="inline-flex h-10 items-center gap-2 rounded border border-sand bg-white px-3 font-sans text-[13px] font-medium text-earth hover:bg-sand-light"
-    >
-      {label}
-      <ChevronRight className="h-3.5 w-3.5 rotate-90" strokeWidth={1.5} aria-hidden />
-    </button>
+    <label className="relative">
+      <span className="sr-only">{label}</span>
+      <select
+        value={value}
+        onChange={(e) => onChange(e.target.value)}
+        className="h-10 appearance-none rounded border border-sand bg-white pl-3 pr-9 font-sans text-[13px] font-medium text-earth hover:bg-sand-light focus:border-terracotta focus:outline-none"
+      >
+        {options.map((o) => (
+          <option key={o.value} value={o.value}>
+            {label}: {o.label}
+          </option>
+        ))}
+      </select>
+      <ChevronDown
+        className="pointer-events-none absolute right-2 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-stone"
+        strokeWidth={1.5}
+        aria-hidden
+      />
+    </label>
   );
 }
 
-function AssignmentGroup({ group }: { group: Group }) {
-  if (group.items.length === 0 && !group.expanded) return null;
+function AssignmentGroup({
+  group,
+  collapsed,
+  onToggle,
+}: {
+  group: Group;
+  collapsed: boolean;
+  onToggle: () => void;
+}) {
+  if (group.items.length === 0) return null;
 
   return (
     <section>
-      <h2 className="mb-3 flex items-center gap-2 font-sans text-[11px] font-semibold uppercase tracking-[0.18em] text-stone">
+      <button
+        type="button"
+        onClick={onToggle}
+        className="mb-3 flex w-full items-center gap-2 text-left font-sans text-[11px] font-semibold uppercase tracking-[0.18em] text-stone transition-colors hover:text-ink"
+      >
+        <ChevronRight
+          className={[
+            'h-3.5 w-3.5 transition-transform',
+            collapsed ? '' : 'rotate-90',
+          ].join(' ')}
+          strokeWidth={1.5}
+          aria-hidden
+        />
         {group.heading}
         <span className="rounded bg-sand px-1.5 py-0.5 text-[11px] text-earth">
           {group.items.length}
         </span>
-      </h2>
+      </button>
 
-      {group.items.length === 0 ? (
-        <EditorialCard>
-          <StudentEmptyState
-            heading="Nothing here."
-            body={
-              group.key === 'overdue'
-                ? "No overdue work. Keep it that way."
-                : 'Check back soon — teachers set new work regularly.'
-            }
-          />
-        </EditorialCard>
-      ) : (
+      {!collapsed ? (
         <ul className="space-y-2">
           {group.items.map((a) => (
             <li key={a.id}>
@@ -173,7 +318,7 @@ function AssignmentGroup({ group }: { group: Group }) {
             </li>
           ))}
         </ul>
-      )}
+      ) : null}
     </section>
   );
 }

@@ -57,7 +57,7 @@ export default function FeesPage() {
             <FileDown className="h-4 w-4" strokeWidth={1.5} aria-hidden />
             Statement
           </button>
-          <Link href="#" className="btn-terracotta">
+          <Link href="/parent/fees/upload" className="btn-terracotta">
             Pay now
             <ArrowRight className="h-4 w-4" strokeWidth={1.5} aria-hidden />
           </Link>
