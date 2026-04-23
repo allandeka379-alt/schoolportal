@@ -1,13 +1,15 @@
 'use client';
 
 import Link from 'next/link';
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import {
   BookMarked,
   BookOpen,
   Bookmark,
+  Check,
   Download,
   FileText,
+  Loader2,
   PlayCircle,
   Search,
   X,
@@ -61,6 +63,14 @@ export default function LibraryPage() {
   const [recent, setRecent] = useState<string[]>(['r1', 'r4', 'r3', 'r6']);
   const [preview, setPreview] = useState<DemoResource | null>(null);
   const [downloaded, setDownloaded] = useState<Set<string>>(new Set());
+  const [downloading, setDownloading] = useState<string | null>(null);
+  const [toast, setToast] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (!toast) return;
+    const t = setTimeout(() => setToast(null), 2400);
+    return () => clearTimeout(t);
+  }, [toast]);
 
   const subjectCounts = useMemo(() => {
     const c: Record<string, number> = {};
@@ -105,11 +115,22 @@ export default function LibraryPage() {
   }
 
   function download(id: string) {
-    setDownloaded((curr) => {
-      const next = new Set(curr);
-      next.add(id);
-      return next;
-    });
+    const resource = RESOURCES.find((r) => r.id === id);
+    if (!resource) return;
+    if (downloaded.has(id)) {
+      setToast(`"${resource.title}" already saved to your device`);
+      return;
+    }
+    setDownloading(id);
+    setTimeout(() => {
+      setDownloading(null);
+      setDownloaded((curr) => {
+        const next = new Set(curr);
+        next.add(id);
+        return next;
+      });
+      setToast(`Downloaded "${resource.title}"`);
+    }, 900);
   }
 
   return (
@@ -339,15 +360,22 @@ export default function LibraryPage() {
                     <button
                       type="button"
                       onClick={() => download(r.id)}
+                      disabled={downloading === r.id}
                       aria-label="Download"
                       className={[
-                        'rounded-md p-2 transition-colors',
+                        'rounded-md p-2 transition-colors disabled:opacity-60',
                         downloaded.has(r.id)
                           ? 'text-success hover:bg-success/10'
                           : 'text-muted hover:bg-surface hover:text-ink',
                       ].join(' ')}
                     >
-                      <Download className="h-4 w-4" strokeWidth={1.75} />
+                      {downloading === r.id ? (
+                        <Loader2 className="h-4 w-4 animate-spin" strokeWidth={1.75} />
+                      ) : downloaded.has(r.id) ? (
+                        <Check className="h-4 w-4" strokeWidth={2} />
+                      ) : (
+                        <Download className="h-4 w-4" strokeWidth={1.75} />
+                      )}
                     </button>
                   </div>
                 </li>
@@ -363,8 +391,21 @@ export default function LibraryPage() {
           resource={preview}
           onClose={() => setPreview(null)}
           bookmarked={bookmarks.has(preview.id)}
+          downloaded={downloaded.has(preview.id)}
+          downloading={downloading === preview.id}
           onToggleBookmark={() => toggleBookmark(preview.id)}
+          onDownload={() => download(preview.id)}
         />
+      ) : null}
+
+      {toast ? (
+        <div
+          role="status"
+          className="fixed bottom-6 left-1/2 z-40 -translate-x-1/2 rounded-full bg-ink px-4 py-2 text-micro font-semibold text-white shadow-card-md"
+        >
+          <Check className="mr-1 inline-block h-3.5 w-3.5" strokeWidth={2} aria-hidden />
+          {toast}
+        </div>
       ) : null}
     </div>
   );
@@ -374,12 +415,18 @@ function ResourcePreview({
   resource,
   onClose,
   bookmarked,
+  downloaded,
+  downloading,
   onToggleBookmark,
+  onDownload,
 }: {
   resource: DemoResource;
   onClose: () => void;
   bookmarked: boolean;
+  downloaded: boolean;
+  downloading: boolean;
   onToggleBookmark: () => void;
+  onDownload: () => void;
 }) {
   const Icon = KIND_ICON[resource.kind];
   const subject = SUBJECTS.find((s) => s.code === resource.subjectCode);
@@ -481,10 +528,23 @@ function ResourcePreview({
           </button>
           <button
             type="button"
-            className="inline-flex h-10 items-center gap-2 rounded-full border border-line bg-card px-4 text-small font-semibold text-ink transition-colors hover:bg-surface"
+            onClick={onDownload}
+            disabled={downloading}
+            className={[
+              'inline-flex h-10 items-center gap-2 rounded-full px-4 text-small font-semibold transition-colors disabled:opacity-60',
+              downloaded
+                ? 'bg-success/10 text-success hover:bg-success/15'
+                : 'border border-line bg-card text-ink hover:bg-surface',
+            ].join(' ')}
           >
-            <Download className="h-4 w-4" strokeWidth={1.75} aria-hidden />
-            Download
+            {downloading ? (
+              <Loader2 className="h-4 w-4 animate-spin" strokeWidth={1.75} aria-hidden />
+            ) : downloaded ? (
+              <Check className="h-4 w-4" strokeWidth={2} aria-hidden />
+            ) : (
+              <Download className="h-4 w-4" strokeWidth={1.75} aria-hidden />
+            )}
+            {downloading ? 'Downloading…' : downloaded ? 'Downloaded' : 'Download'}
           </button>
           <Link
             href={`/student/library?subject=${resource.subjectCode}`}
