@@ -1,23 +1,27 @@
 'use client';
 
 import Link from 'next/link';
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import {
   ArrowRight,
   Banknote,
+  Check,
   CheckCircle2,
   ChevronDown,
   CreditCard,
   Download,
   FileText,
   HandCoins,
+  Loader2,
   Smartphone,
   Upload,
+  X,
 } from 'lucide-react';
 
 import { Badge } from '@/components/ui/badge';
 import { ProgressRing } from '@/components/student/progress-ring';
 import { EditorialAvatar } from '@/components/student/primitives';
+import { PaymentFlowModal } from '@/components/payments/payment-flow-modal';
 import {
   FAMILY_FEES,
   FAMILY_FEES_SUMMARY,
@@ -54,14 +58,87 @@ const TONE_STYLES: Record<'brand' | 'success' | 'info' | 'warning' | 'gold', str
   gold: 'bg-brand-accent/15 text-brand-accent',
 };
 
+interface LocalReceipt {
+  reference: string;
+  method: string;
+  amount: string;
+  when: string;
+  label: string;
+}
+
 export default function ParentFeesPage() {
   const [expanded, setExpanded] = useState<string | null>('s-tanaka');
+  const [payOpen, setPayOpen] = useState(false);
+  const [payAmount, setPayAmount] = useState<string>('');
+  const [payLabel, setPayLabel] = useState<string>(
+    'Harare Heritage Academy · family fees',
+  );
+  const [paidBumper, setPaidBumper] = useState(0);
+  const [recentReceipts, setRecentReceipts] = useState<LocalReceipt[]>([]);
+  const [downloading, setDownloading] = useState<string | null>(null);
+  const [downloaded, setDownloaded] = useState<Set<string>>(new Set());
+  const [planOpen, setPlanOpen] = useState<null | { childId: string; childName: string }>(null);
+  const [toast, setToast] = useState<string | null>(null);
 
-  const anyOutstanding = FAMILY_FEES_SUMMARY.outstanding > 0;
+  useEffect(() => {
+    if (!toast) return;
+    const t = setTimeout(() => setToast(null), 2800);
+    return () => clearTimeout(t);
+  }, [toast]);
+
+  const anyOutstanding = FAMILY_FEES_SUMMARY.outstanding - paidBumper > 0;
+  const currentPaid = FAMILY_FEES_SUMMARY.paid + paidBumper;
+  const currentOutstanding = Math.max(0, FAMILY_FEES_SUMMARY.outstanding - paidBumper);
   const paidPct =
     FAMILY_FEES_SUMMARY.due > 0
-      ? Math.round((FAMILY_FEES_SUMMARY.paid / FAMILY_FEES_SUMMARY.due) * 100)
+      ? Math.round((currentPaid / FAMILY_FEES_SUMMARY.due) * 100)
       : 0;
+
+  function openPayAll() {
+    setPayAmount(currentOutstanding.toFixed(2));
+    setPayLabel('Harare Heritage Academy · family fees');
+    setPayOpen(true);
+  }
+
+  function openPayChild(childId: string, childName: string, amount: number) {
+    setPayAmount(amount.toFixed(2));
+    setPayLabel(`${childName} · Term 2 balance`);
+    setPayOpen(true);
+  }
+
+  function handlePaymentComplete(detail: { method: string; amount: string; reference: string }) {
+    const amt = Number(detail.amount) || 0;
+    setPaidBumper((p) => p + amt);
+    setRecentReceipts((curr) => [
+      {
+        reference: detail.reference,
+        method: detail.method,
+        amount: detail.amount,
+        when: new Date().toLocaleString('en-ZW', {
+          day: '2-digit',
+          month: 'short',
+          hour: '2-digit',
+          minute: '2-digit',
+        }),
+        label: payLabel,
+      },
+      ...curr,
+    ]);
+    setToast(`Payment received · ${detail.reference}`);
+  }
+
+  function simulateDownload(id: string, label: string) {
+    setDownloading(id);
+    setTimeout(() => {
+      setDownloading(null);
+      setDownloaded((curr) => {
+        const next = new Set(curr);
+        next.add(id);
+        return next;
+      });
+      setToast(`Downloaded "${label}" (watermarked PDF)`);
+    }, 1100);
+  }
 
   return (
     <div className="space-y-8">
@@ -79,16 +156,26 @@ export default function ParentFeesPage() {
         <div className="flex flex-wrap items-center gap-2">
           <button
             type="button"
-            className="inline-flex h-11 items-center gap-2 rounded-full border border-line bg-card px-4 text-small font-semibold text-ink transition-colors hover:bg-surface"
+            onClick={() => simulateDownload('statement-term2', 'Term 2 2026 statement')}
+            disabled={downloading === 'statement-term2'}
+            className="inline-flex h-11 items-center gap-2 rounded-full border border-line bg-card px-4 text-small font-semibold text-ink transition-colors hover:bg-surface disabled:opacity-60"
           >
-            <Download className="h-4 w-4" strokeWidth={1.75} aria-hidden />
-            Statement
+            {downloading === 'statement-term2' ? (
+              <Loader2 className="h-4 w-4 animate-spin" strokeWidth={1.75} aria-hidden />
+            ) : downloaded.has('statement-term2') ? (
+              <Check className="h-4 w-4 text-success" strokeWidth={2} aria-hidden />
+            ) : (
+              <Download className="h-4 w-4" strokeWidth={1.75} aria-hidden />
+            )}
+            {downloading === 'statement-term2' ? 'Preparing…' : 'Statement'}
           </button>
           <button
             type="button"
-            className="inline-flex h-11 items-center gap-2 rounded-full bg-brand-primary px-5 text-small font-semibold text-white shadow-card-sm transition hover:bg-brand-primary/90 hover:shadow-card-md"
+            onClick={openPayAll}
+            disabled={currentOutstanding <= 0}
+            className="inline-flex h-11 items-center gap-2 rounded-full bg-brand-primary px-5 text-small font-semibold text-white shadow-card-sm transition hover:bg-brand-primary/90 hover:shadow-card-md disabled:opacity-50"
           >
-            Pay now
+            {currentOutstanding <= 0 ? 'Paid in full' : 'Pay now'}
             <ArrowRight className="h-4 w-4" strokeWidth={1.75} aria-hidden />
           </button>
         </div>
@@ -123,7 +210,7 @@ export default function ParentFeesPage() {
                 <div className="mt-1 flex items-baseline gap-3">
                   <span className="text-small font-semibold text-muted">USD</span>
                   <span className="text-[2rem] font-bold leading-none tabular-nums text-ink">
-                    {FAMILY_FEES_SUMMARY.outstanding.toLocaleString('en-ZW', { minimumFractionDigits: 2 })}
+                    {currentOutstanding.toLocaleString('en-ZW', { minimumFractionDigits: 2 })}
                   </span>
                   <Badge tone="warning" dot>
                     Due Fri 9 May
@@ -131,7 +218,7 @@ export default function ParentFeesPage() {
                 </div>
                 <p className="mt-2 text-small text-muted">
                   {paidPct}% of the family invoice is paid · USD{' '}
-                  {FAMILY_FEES_SUMMARY.paid.toLocaleString('en-ZW')} so far
+                  {currentPaid.toLocaleString('en-ZW')} so far
                 </p>
               </>
             ) : (
@@ -155,7 +242,7 @@ export default function ParentFeesPage() {
         />
         <KpiTile
           label="Paid"
-          value={`USD ${FAMILY_FEES_SUMMARY.paid.toLocaleString('en-ZW')}`}
+          value={`USD ${currentPaid.toLocaleString('en-ZW')}`}
           sub={`${paidPct}% of total`}
           tone="success"
           ring={paidPct}
@@ -167,7 +254,7 @@ export default function ParentFeesPage() {
         />
         <KpiTile
           label="Outstanding"
-          value={`USD ${FAMILY_FEES_SUMMARY.outstanding.toFixed(2)}`}
+          value={`USD ${currentOutstanding.toFixed(2)}`}
           sub={anyOutstanding ? 'Due 9 May' : 'All settled'}
           tone={anyOutstanding ? 'warning' : 'success'}
         />
@@ -310,7 +397,13 @@ export default function ParentFeesPage() {
                           </p>
                           <button
                             type="button"
-                            className="inline-flex items-center gap-1 text-micro font-semibold text-muted hover:text-ink"
+                            onClick={() =>
+                              setPlanOpen({
+                                childId: child.id,
+                                childName: `${child.firstName} ${child.lastName}`,
+                              })
+                            }
+                            className="inline-flex items-center gap-1 text-micro font-semibold text-muted transition-colors hover:text-ink"
                           >
                             <HandCoins className="h-3.5 w-3.5" strokeWidth={1.75} aria-hidden />
                             Request payment plan
@@ -320,6 +413,13 @@ export default function ParentFeesPage() {
                       {s.outstanding > 0 ? (
                         <button
                           type="button"
+                          onClick={() =>
+                            openPayChild(
+                              child.id,
+                              `${child.firstName} ${child.lastName}`,
+                              s.outstanding,
+                            )
+                          }
                           className="inline-flex h-10 items-center gap-2 rounded-full bg-brand-primary px-4 text-small font-semibold text-white shadow-card-sm transition hover:bg-brand-primary/90 hover:shadow-card-md"
                         >
                           Pay {child.firstName}&rsquo;s balance
@@ -395,14 +495,24 @@ export default function ParentFeesPage() {
         <header className="flex items-center justify-between border-b border-line px-5 py-3.5">
           <div>
             <h2 className="text-small font-semibold text-ink">Payment history</h2>
-            <p className="text-micro text-muted">{PAYMENT_HISTORY.length} transactions on file</p>
+            <p className="text-micro text-muted">
+              {PAYMENT_HISTORY.length + recentReceipts.length} transactions on file
+            </p>
           </div>
           <button
             type="button"
-            className="inline-flex h-9 items-center gap-1.5 rounded-full border border-line bg-card px-4 text-micro font-semibold text-ink transition-colors hover:bg-surface"
+            onClick={() => simulateDownload('payment-export', 'Payment history export')}
+            disabled={downloading === 'payment-export'}
+            className="inline-flex h-9 items-center gap-1.5 rounded-full border border-line bg-card px-4 text-micro font-semibold text-ink transition-colors hover:bg-surface disabled:opacity-60"
           >
-            <Download className="h-3.5 w-3.5" strokeWidth={1.75} aria-hidden />
-            Export
+            {downloading === 'payment-export' ? (
+              <Loader2 className="h-3.5 w-3.5 animate-spin" strokeWidth={1.75} aria-hidden />
+            ) : downloaded.has('payment-export') ? (
+              <Check className="h-3.5 w-3.5 text-success" strokeWidth={2} aria-hidden />
+            ) : (
+              <Download className="h-3.5 w-3.5" strokeWidth={1.75} aria-hidden />
+            )}
+            {downloading === 'payment-export' ? 'Exporting…' : 'Export'}
           </button>
         </header>
         <div className="overflow-x-auto">
@@ -431,6 +541,39 @@ export default function ParentFeesPage() {
               </tr>
             </thead>
             <tbody>
+              {recentReceipts.map((r) => (
+                <tr key={r.reference} className="border-t border-line bg-success/[0.03]">
+                  <td className="px-5 py-3 text-micro text-muted">{r.when}</td>
+                  <td className="px-4 py-3 font-semibold capitalize text-ink">{r.method}</td>
+                  <td className="px-4 py-3 text-right tabular-nums text-ink">
+                    USD {Number(r.amount).toFixed(2)}
+                  </td>
+                  <td className="px-4 py-3 text-ink">{r.label}</td>
+                  <td className="px-4 py-3 font-mono text-micro text-muted">{r.reference}</td>
+                  <td className="px-4 py-3">
+                    <Badge tone="success" dot>
+                      reconciled
+                    </Badge>
+                  </td>
+                  <td className="px-4 py-3 text-right">
+                    <button
+                      type="button"
+                      onClick={() => simulateDownload(`r-${r.reference}`, `Receipt ${r.reference}`)}
+                      disabled={downloading === `r-${r.reference}`}
+                      className="rounded-full p-1.5 text-muted transition-colors hover:bg-surface hover:text-ink disabled:opacity-50"
+                      aria-label="Download receipt"
+                    >
+                      {downloading === `r-${r.reference}` ? (
+                        <Loader2 className="h-4 w-4 animate-spin" strokeWidth={1.75} />
+                      ) : downloaded.has(`r-${r.reference}`) ? (
+                        <Check className="h-4 w-4 text-success" strokeWidth={2} />
+                      ) : (
+                        <FileText className="h-4 w-4" strokeWidth={1.75} />
+                      )}
+                    </button>
+                  </td>
+                </tr>
+              ))}
               {PAYMENT_HISTORY.map((p) => (
                 <tr key={p.id} className="border-t border-line">
                   <td className="px-5 py-3 text-micro text-muted">{p.when}</td>
@@ -448,10 +591,18 @@ export default function ParentFeesPage() {
                   <td className="px-4 py-3 text-right">
                     <button
                       type="button"
-                      className="rounded-full p-1.5 text-muted transition-colors hover:bg-surface hover:text-ink"
+                      onClick={() => simulateDownload(`h-${p.id}`, `Receipt ${p.reference}`)}
+                      disabled={downloading === `h-${p.id}`}
+                      className="rounded-full p-1.5 text-muted transition-colors hover:bg-surface hover:text-ink disabled:opacity-50"
                       aria-label="Download receipt"
                     >
-                      <FileText className="h-4 w-4" strokeWidth={1.75} />
+                      {downloading === `h-${p.id}` ? (
+                        <Loader2 className="h-4 w-4 animate-spin" strokeWidth={1.75} />
+                      ) : downloaded.has(`h-${p.id}`) ? (
+                        <Check className="h-4 w-4 text-success" strokeWidth={2} />
+                      ) : (
+                        <FileText className="h-4 w-4" strokeWidth={1.75} />
+                      )}
                     </button>
                   </td>
                 </tr>
@@ -460,6 +611,141 @@ export default function ParentFeesPage() {
           </table>
         </div>
       </section>
+
+      <PaymentFlowModal
+        open={payOpen}
+        onClose={() => setPayOpen(false)}
+        amount={payAmount}
+        label={payLabel}
+        onComplete={handlePaymentComplete}
+      />
+
+      {planOpen ? (
+        <PaymentPlanModal
+          childName={planOpen.childName}
+          onClose={() => setPlanOpen(null)}
+          onSubmit={(detail) => {
+            setPlanOpen(null);
+            setToast(
+              `Payment plan requested · ${detail.installments} installments — bursar will confirm within 24h`,
+            );
+          }}
+        />
+      ) : null}
+
+      {toast ? (
+        <div
+          role="status"
+          className="fixed bottom-6 left-1/2 z-40 -translate-x-1/2 rounded-full bg-ink px-4 py-2 text-micro font-semibold text-white shadow-card-md"
+        >
+          <Check className="mr-1 inline-block h-3.5 w-3.5" strokeWidth={2} aria-hidden />
+          {toast}
+        </div>
+      ) : null}
+    </div>
+  );
+}
+
+function PaymentPlanModal({
+  childName,
+  onClose,
+  onSubmit,
+}: {
+  childName: string;
+  onClose: () => void;
+  onSubmit: (detail: { installments: number; firstDate: string; notes: string }) => void;
+}) {
+  const [installments, setInstallments] = useState(3);
+  const [firstDate, setFirstDate] = useState('');
+  const [notes, setNotes] = useState('');
+  return (
+    <div
+      role="dialog"
+      aria-modal="true"
+      onClick={onClose}
+      className="fixed inset-0 z-50 flex items-center justify-center bg-ink/50 p-4"
+    >
+      <form
+        onClick={(e) => e.stopPropagation()}
+        onSubmit={(e) => {
+          e.preventDefault();
+          if (!firstDate) return;
+          onSubmit({ installments, firstDate, notes: notes.trim() });
+        }}
+        className="flex max-h-[88vh] w-full max-w-md flex-col overflow-hidden rounded-lg border border-line bg-card shadow-card-md"
+      >
+        <div className="flex items-center justify-between border-b border-line px-6 py-4">
+          <div>
+            <p className="text-micro font-semibold uppercase tracking-[0.12em] text-brand-primary">
+              Request payment plan
+            </p>
+            <h2 className="text-h3 text-ink">{childName}</h2>
+          </div>
+          <button
+            type="button"
+            onClick={onClose}
+            aria-label="Close"
+            className="rounded-full p-2 text-muted transition-colors hover:bg-surface hover:text-ink"
+          >
+            <X className="h-5 w-5" strokeWidth={1.75} />
+          </button>
+        </div>
+        <div className="space-y-4 p-6">
+          <label className="block">
+            <span className="mb-2 block text-micro font-semibold uppercase tracking-[0.12em] text-muted">
+              Split into
+            </span>
+            <select
+              value={installments}
+              onChange={(e) => setInstallments(Number(e.target.value))}
+              className="h-11 w-full rounded-md border border-line bg-card px-3 text-small text-ink focus:border-brand-primary focus:outline-none focus:ring-2 focus:ring-brand-primary/20"
+            >
+              <option value={2}>2 installments (50% + 50%)</option>
+              <option value={3}>3 installments (monthly)</option>
+              <option value={4}>4 installments (weekly)</option>
+            </select>
+          </label>
+          <label className="block">
+            <span className="mb-2 block text-micro font-semibold uppercase tracking-[0.12em] text-muted">
+              First payment date
+            </span>
+            <input
+              type="date"
+              required
+              value={firstDate}
+              onChange={(e) => setFirstDate(e.target.value)}
+              className="h-11 w-full rounded-md border border-line bg-card px-3 text-small text-ink focus:border-brand-primary focus:outline-none focus:ring-2 focus:ring-brand-primary/20"
+            />
+          </label>
+          <label className="block">
+            <span className="mb-2 block text-micro font-semibold uppercase tracking-[0.12em] text-muted">
+              Notes for the bursar (optional)
+            </span>
+            <textarea
+              rows={3}
+              value={notes}
+              onChange={(e) => setNotes(e.target.value)}
+              placeholder="Context on income timing or hardship — stays confidential."
+              className="w-full rounded-md border border-line bg-card p-3 text-small text-ink placeholder:text-muted focus:border-brand-primary focus:outline-none focus:ring-2 focus:ring-brand-primary/20"
+            />
+          </label>
+        </div>
+        <div className="flex items-center justify-end gap-2 border-t border-line bg-card px-6 py-4">
+          <button
+            type="button"
+            onClick={onClose}
+            className="inline-flex h-10 items-center gap-2 rounded-full border border-line bg-card px-4 text-small font-semibold text-ink transition-colors hover:bg-surface"
+          >
+            Cancel
+          </button>
+          <button
+            type="submit"
+            className="inline-flex h-10 items-center gap-2 rounded-full bg-brand-primary px-4 text-small font-semibold text-white shadow-card-sm transition hover:bg-brand-primary/90 hover:shadow-card-md"
+          >
+            Send request
+          </button>
+        </div>
+      </form>
     </div>
   );
 }
