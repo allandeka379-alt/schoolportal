@@ -12,8 +12,10 @@ import {
   X,
 } from 'lucide-react';
 
+import { Badge } from '@/components/ui/badge';
+import { ProgressRing } from '@/components/student/progress-ring';
 import { EditorialCard, SectionEyebrow } from '@/components/student/primitives';
-import { HeatmapCell, ParentPageHeader, ParentStatusPill } from '@/components/parent/primitives';
+import { HeatmapCell, ParentStatusPill } from '@/components/parent/primitives';
 import { useSelectedChild } from '@/components/parent/selected-child-context';
 import { buildAttendance, RECENT_ABSENCES, type AttendanceEntry } from '@/lib/mock/parent-extras';
 
@@ -67,31 +69,65 @@ export default function ParentAttendancePage() {
     return () => clearTimeout(t);
   }, [toast]);
 
+  const attendanceRingTone: 'success' | 'brand' | 'warning' | 'danger' =
+    stats.pct >= 95 ? 'success' : stats.pct >= 90 ? 'brand' : stats.pct >= 80 ? 'warning' : 'danger';
+
   return (
     <div className="space-y-8">
-      <ParentPageHeader
-        eyebrow={`${selectedChild.firstName} ${selectedChild.lastName} · ${selectedChild.form}`}
-        title="Attendance,"
-        accent="Term 2 2026."
-        right={
-          <button
-            type="button"
-            onClick={() => setPlannedOpen(true)}
-            className="inline-flex h-10 items-center gap-2 rounded border border-sand bg-white px-3 font-sans text-[13px] font-medium text-earth hover:bg-sand-light"
-          >
-            <FilePlus className="h-4 w-4" strokeWidth={1.5} aria-hidden />
-            Notify a planned absence
-          </button>
-        }
-      />
+      {/* Header */}
+      <header className="flex flex-wrap items-end justify-between gap-4">
+        <div>
+          <p className="text-small text-muted">
+            {selectedChild.firstName} {selectedChild.lastName} · {selectedChild.form}
+          </p>
+          <h1 className="mt-1 text-[clamp(1.75rem,3vw,2.25rem)] font-bold leading-tight tracking-tight text-ink">
+            Attendance · Term 2 2026
+          </h1>
+          <p className="mt-2 text-small text-muted">
+            Register marked by the form teacher every morning.
+          </p>
+        </div>
+        <button
+          type="button"
+          onClick={() => setPlannedOpen(true)}
+          className="inline-flex h-11 items-center gap-2 rounded-full border border-line bg-card px-4 text-small font-semibold text-ink transition-colors hover:bg-surface"
+        >
+          <FilePlus className="h-4 w-4" strokeWidth={1.75} aria-hidden />
+          Notify a planned absence
+        </button>
+      </header>
 
-      {/* Stats */}
-      <div className="grid grid-cols-2 gap-4 md:grid-cols-4">
-        <Stat label="Attendance" value={`${stats.pct}%`} tone={stats.pct >= 95 ? 'ok' : stats.pct >= 90 ? 'neutral' : 'warn'} />
-        <Stat label="Absences" value={stats.absentUnexcused + stats.absentExcused} tone="neutral" />
-        <Stat label="Late arrivals" value={stats.late} tone="neutral" />
-        <Stat label="Excused" value={stats.absentExcused} tone="neutral" />
-      </div>
+      {/* KPI tiles */}
+      <ul className="grid grid-cols-2 gap-3 sm:grid-cols-4">
+        <li className="rounded-lg border border-line bg-card p-5 shadow-card-sm">
+          <div className="flex items-center justify-between">
+            <p className="text-micro font-semibold uppercase tracking-[0.12em] text-muted">
+              Attendance
+            </p>
+            <ProgressRing value={stats.pct} size={44} stroke={5} tone={attendanceRingTone} />
+          </div>
+          <p className="mt-3 text-h1 tabular-nums text-ink">{stats.pct}%</p>
+          <p className="mt-1 text-micro text-muted">present this term</p>
+        </li>
+        <KpiTile
+          label="Absences"
+          value={stats.absentUnexcused + stats.absentExcused}
+          sub={`${stats.absentExcused} excused · ${stats.absentUnexcused} unexcused`}
+          tone={stats.absentUnexcused > 0 ? 'warning' : 'info'}
+        />
+        <KpiTile
+          label="Late arrivals"
+          value={stats.late}
+          sub="recorded this term"
+          tone={stats.late > 2 ? 'warning' : 'info'}
+        />
+        <KpiTile
+          label="Excused"
+          value={stats.absentExcused}
+          sub="medical · family · religious"
+          tone="success"
+        />
+      </ul>
 
       {/* Heatmap */}
       <EditorialCard className="overflow-hidden">
@@ -505,23 +541,29 @@ function AbsenceRow({
   );
 }
 
-function Stat({
+function KpiTile({
   label,
   value,
+  sub,
   tone,
 }: {
   label: string;
   value: number | string;
-  tone: 'ok' | 'warn' | 'neutral';
+  sub: string;
+  tone: 'success' | 'warning' | 'info' | 'brand';
 }) {
-  const colour = tone === 'ok' ? 'text-ok' : tone === 'warn' ? 'text-warn' : 'text-ink';
+  const valueColour = {
+    success: 'text-success',
+    warning: 'text-warning',
+    info: 'text-ink',
+    brand: 'text-brand-primary',
+  }[tone];
   return (
-    <EditorialCard className="px-5 py-4">
-      <p className="font-sans text-[10px] font-semibold uppercase tracking-[0.14em] text-stone">
-        {label}
-      </p>
-      <p className={`mt-1 font-display text-[28px] leading-none tabular-nums ${colour}`}>{value}</p>
-    </EditorialCard>
+    <li className="rounded-lg border border-line bg-card p-5 shadow-card-sm">
+      <p className="text-micro font-semibold uppercase tracking-[0.12em] text-muted">{label}</p>
+      <p className={`mt-3 text-h1 tabular-nums ${valueColour}`}>{value}</p>
+      <p className="mt-1 text-micro text-muted">{sub}</p>
+    </li>
   );
 }
 

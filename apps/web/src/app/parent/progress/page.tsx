@@ -7,11 +7,14 @@ import {
   BookOpen,
   ChevronRight,
   MessageSquarePlus,
+  TrendingDown,
+  TrendingUp,
   X,
 } from 'lucide-react';
 
+import { Badge } from '@/components/ui/badge';
+import { ProgressRing } from '@/components/student/progress-ring';
 import { EditorialCard, SectionEyebrow, TrendArrow } from '@/components/student/primitives';
-import { ParentPageHeader } from '@/components/parent/primitives';
 import { useSelectedChild } from '@/components/parent/selected-child-context';
 import { gradesFor } from '@/lib/mock/parent-extras';
 
@@ -49,101 +52,126 @@ export default function ProgressPage() {
       ? `${average - classAverage} points above the class average.`
       : `${classAverage - average} points below the class average.`;
 
+  const termRingTone: 'success' | 'brand' | 'warning' | 'danger' =
+    average >= 80 ? 'success' : average >= 60 ? 'brand' : average >= 50 ? 'warning' : 'danger';
+
   return (
     <div className="space-y-8">
-      <ParentPageHeader
-        eyebrow={`${selectedChild.firstName} ${selectedChild.lastName} · ${selectedChild.form}`}
-        title="Academic progress,"
-        accent="this term."
-        subtitle={`${contextLine} ${vsClass}`}
-        right={
-          <Link
-            href="/parent/reports"
-            className="inline-flex h-10 items-center gap-2 rounded border border-sand bg-white px-3 font-sans text-[13px] font-medium text-earth hover:bg-sand-light"
-          >
-            View end-of-term report
-          </Link>
-        }
-      />
+      {/* Header */}
+      <header className="flex flex-wrap items-end justify-between gap-4">
+        <div>
+          <p className="text-small text-muted">
+            {selectedChild.firstName} {selectedChild.lastName} · {selectedChild.form}
+          </p>
+          <h1 className="mt-1 text-[clamp(1.75rem,3vw,2.25rem)] font-bold leading-tight tracking-tight text-ink">
+            Academic progress
+          </h1>
+          <p className="mt-2 text-small text-muted">
+            {contextLine} {vsClass}
+          </p>
+        </div>
+        <Link
+          href="/parent/reports"
+          className="inline-flex h-11 items-center gap-2 rounded-full border border-line bg-card px-4 text-small font-semibold text-ink transition-colors hover:bg-surface"
+        >
+          View end-of-term report
+          <ArrowRight className="h-3.5 w-3.5" strokeWidth={1.75} aria-hidden />
+        </Link>
+      </header>
 
-      {/* Summary row */}
-      <div className="grid grid-cols-2 gap-4 md:grid-cols-3">
-        <SummaryTile label="Term average" value={`${average}%`} sub="Current position">
-          <span className="font-sans text-[13px] text-stone">
-            {selectedChild.classPosition} of {selectedChild.classSize}
-          </span>
-        </SummaryTile>
-        <SummaryTile label="Trend" value={null}>
-          <span className="inline-flex items-center gap-2 font-sans text-[16px] text-ink">
-            <TrendArrow direction={selectedChild.termAverageTrend} />
-            {selectedChild.deltaFromLastTerm > 0
-              ? `+${selectedChild.deltaFromLastTerm} pts`
-              : `${selectedChild.deltaFromLastTerm} pts`}
-            <span className="font-sans text-[13px] text-stone">from Term 1</span>
-          </span>
-        </SummaryTile>
-        <SummaryTile label="Class average" value={`${classAverage}%`} sub="For context">
-          <span className="font-sans text-[13px] text-stone">
-            {average >= classAverage ? 'Above' : 'Below'} class average
-          </span>
-        </SummaryTile>
-      </div>
+      {/* KPI tiles */}
+      <ul className="grid grid-cols-1 gap-3 sm:grid-cols-3">
+        <li className="rounded-lg border border-line bg-card p-5 shadow-card-sm">
+          <div className="flex items-center justify-between">
+            <p className="text-micro font-semibold uppercase tracking-[0.12em] text-muted">
+              Term average
+            </p>
+            <ProgressRing value={average} size={44} stroke={5} tone={termRingTone} />
+          </div>
+          <p className="mt-3 text-h1 tabular-nums text-ink">{average}%</p>
+          <p className="mt-1 text-micro text-muted">
+            Position {selectedChild.classPosition} of {selectedChild.classSize}
+          </p>
+        </li>
+        <li className="rounded-lg border border-line bg-card p-5 shadow-card-sm">
+          <p className="text-micro font-semibold uppercase tracking-[0.12em] text-muted">Trend</p>
+          <p className="mt-3 flex items-baseline gap-2 text-h1 text-ink">
+            {selectedChild.deltaFromLastTerm > 0 ? (
+              <TrendingUp className="h-6 w-6 text-success" strokeWidth={2} aria-hidden />
+            ) : selectedChild.deltaFromLastTerm < 0 ? (
+              <TrendingDown className="h-6 w-6 text-danger" strokeWidth={2} aria-hidden />
+            ) : null}
+            <span className="tabular-nums">
+              {selectedChild.deltaFromLastTerm > 0 ? '+' : ''}
+              {selectedChild.deltaFromLastTerm}
+            </span>
+            <span className="text-small text-muted">pts</span>
+          </p>
+          <p className="mt-1 text-micro text-muted">vs Term 1</p>
+        </li>
+        <li className="rounded-lg border border-line bg-card p-5 shadow-card-sm">
+          <p className="text-micro font-semibold uppercase tracking-[0.12em] text-muted">
+            Class average
+          </p>
+          <p className="mt-3 text-h1 tabular-nums text-ink">{classAverage}%</p>
+          <p className="mt-1 text-micro text-muted">
+            {average >= classAverage
+              ? `+${average - classAverage} pts above peers`
+              : `${classAverage - average} pts below peers`}
+          </p>
+        </li>
+      </ul>
 
       {/* Subject grid */}
       <section>
-        <SectionEyebrow>Subjects</SectionEyebrow>
-        <ul className="mt-4 grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-4">
+        <div className="mb-4 flex items-center justify-between">
+          <h2 className="text-h3 text-ink">Subjects</h2>
+          <p className="text-small text-muted">Tap a subject to drill down</p>
+        </div>
+        <ul className="stagger-children grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4">
           {subjects.map((s) => {
-            const percentTone =
-              s.percent >= 80 ? 'text-ok' : s.percent >= 50 ? 'text-ink' : 'text-warn';
-            const gradeSurface =
-              s.grade === 'A'
-                ? 'bg-[#EBE8F5] text-[#4F3E99]'
-                : s.grade === 'B'
-                ? 'bg-sand-light text-earth'
-                : s.grade === 'C'
-                ? 'bg-[#FDF4E3] text-[#92650B]'
-                : 'bg-[#FBEBEA] text-[#B0362A]';
-
+            const ringTone: 'success' | 'brand' | 'warning' | 'danger' =
+              s.percent >= 80 ? 'success' : s.percent >= 65 ? 'brand' : s.percent >= 50 ? 'warning' : 'danger';
+            const gradeBadge: 'success' | 'info' | 'warning' | 'danger' =
+              s.grade === 'A' ? 'success' : s.grade === 'B' ? 'info' : s.grade === 'C' ? 'warning' : 'danger';
             return (
               <li key={s.subjectCode}>
                 <button
                   type="button"
                   onClick={() => setPreview(s)}
-                  className="group flex h-full w-full flex-col rounded border border-sand bg-white p-5 text-left transition-all duration-200 ease-out-soft hover:-translate-y-px hover:shadow-e2"
+                  className="hover-lift group flex h-full w-full flex-col gap-4 rounded-lg border border-line bg-card p-5 text-left"
                 >
-                  <div className="flex items-center justify-between">
-                    <p className="font-sans text-[11px] font-semibold uppercase tracking-[0.14em] text-stone">
-                      {s.subjectCode}
+                  <div className="flex items-center justify-between gap-3">
+                    <div className="flex items-center gap-1.5">
+                      <Badge tone="brand">
+                        <BookOpen className="h-3 w-3" strokeWidth={2} aria-hidden />
+                        {s.subjectCode}
+                      </Badge>
+                      {s.hasNewMark ? (
+                        <Badge tone="warning" dot>
+                          New
+                        </Badge>
+                      ) : null}
+                    </div>
+                    <ProgressRing value={s.percent} tone={ringTone} size={52} stroke={5} />
+                  </div>
+                  <div>
+                    <p className="text-small font-semibold text-ink group-hover:text-brand-primary">
+                      {s.subjectName}
                     </p>
-                    {s.hasNewMark ? (
-                      <span
-                        className="inline-flex h-5 items-center rounded-sm bg-terracotta/10 px-1.5 font-sans text-[10px] font-semibold uppercase tracking-[0.14em] text-terracotta-hover"
-                        aria-label="New mark this week"
-                      >
-                        New
-                      </span>
-                    ) : null}
+                    <p className="mt-0.5 text-micro text-muted">
+                      {s.teacher} · class avg {s.classAverage}%
+                    </p>
                   </div>
-                  <p className="mt-1 font-display text-[18px] leading-snug text-ink group-hover:text-earth">
-                    {s.subjectName}
-                  </p>
-                  <p className="mt-0.5 font-sans text-[11px] text-stone">{s.teacher}</p>
-                  <div className="mt-5 flex items-end justify-between">
-                    <span className={`font-display text-[40px] leading-none tabular-nums ${percentTone}`}>
-                      {s.percent}
-                      <span className="text-[18px] text-stone">%</span>
-                    </span>
-                    <TrendArrow direction={s.trend} />
-                  </div>
-                  <div className="mt-4 flex items-center justify-between">
-                    <span
-                      className={`rounded-sm px-2 py-0.5 font-sans text-[11px] font-semibold uppercase tracking-[0.14em] ${gradeSurface}`}
-                    >
-                      Grade {s.grade}
-                    </span>
-                    <span className="font-sans text-[12px] text-stone">
-                      class avg {s.classAverage}%
+                  <div className="mt-auto flex items-center justify-between border-t border-line pt-3">
+                    <Badge tone={gradeBadge}>Grade {s.grade}</Badge>
+                    <span className="inline-flex items-center gap-1 text-micro text-muted">
+                      {s.trend === 'up' ? (
+                        <TrendingUp className="h-3 w-3 text-success" strokeWidth={2} aria-hidden />
+                      ) : s.trend === 'down' ? (
+                        <TrendingDown className="h-3 w-3 text-danger" strokeWidth={2} aria-hidden />
+                      ) : null}
+                      this term
                     </span>
                   </div>
                 </button>
@@ -154,13 +182,15 @@ export default function ProgressPage() {
       </section>
 
       {/* Encouragement block */}
-      <EditorialCard className="p-6">
-        <SectionEyebrow>How to help at home</SectionEyebrow>
-        <p className="mt-3 font-serif text-[15px] leading-relaxed text-ink">
-          Three short ideas, contributed by {selectedChild.firstName}&rsquo;s teachers for
-          this term. Never prescriptive — just suggestions if a conversation at home would help.
-        </p>
-        <ul className="mt-4 grid grid-cols-1 gap-3 md:grid-cols-3">
+      <section className="overflow-hidden rounded-lg border border-line bg-card shadow-card-sm">
+        <header className="border-b border-line px-5 py-3.5">
+          <h2 className="text-small font-semibold text-ink">How to help at home</h2>
+          <p className="text-micro text-muted">
+            Three short ideas, contributed by {selectedChild.firstName}&rsquo;s teachers. Never
+            prescriptive — just suggestions.
+          </p>
+        </header>
+        <ul className="grid grid-cols-1 gap-3 p-5 md:grid-cols-3">
           <SuggestionCard
             subject="Mathematics · Mrs Dziva"
             body="Review last week's Problem Set 7 together. Farai benefits from saying his working out loud."
@@ -174,26 +204,28 @@ export default function ProgressPage() {
             body="The photosynthesis diagrams are up on the library wall — a short visit before the test would help."
           />
         </ul>
-      </EditorialCard>
+      </section>
 
       {/* Teacher shortcut */}
-      <EditorialCard className="flex flex-wrap items-center justify-between gap-4 p-6">
+      <section className="flex flex-wrap items-center justify-between gap-4 rounded-lg border border-line bg-card p-6 shadow-card-sm">
         <div>
-          <SectionEyebrow>Message a teacher</SectionEyebrow>
-          <p className="mt-2 font-serif text-[15px] text-ink">
+          <p className="text-micro font-semibold uppercase tracking-[0.12em] text-brand-primary">
+            Message a teacher
+          </p>
+          <p className="mt-2 text-body text-ink">
             Specific question about {selectedChild.firstName}&rsquo;s progress in a subject?
             Start a conversation with the teacher directly.
           </p>
         </div>
         <Link
           href="/parent/messages"
-          className="inline-flex h-10 items-center gap-2 rounded bg-terracotta px-4 font-sans text-[13px] font-semibold text-cream hover:bg-terracotta-hover"
+          className="inline-flex h-11 items-center gap-2 rounded-full bg-brand-primary px-5 text-small font-semibold text-white shadow-card-sm transition hover:bg-brand-primary/90 hover:shadow-card-md"
         >
-          <MessageSquarePlus className="h-4 w-4" strokeWidth={1.5} aria-hidden />
+          <MessageSquarePlus className="h-4 w-4" strokeWidth={1.75} aria-hidden />
           Open messages
-          <ArrowRight className="h-4 w-4" strokeWidth={1.5} aria-hidden />
+          <ArrowRight className="h-4 w-4" strokeWidth={1.75} aria-hidden />
         </Link>
-      </EditorialCard>
+      </section>
 
       {preview ? (
         <SubjectDrawer
@@ -206,38 +238,13 @@ export default function ProgressPage() {
   );
 }
 
-function SummaryTile({
-  label,
-  value,
-  sub,
-  children,
-}: {
-  label: string;
-  value: string | null;
-  sub?: string;
-  children: React.ReactNode;
-}) {
-  return (
-    <EditorialCard className="px-5 py-4">
-      <p className="font-sans text-[10px] font-semibold uppercase tracking-[0.14em] text-stone">
-        {label}
-      </p>
-      {value ? (
-        <p className="mt-1 font-display text-[30px] leading-none text-ink tabular-nums">{value}</p>
-      ) : null}
-      <div className="mt-2">{children}</div>
-      {sub ? <p className="mt-1 font-sans text-[11px] text-stone">{sub}</p> : null}
-    </EditorialCard>
-  );
-}
-
 function SuggestionCard({ subject, body }: { subject: string; body: string }) {
   return (
-    <li className="rounded border border-sand bg-sand-light/40 px-4 py-3">
-      <p className="font-sans text-[11px] font-semibold uppercase tracking-[0.14em] text-earth">
+    <li className="rounded-lg border border-line bg-surface/60 p-4">
+      <p className="text-micro font-semibold uppercase tracking-[0.12em] text-brand-primary">
         {subject}
       </p>
-      <p className="mt-1.5 font-serif text-[14px] text-ink">{body}</p>
+      <p className="mt-2 text-small text-ink">{body}</p>
     </li>
   );
 }
