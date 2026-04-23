@@ -247,7 +247,7 @@ export default function ParentFeesPage() {
           <Method icon={Banknote} label="ZIPIT" settle="Instant" />
           <Method icon={Banknote} label="CBZ / Stanbic / ZB" settle="Same-day" />
           <Method icon={CreditCard} label="Visa / Mastercard" settle="Real-time" />
-          <Method icon={Upload} label="Upload slip" settle="Reconciled" featured />
+          <Method icon={Upload} label="Upload slip" settle="Reconciled" featured href="/parent/fees/upload" />
         </ul>
       </EditorialCard>
 
@@ -362,26 +362,38 @@ function Method({
   label,
   settle,
   featured,
+  href,
 }: {
   icon: typeof Banknote;
   label: string;
   settle: string;
   featured?: boolean;
+  href?: string;
 }) {
-  return (
-    <li
-      className={[
-        'group flex flex-col gap-2 rounded border px-4 py-3 transition-all hover:-translate-y-px',
-        featured
-          ? 'border-terracotta/60 bg-sand-light'
-          : 'border-sand bg-sand-light/40 hover:border-terracotta',
-      ].join(' ')}
-    >
+  const inner = (
+    <>
       <Icon className="h-5 w-5 text-earth" strokeWidth={1.5} aria-hidden />
       <p className="font-sans text-[13px] font-semibold text-ink">{label}</p>
       <p className="font-sans text-[11px] font-semibold uppercase tracking-[0.14em] text-stone">
         {settle}
       </p>
+    </>
+  );
+  const className = [
+    'group flex flex-col gap-2 rounded border px-4 py-3 transition-all hover:-translate-y-px',
+    featured
+      ? 'border-terracotta/60 bg-sand-light'
+      : 'border-sand bg-sand-light/40 hover:border-terracotta',
+  ].join(' ');
+  return (
+    <li className="list-none">
+      {href ? (
+        <Link href={href} className={className}>
+          {inner}
+        </Link>
+      ) : (
+        <div className={className}>{inner}</div>
+      )}
     </li>
   );
 }
