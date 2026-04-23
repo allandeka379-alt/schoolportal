@@ -13,23 +13,23 @@ import {
   X,
 } from 'lucide-react';
 
-import { EditorialCard, TrendArrow } from '@/components/student/primitives';
-import { TeacherPageHeader } from '@/components/teacher/primitives';
+import { Badge } from '@/components/ui/badge';
+import { ProgressRing } from '@/components/student/progress-ring';
+import { TrendArrow } from '@/components/student/primitives';
 import {
   GRADEBOOK_COLUMNS,
   GRADEBOOK_ROWS,
-  GRADEBOOK_SUMMARY,
   type GradebookRow,
 } from '@/lib/mock/teacher-extras';
 
 /**
- * Gradebook matrix — §09.
+ * Teacher gradebook — card-dense redesign.
  *
- *   - Students down × assessments across
- *   - Click a cell to edit inline (keyboard-first: Enter saves, Esc cancels)
- *   - Edits stamp the cell with "M" (moderated) and show in audit hint
- *   - Totals + grade + trend auto-recompute from cell values
- *   - "Publish to parents" commits the term and toggles a read-only state
+ *   - KPI tile row (Average ring / Median / Highest / Lowest)
+ *   - Full matrix in a border-line bg-card panel
+ *   - Grade badges + TrendArrow on the right
+ *   - Civic colour tints for cell ranges (success / warning / danger)
+ *   - Editing, Tab-next navigation, publish-to-parents state preserved
  */
 
 type CellValue = number | null;
@@ -50,10 +50,10 @@ interface EditableRow {
 }
 
 function cellSurface(value: CellValue): string {
-  if (value === null) return 'text-stone';
-  if (value >= 80) return 'bg-[#E6F0E9] text-[#23603C]';
+  if (value === null) return 'text-muted';
+  if (value >= 80) return 'bg-success/10 text-success';
   if (value >= 50) return 'text-ink';
-  return 'bg-[#FBEBEA] text-[#B0362A]';
+  return 'bg-danger/10 text-danger';
 }
 
 function deriveGrade(total: number): 'A' | 'B' | 'C' | 'D' | 'E' {
@@ -64,17 +64,13 @@ function deriveGrade(total: number): 'A' | 'B' | 'C' | 'D' | 'E' {
   return 'E';
 }
 
-function gradeTone(grade: 'A' | 'B' | 'C' | 'D' | 'E'): string {
-  return grade === 'A'
-    ? 'bg-[#EBE8F5] text-[#4F3E99]'
-    : grade === 'B'
-    ? 'bg-sand-light text-earth'
-    : grade === 'C'
-    ? 'bg-[#FDF4E3] text-[#92650B]'
-    : 'bg-[#FBEBEA] text-[#B0362A]';
+function gradeTone(grade: 'A' | 'B' | 'C' | 'D' | 'E'): 'success' | 'brand' | 'warning' | 'danger' {
+  if (grade === 'A') return 'success';
+  if (grade === 'B') return 'brand';
+  if (grade === 'C') return 'warning';
+  return 'danger';
 }
 
-/** CA 40% (split across CA columns) · Mid 20% · End 40% per header copy. */
 function weightFor(col: (typeof GRADEBOOK_COLUMNS)[number]): number {
   if (col.kind === 'ca') {
     const caCount = GRADEBOOK_COLUMNS.filter((c) => c.kind === 'ca').length || 1;
@@ -97,7 +93,6 @@ function computeTotal(cells: EditableCell[]): number {
     weightAccounted += weight;
   });
   if (weightAccounted === 0) return 0;
-  // Normalise across completed assessments so a half-complete term still shows a sensible number.
   return Math.round((weightedScore / weightAccounted) * 100);
 }
 
@@ -225,105 +220,119 @@ export default function GradebookPage() {
     0,
   );
 
+  const ringTone: 'success' | 'brand' | 'warning' | 'danger' =
+    summary.average >= 80 ? 'success' : summary.average >= 65 ? 'brand' : summary.average >= 50 ? 'warning' : 'danger';
+
   return (
     <div className="space-y-8">
-      <TeacherPageHeader
-        eyebrow="Mathematics · Form 4A"
-        title="Gradebook,"
-        accent="Term 2 2026."
-        subtitle={`${rows.length} students · CA 40% · Mid 20% · End 40% · ${
-          published ? 'published to parents' : 'click a cell to edit'
-        }`}
-        right={
-          <>
+      {/* Header */}
+      <header className="flex flex-wrap items-end justify-between gap-4">
+        <div>
+          <p className="text-small text-muted">Mathematics · Form 4A</p>
+          <h1 className="mt-1 text-[clamp(1.75rem,3vw,2.25rem)] font-bold leading-tight tracking-tight text-ink">
+            Gradebook, Term 2 2026
+          </h1>
+          <p className="mt-2 text-small text-muted">
+            {rows.length} students · CA 40% · Mid 20% · End 40% ·{' '}
+            {published ? 'published to parents' : 'click a cell to edit'}
+          </p>
+        </div>
+        <div className="flex flex-wrap items-center gap-2">
+          <button
+            type="button"
+            disabled={published}
+            className="inline-flex h-11 items-center gap-2 rounded-full border border-line bg-card px-4 text-small font-semibold text-ink transition-colors hover:bg-surface disabled:cursor-not-allowed disabled:opacity-60"
+          >
+            <Upload className="h-4 w-4" strokeWidth={1.75} aria-hidden />
+            Import from photo
+          </button>
+          <button
+            type="button"
+            className="inline-flex h-11 items-center gap-2 rounded-full border border-line bg-card px-4 text-small font-semibold text-ink transition-colors hover:bg-surface"
+          >
+            <Download className="h-4 w-4" strokeWidth={1.75} aria-hidden />
+            Export
+          </button>
+          {published ? (
+            <span className="inline-flex h-11 items-center gap-2 rounded-full border border-success/30 bg-success/5 px-4 text-small font-semibold text-success">
+              <Lock className="h-4 w-4" strokeWidth={1.75} aria-hidden />
+              Published
+            </span>
+          ) : (
             <button
               type="button"
-              disabled={published}
-              className="inline-flex h-10 items-center gap-2 rounded border border-sand bg-white px-3 font-sans text-[13px] font-medium text-earth hover:bg-sand-light disabled:cursor-not-allowed disabled:opacity-60"
+              onClick={() => {
+                setPublished(true);
+                setFlash('Published to parents · students notified');
+              }}
+              className="inline-flex h-11 items-center gap-2 rounded-full bg-brand-primary px-5 text-small font-semibold text-white shadow-card-sm transition hover:bg-brand-primary/90 hover:shadow-card-md"
             >
-              <Upload className="h-4 w-4" strokeWidth={1.5} aria-hidden />
-              Import from photo
+              <Send className="h-4 w-4" strokeWidth={1.75} aria-hidden />
+              Publish to parents
             </button>
-            <button
-              type="button"
-              className="inline-flex h-10 items-center gap-2 rounded border border-sand bg-white px-3 font-sans text-[13px] font-medium text-earth hover:bg-sand-light"
-            >
-              <Download className="h-4 w-4" strokeWidth={1.5} aria-hidden />
-              Export
-            </button>
-            {published ? (
-              <span className="inline-flex h-10 items-center gap-2 rounded border border-ok/40 bg-[#F0F6F2] px-3 font-sans text-[13px] font-medium text-ok">
-                <Lock className="h-4 w-4" strokeWidth={1.5} aria-hidden />
-                Published
-              </span>
-            ) : (
-              <button
-                type="button"
-                onClick={() => {
-                  setPublished(true);
-                  setFlash('Published to parents · students notified');
-                }}
-                className="btn-terracotta"
-              >
-                <Send className="h-4 w-4" strokeWidth={1.5} aria-hidden />
-                Publish to parents
-              </button>
-            )}
-          </>
-        }
-      />
+          )}
+        </div>
+      </header>
+
+      {/* KPI tiles */}
+      <ul className="grid grid-cols-2 gap-3 sm:grid-cols-4">
+        <KpiTile label="Class average" value={`${summary.average}%`} ring={summary.average} ringTone={ringTone} />
+        <KpiTile label="Median" value={`${summary.median}%`} />
+        <KpiTile label="Highest" value={`${summary.high}%`} tone="success" />
+        <KpiTile label="Lowest" value={`${summary.low}%`} tone={summary.low < 50 ? 'warning' : undefined} />
+      </ul>
 
       {/* Status strip */}
-      <div className="flex flex-wrap items-center gap-3 rounded border border-sand bg-sand-light/40 px-4 py-2.5 font-sans text-[12px]">
-        <span className="inline-flex items-center gap-1 text-stone">
-          <span
-            aria-hidden
-            className="inline-block h-2 w-2 rounded-full bg-ok"
-          />
+      <div className="flex flex-wrap items-center gap-3 rounded-lg border border-line bg-card px-5 py-3 text-micro shadow-card-sm">
+        <span className="inline-flex items-center gap-1.5 text-muted">
+          <span aria-hidden className="inline-block h-2 w-2 rounded-full bg-success" />
           {published
             ? 'Published · edits locked'
             : savedAt
-            ? `Saved · auto-saved ${new Date(savedAt).toLocaleTimeString('en-ZW', { hour: '2-digit', minute: '2-digit' })}`
+            ? `Saved · auto-saved ${new Date(savedAt).toLocaleTimeString('en-ZW', {
+                hour: '2-digit',
+                minute: '2-digit',
+              })}`
             : 'Draft · edits auto-save'}
         </span>
-        <span className="text-stone">·</span>
-        <span className="text-stone">
+        <span className="text-line">·</span>
+        <span className="text-muted">
           {pendingEdits} moderated {pendingEdits === 1 ? 'mark' : 'marks'} in this session
         </span>
         {flash ? (
-          <span className="ml-auto rounded-full bg-ink px-2 py-0.5 font-sans text-[11px] font-semibold text-cream">
+          <span className="ml-auto rounded-full bg-ink px-3 py-0.5 text-micro font-semibold text-white">
             {flash}
           </span>
         ) : null}
       </div>
 
       {/* Matrix */}
-      <EditorialCard className="overflow-hidden">
+      <section className="overflow-hidden rounded-lg border border-line bg-card shadow-card-sm">
         <div className="max-h-[620px] overflow-auto">
-          <table className="w-full text-[13px]">
-            <thead className="sticky top-0 z-10 bg-sand-light/80 backdrop-blur">
+          <table className="w-full text-small">
+            <thead className="sticky top-0 z-10 bg-surface/95 backdrop-blur">
               <tr>
-                <th className="sticky left-0 z-20 border-b border-sand bg-sand-light/95 px-4 py-3 text-left font-sans text-[10px] font-semibold uppercase tracking-[0.14em] text-stone">
+                <th className="sticky left-0 z-20 border-b border-line bg-surface/95 px-4 py-3 text-left text-micro font-semibold uppercase tracking-[0.1em] text-muted">
                   Student
                 </th>
                 {GRADEBOOK_COLUMNS.map((c) => (
                   <th
                     key={c.key}
-                    className="border-b border-sand px-3 py-3 text-center font-sans text-[10px] font-semibold uppercase tracking-[0.14em] text-stone"
+                    className="border-b border-line px-3 py-3 text-center text-micro font-semibold uppercase tracking-[0.1em] text-muted"
                   >
                     <div>{c.label}</div>
-                    <div className="mt-0.5 font-sans text-[9px] font-normal normal-case tracking-normal text-stone">
+                    <div className="mt-0.5 text-micro font-normal normal-case tracking-normal text-muted">
                       /{c.max}
                     </div>
                   </th>
                 ))}
-                <th className="border-b border-sand bg-sand-light/95 px-3 py-3 text-center font-sans text-[10px] font-semibold uppercase tracking-[0.14em] text-stone">
+                <th className="border-b border-line bg-surface/95 px-3 py-3 text-center text-micro font-semibold uppercase tracking-[0.1em] text-muted">
                   Total
                 </th>
-                <th className="border-b border-sand bg-sand-light/95 px-3 py-3 text-center font-sans text-[10px] font-semibold uppercase tracking-[0.14em] text-stone">
+                <th className="border-b border-line bg-surface/95 px-3 py-3 text-center text-micro font-semibold uppercase tracking-[0.1em] text-muted">
                   Grade
                 </th>
-                <th className="border-b border-sand bg-sand-light/95 px-3 py-3 text-center font-sans text-[10px] font-semibold uppercase tracking-[0.14em] text-stone">
+                <th className="border-b border-line bg-surface/95 px-3 py-3 text-center text-micro font-semibold uppercase tracking-[0.1em] text-muted">
                   Trend
                 </th>
               </tr>
@@ -332,8 +341,8 @@ export default function GradebookPage() {
               {rows.map((row, i) => {
                 const t = totals[i]!;
                 return (
-                  <tr key={row.studentId} className="hover:bg-sand-light/30">
-                    <td className="sticky left-0 z-10 whitespace-nowrap border-b border-sand-light bg-white px-4 py-2 font-sans font-medium text-ink hover:bg-sand-light/40">
+                  <tr key={row.studentId} className="hover:bg-surface/40">
+                    <td className="sticky left-0 z-10 whitespace-nowrap border-b border-line bg-card px-4 py-2 text-small font-semibold text-ink">
                       {row.name}
                     </td>
                     {row.cells.map((cell, j) => {
@@ -342,8 +351,8 @@ export default function GradebookPage() {
                         <td
                           key={j}
                           className={[
-                            'relative border-b border-sand-light px-0 py-0 text-center font-mono text-[13px] tabular-nums',
-                            isEditing ? 'bg-sand-light' : cellSurface(cell.value),
+                            'relative border-b border-line px-0 py-0 text-center tabular-nums',
+                            isEditing ? 'bg-brand-primary/10' : cellSurface(cell.value),
                           ].join(' ')}
                         >
                           {isEditing ? (
@@ -355,7 +364,7 @@ export default function GradebookPage() {
                               onChange={(e) => setDraft(e.target.value)}
                               onBlur={commit}
                               onKeyDown={handleKeyDown}
-                              className="h-9 w-full bg-white px-2 text-center font-mono text-[13px] text-ink focus:outline-terracotta"
+                              className="h-9 w-full bg-white px-2 text-center text-small text-ink focus:outline focus:outline-2 focus:outline-brand-primary"
                             />
                           ) : (
                             <button
@@ -366,7 +375,7 @@ export default function GradebookPage() {
                                 'flex h-9 w-full items-center justify-center px-2 transition-colors',
                                 published
                                   ? 'cursor-not-allowed'
-                                  : 'hover:outline hover:outline-1 hover:outline-earth/50 cursor-pointer',
+                                  : 'hover:outline hover:outline-2 hover:outline-brand-primary/40 cursor-pointer',
                               ].join(' ')}
                             >
                               {cell.value ?? '—'}
@@ -375,14 +384,14 @@ export default function GradebookPage() {
                           {cell.outlier ? (
                             <span
                               title="Significantly different from this student's average"
-                              className="absolute right-1 top-1 inline-flex h-2 w-2 rounded-full bg-ochre"
+                              className="absolute right-1 top-1 inline-flex h-2 w-2 rounded-full bg-warning"
                               aria-hidden
                             />
                           ) : null}
                           {cell.edited ? (
                             <span
                               title={`Moderated by ${cell.moderatedBy ?? 'Mrs Dziva'}`}
-                              className="absolute left-1 top-1 font-sans text-[9px] font-bold text-earth"
+                              className="absolute left-1 top-1 text-micro font-bold text-brand-primary"
                               aria-hidden
                             >
                               M
@@ -391,19 +400,15 @@ export default function GradebookPage() {
                         </td>
                       );
                     })}
-                    <td className="border-b border-sand-light bg-sand-light/30 px-3 py-2 text-center font-mono text-[14px] font-semibold tabular-nums text-ink">
+                    <td className="border-b border-line bg-surface/40 px-3 py-2 text-center text-small font-bold tabular-nums text-ink">
                       {t.total}
                     </td>
-                    <td className="border-b border-sand-light bg-sand-light/30 px-3 py-2 text-center">
-                      <span
-                        className={`inline-flex items-center rounded-sm px-2 py-0.5 font-sans text-[11px] font-semibold ${gradeTone(
-                          t.grade,
-                        )}`}
-                      >
+                    <td className="border-b border-line bg-surface/40 px-3 py-2 text-center">
+                      <Badge tone={gradeTone(t.grade)} dot>
                         {t.grade}
-                      </span>
+                      </Badge>
                     </td>
-                    <td className="border-b border-sand-light bg-sand-light/30 px-3 py-2 text-center">
+                    <td className="border-b border-line bg-surface/40 px-3 py-2 text-center">
                       <TrendArrow direction={row.trend} className="mx-auto" />
                     </td>
                   </tr>
@@ -413,27 +418,34 @@ export default function GradebookPage() {
           </table>
         </div>
 
-        {/* Summary bar */}
-        <div className="grid grid-cols-2 gap-4 border-t border-sand bg-sand-light/50 px-6 py-4 md:grid-cols-4 lg:grid-cols-8">
-          <SummaryStat label="Average" value={`${summary.average}%`} />
-          <SummaryStat label="Median" value={`${summary.median}%`} />
-          <SummaryStat label="Highest" value={`${summary.high}%`} />
-          <SummaryStat label="Lowest" value={`${summary.low}%`} />
+        {/* Grade distribution */}
+        <div className="grid grid-cols-5 gap-3 border-t border-line bg-surface/40 px-5 py-4">
           {summary.distribution.map((g) => (
-            <SummaryStat
+            <div
               key={g.grade}
-              label={`Grade ${g.grade}`}
-              value={g.count.toString()}
-            />
+              className="flex flex-col items-center rounded-md border border-line bg-card p-3"
+            >
+              <Badge tone={gradeTone(g.grade)} dot>
+                Grade {g.grade}
+              </Badge>
+              <p className="mt-2 text-h2 tabular-nums text-ink">{g.count}</p>
+            </div>
           ))}
         </div>
-      </EditorialCard>
+      </section>
 
       {/* Outlier / publish notice */}
-      <div className="flex flex-wrap items-center gap-2 rounded border border-ochre/30 bg-[#FDF4E3] px-4 py-3 font-sans text-[12px] text-earth">
+      <div
+        className={[
+          'flex flex-wrap items-start gap-3 rounded-lg border p-4 text-small',
+          published
+            ? 'border-success/30 bg-success/5 text-ink'
+            : 'border-warning/30 bg-warning/5 text-ink',
+        ].join(' ')}
+      >
         {published ? (
           <>
-            <CheckCircle2 className="h-4 w-4 flex-none text-ok" strokeWidth={1.5} aria-hidden />
+            <CheckCircle2 className="mt-0.5 h-4 w-4 flex-none text-success" strokeWidth={1.75} aria-hidden />
             <span>
               Published. Farai and 31 other Form 4A students (and their parents) have been notified.
               Report cards queue to Headmaster for sign-off.
@@ -441,34 +453,41 @@ export default function GradebookPage() {
           </>
         ) : (
           <>
-            <AlertTriangle className="h-4 w-4 flex-none text-ochre" strokeWidth={1.5} aria-hidden />
+            <AlertTriangle
+              className="mt-0.5 h-4 w-4 flex-none text-warning"
+              strokeWidth={1.75}
+              aria-hidden
+            />
             <span>
-              Amber dots mark marks that look anomalous compared to the student&rsquo;s pattern.
-              Hover for the reason · click the cell to confirm or correct · Tab moves sideways.
+              Amber dots mark marks that look anomalous compared to the student&rsquo;s pattern. Hover
+              for the reason · click the cell to confirm or correct · Tab moves sideways.
             </span>
           </>
         )}
       </div>
 
       <UnsavedHint hidden={editing === null}>
-        <span className="inline-flex items-center gap-2 font-sans text-[12px] text-stone">
-          <Pencil className="h-3.5 w-3.5" strokeWidth={1.5} aria-hidden />
+        <span className="inline-flex items-center gap-2 text-micro text-muted">
+          <Pencil className="h-3.5 w-3.5" strokeWidth={1.75} aria-hidden />
           Editing …
-          <kbd className="rounded bg-sand px-1 font-mono text-[10px] text-earth">↵</kbd> save
-          <kbd className="rounded bg-sand px-1 font-mono text-[10px] text-earth">Tab</kbd> next
-          <kbd className="rounded bg-sand px-1 font-mono text-[10px] text-earth">Esc</kbd> cancel
+          <kbd className="rounded bg-surface px-1.5 py-0.5 font-mono text-micro text-ink">↵</kbd>{' '}
+          save
+          <kbd className="rounded bg-surface px-1.5 py-0.5 font-mono text-micro text-ink">Tab</kbd>{' '}
+          next
+          <kbd className="rounded bg-surface px-1.5 py-0.5 font-mono text-micro text-ink">Esc</kbd>{' '}
+          cancel
           <button
             type="button"
             onClick={cancel}
-            className="ml-2 inline-flex items-center gap-1 rounded p-1 text-stone hover:text-ink"
+            className="ml-2 inline-flex items-center gap-1 rounded-full p-1 text-muted transition-colors hover:text-ink"
             aria-label="Cancel"
           >
-            <X className="h-3.5 w-3.5" strokeWidth={1.5} />
+            <X className="h-3.5 w-3.5" strokeWidth={1.75} />
           </button>
           <button
             type="button"
             onClick={commit}
-            className="ml-1 inline-flex items-center gap-1 rounded bg-terracotta px-2 py-1 font-sans text-[11px] font-semibold text-cream hover:bg-[#A74627]"
+            className="ml-1 inline-flex items-center gap-1 rounded-full bg-brand-primary px-3 py-1 text-micro font-semibold text-white transition hover:bg-brand-primary/90"
           >
             <Check className="h-3 w-3" strokeWidth={2} aria-hidden />
             Save
@@ -479,14 +498,31 @@ export default function GradebookPage() {
   );
 }
 
-function SummaryStat({ label, value }: { label: string; value: string }) {
+function KpiTile({
+  label,
+  value,
+  tone,
+  ring,
+  ringTone,
+}: {
+  label: string;
+  value: string;
+  tone?: 'brand' | 'success' | 'warning';
+  ring?: number;
+  ringTone?: 'success' | 'brand' | 'warning' | 'danger';
+}) {
+  const valueColor =
+    tone === 'warning' ? 'text-warning' : tone === 'success' ? 'text-success' : tone === 'brand' ? 'text-brand-primary' : 'text-ink';
   return (
-    <div>
-      <p className="font-sans text-[10px] font-semibold uppercase tracking-[0.14em] text-stone">
-        {label}
-      </p>
-      <p className="mt-1 font-display text-[22px] text-ink tabular-nums">{value}</p>
-    </div>
+    <li className="rounded-lg border border-line bg-card p-5 shadow-card-sm">
+      <div className="flex items-center justify-between">
+        <p className="text-micro font-semibold uppercase tracking-[0.12em] text-muted">{label}</p>
+        {ring !== undefined && ringTone ? (
+          <ProgressRing value={ring} size={44} stroke={5} tone={ringTone} />
+        ) : null}
+      </div>
+      <p className={`mt-3 text-h2 tabular-nums ${valueColor}`}>{value}</p>
+    </li>
   );
 }
 
@@ -495,7 +531,7 @@ function UnsavedHint({ hidden, children }: { hidden: boolean; children: React.Re
     <div
       aria-hidden={hidden}
       className={[
-        'fixed bottom-6 left-1/2 z-40 -translate-x-1/2 rounded-full border border-sand bg-white px-4 py-2 shadow-e2 transition-all duration-200',
+        'fixed bottom-6 left-1/2 z-40 -translate-x-1/2 rounded-full border border-line bg-card px-4 py-2 shadow-card-md transition-all duration-200',
         hidden ? 'pointer-events-none translate-y-4 opacity-0' : 'opacity-100',
       ].join(' ')}
     >
