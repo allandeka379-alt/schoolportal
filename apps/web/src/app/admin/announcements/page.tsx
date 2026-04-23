@@ -8,25 +8,17 @@ import {
   Languages,
   MessageSquare,
   Pin,
-  Plus,
   Send,
   Users,
 } from 'lucide-react';
 
+import { Badge } from '@/components/ui/badge';
 import {
   SCHOOL_ANNOUNCEMENTS,
   audienceLabel,
   type AnnouncementAudience,
   type SchoolAnnouncement,
 } from '@/lib/mock/school';
-
-/**
- * Announcements — Admin.
- *
- *  - Composer with audience picker, pin/urgent toggles, SMS fallback
- *  - Recent announcements with acknowledgement & view stats
- *  - Click a row to inspect details (audience, translations, ack list)
- */
 
 const AUDIENCE_OPTIONS: AnnouncementAudience[] = [
   'SCHOOL',
@@ -42,6 +34,9 @@ const AUDIENCE_OPTIONS: AnnouncementAudience[] = [
   'MSASA_HOUSE',
   'GRANITE_HOUSE',
 ];
+
+const inputClass =
+  'h-11 w-full rounded-md border border-line bg-card px-3 text-small text-ink placeholder:text-muted focus:border-brand-primary focus:outline-none focus:ring-2 focus:ring-brand-primary/20';
 
 export default function AnnouncementsAdminPage() {
   const [title, setTitle] = useState('');
@@ -64,7 +59,6 @@ export default function AnnouncementsAdminPage() {
     SCHOOL_ANNOUNCEMENTS.find((a) => a.id === selectedId) ?? SCHOOL_ANNOUNCEMENTS[0]!;
 
   const reachEstimate = useMemo(() => {
-    // Rough sum — audience can overlap so cap at 428 (school population).
     if (audience.includes('SCHOOL')) return 428;
     const map: Record<AnnouncementAudience, number> = {
       SCHOOL: 428,
@@ -88,18 +82,14 @@ export default function AnnouncementsAdminPage() {
   }, [audience]);
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-8">
+      {/* Header */}
       <header>
-        <p
-          className="font-mono text-[11px] font-medium uppercase tracking-[0.18em]"
-          style={{ color: 'rgb(var(--accent))' }}
-        >
-          Communication · Announcements
-        </p>
-        <h1 className="mt-2 font-display text-[clamp(1.75rem,3vw,2.25rem)] font-medium tracking-tight text-obsidian">
-          What the school says, openly.
+        <p className="text-small text-muted">Communication · announcements</p>
+        <h1 className="mt-1 text-[clamp(1.75rem,3vw,2.25rem)] font-bold leading-tight tracking-tight text-ink">
+          What the school says, openly
         </h1>
-        <p className="mt-2 max-w-[78ch] font-sans text-[14px] text-slate">
+        <p className="mt-2 max-w-[78ch] text-small text-muted">
           Author · schedule · track acknowledgement. Shona and Ndebele translations are drafted for
           review before publishing. SMS fallback is available for parents who have not opened the
           portal in 7 days.
@@ -107,21 +97,21 @@ export default function AnnouncementsAdminPage() {
       </header>
 
       <div className="grid grid-cols-1 gap-6 xl:grid-cols-3">
-        {/* Composer */}
-        <section className="xl:col-span-2 space-y-6">
-          <div className="overflow-hidden rounded-md border border-mist bg-snow">
-            <div className="flex items-center justify-between border-b border-mist px-5 py-3">
-              <p className="font-sans text-[13px] font-medium text-obsidian">Compose</p>
-              <span className="font-mono text-[11px] uppercase tracking-[0.1em] text-steel">
+        {/* Composer + recent */}
+        <div className="space-y-6 xl:col-span-2">
+          <section className="overflow-hidden rounded-lg border border-line bg-card shadow-card-sm">
+            <header className="flex items-center justify-between border-b border-line px-5 py-3.5">
+              <h2 className="text-small font-semibold text-ink">Compose</h2>
+              <Badge tone="brand" dot>
                 Reach · {reachEstimate.toLocaleString('en-ZW')} recipients
-              </span>
-            </div>
+              </Badge>
+            </header>
 
-            <div className="p-5 space-y-5">
+            <div className="space-y-5 p-5">
               <div>
                 <label
                   htmlFor="ann-title"
-                  className="mb-2 block font-mono text-[11px] font-medium uppercase tracking-[0.14em] text-slate"
+                  className="mb-2 block text-micro font-semibold uppercase tracking-[0.12em] text-muted"
                 >
                   Title · short and specific
                 </label>
@@ -130,14 +120,14 @@ export default function AnnouncementsAdminPage() {
                   value={title}
                   onChange={(e) => setTitle(e.target.value)}
                   placeholder="e.g. Mid-term break reminder — Monday 19 May"
-                  className="input-boxed"
+                  className={inputClass}
                 />
               </div>
 
               <div>
                 <label
                   htmlFor="ann-body"
-                  className="mb-2 block font-mono text-[11px] font-medium uppercase tracking-[0.14em] text-slate"
+                  className="mb-2 block text-micro font-semibold uppercase tracking-[0.12em] text-muted"
                 >
                   Body · Markdown supported
                 </label>
@@ -147,15 +137,15 @@ export default function AnnouncementsAdminPage() {
                   value={body}
                   onChange={(e) => setBody(e.target.value)}
                   placeholder="Write the announcement. Shona and Ndebele drafts will be generated for your review before publishing."
-                  className="w-full rounded-md border border-mist bg-snow p-3 font-sans text-[14px] text-obsidian placeholder-steel focus:outline-none"
+                  className="w-full rounded-md border border-line bg-card p-3 text-small leading-relaxed text-ink placeholder:text-muted focus:border-brand-primary focus:outline-none focus:ring-2 focus:ring-brand-primary/20"
                 />
-                <p className="mt-1 font-mono text-[11px] uppercase tracking-[0.1em] text-steel">
+                <p className="mt-1 text-micro text-muted">
                   {body.length} chars · ~{Math.max(0, Math.ceil(body.length / 160))} SMS pages
                 </p>
               </div>
 
               <div>
-                <label className="mb-2 block font-mono text-[11px] font-medium uppercase tracking-[0.14em] text-slate">
+                <label className="mb-2 block text-micro font-semibold uppercase tracking-[0.12em] text-muted">
                   Audience
                 </label>
                 <div className="flex flex-wrap gap-2">
@@ -167,10 +157,10 @@ export default function AnnouncementsAdminPage() {
                         type="button"
                         onClick={() => toggleAudience(a)}
                         className={[
-                          'inline-flex h-8 items-center rounded-sm border px-2.5 font-mono text-[11px] font-medium uppercase tracking-[0.1em] transition-colors',
+                          'inline-flex h-9 items-center rounded-full border px-3 text-micro font-semibold transition-colors',
                           on
-                            ? 'border-obsidian bg-obsidian text-snow'
-                            : 'border-mist bg-snow text-slate hover:bg-fog',
+                            ? 'border-brand-primary bg-brand-primary text-white'
+                            : 'border-line bg-card text-ink hover:bg-surface',
                         ].join(' ')}
                       >
                         {audienceLabel(a)}
@@ -180,7 +170,7 @@ export default function AnnouncementsAdminPage() {
                 </div>
               </div>
 
-              <div className="flex flex-wrap items-center gap-4 border-t border-mist pt-4 font-sans text-[13px] text-slate">
+              <div className="flex flex-wrap items-center gap-4 border-t border-line pt-4 text-small text-ink">
                 <Toggle value={urgent} onChange={setUrgent} label="Mark as urgent" />
                 <Toggle value={pinned} onChange={setPinned} label="Pin to top" />
                 <Toggle value={autoTranslate} onChange={setAutoTranslate} label="Auto-translate (SN · ND)" />
@@ -188,41 +178,42 @@ export default function AnnouncementsAdminPage() {
                 <Toggle value={smsFallback} onChange={setSmsFallback} label="SMS fallback" />
               </div>
 
-              <div className="flex flex-wrap items-center gap-2 border-t border-mist pt-4">
-                <button type="button" className="btn-primary">
-                  <Send className="h-4 w-4" strokeWidth={1.5} aria-hidden />
+              <div className="flex flex-wrap items-center gap-2 border-t border-line pt-4">
+                <button
+                  type="button"
+                  className="inline-flex h-11 items-center gap-2 rounded-full bg-brand-primary px-5 text-small font-semibold text-white shadow-card-sm transition hover:bg-brand-primary/90 hover:shadow-card-md"
+                >
+                  <Send className="h-4 w-4" strokeWidth={1.75} aria-hidden />
                   Publish now
                 </button>
                 <button
                   type="button"
-                  className="inline-flex h-10 items-center gap-2 rounded-md border border-mist bg-snow px-3 font-sans text-[13px] font-medium text-slate hover:bg-fog"
+                  className="inline-flex h-11 items-center gap-2 rounded-full border border-line bg-card px-4 text-small font-semibold text-ink transition-colors hover:bg-surface"
                 >
                   Save draft
                 </button>
                 <button
                   type="button"
-                  className="inline-flex h-10 items-center gap-2 rounded-md border border-mist bg-snow px-3 font-sans text-[13px] font-medium text-slate hover:bg-fog"
+                  className="inline-flex h-11 items-center gap-2 rounded-full border border-line bg-card px-4 text-small font-semibold text-ink transition-colors hover:bg-surface"
                 >
                   Schedule…
                 </button>
-                <span className="ml-auto font-mono text-[11px] uppercase tracking-[0.1em] text-steel">
-                  Preview below
-                </span>
+                <span className="ml-auto text-micro text-muted">Preview on the right</span>
               </div>
             </div>
-          </div>
+          </section>
 
           {/* Recent list */}
-          <div className="overflow-hidden rounded-md border border-mist bg-snow">
-            <div className="flex items-center justify-between border-b border-mist px-5 py-3">
-              <p className="font-sans text-[13px] font-medium text-obsidian">Recent</p>
-              <p className="font-mono text-[11px] uppercase tracking-[0.1em] text-steel">
+          <section className="overflow-hidden rounded-lg border border-line bg-card shadow-card-sm">
+            <header className="flex items-center justify-between border-b border-line px-5 py-3.5">
+              <h2 className="text-small font-semibold text-ink">Recent</h2>
+              <p className="text-micro text-muted">
                 Last 7 days · {SCHOOL_ANNOUNCEMENTS.length} items
               </p>
-            </div>
-            <ul className="divide-y divide-mist">
+            </header>
+            <ul className="divide-y divide-line">
               {SCHOOL_ANNOUNCEMENTS.map((a) => {
-                const active = selectedId === a.id;
+                const activeRow = selectedId === a.id;
                 return (
                   <li key={a.id}>
                     <button
@@ -230,33 +221,42 @@ export default function AnnouncementsAdminPage() {
                       onClick={() => setSelectedId(a.id)}
                       className={[
                         'flex w-full items-start gap-4 px-5 py-4 text-left transition-colors',
-                        active ? 'bg-fog' : 'hover:bg-fog/60',
+                        activeRow ? 'bg-brand-primary/[0.06]' : 'hover:bg-surface/40',
                       ].join(' ')}
                     >
-                      <div className="flex-none text-center">
+                      <span
+                        className={`inline-flex h-9 w-9 flex-none items-center justify-center rounded-md ${
+                          a.urgent
+                            ? 'bg-danger/10 text-danger'
+                            : a.pinned
+                            ? 'bg-brand-primary/10 text-brand-primary'
+                            : 'bg-info/10 text-info'
+                        }`}
+                      >
                         {a.urgent ? (
-                          <AlertCircle className="mx-auto h-4 w-4 text-signal-error" strokeWidth={1.5} aria-hidden />
+                          <AlertCircle className="h-4 w-4" strokeWidth={1.75} aria-hidden />
                         ) : a.pinned ? (
-                          <Pin className="mx-auto h-4 w-4 text-slate" strokeWidth={1.5} aria-hidden />
+                          <Pin className="h-4 w-4" strokeWidth={1.75} aria-hidden />
                         ) : (
-                          <BellRing className="mx-auto h-4 w-4 text-steel" strokeWidth={1.5} aria-hidden />
+                          <BellRing className="h-4 w-4" strokeWidth={1.75} aria-hidden />
                         )}
-                      </div>
+                      </span>
                       <div className="min-w-0 flex-1">
                         <div className="flex flex-wrap items-center gap-2">
-                          <p className="font-sans text-[14px] font-medium text-obsidian">
-                            {a.title}
-                          </p>
+                          <p className="text-small font-semibold text-ink">{a.title}</p>
                           {a.urgent ? (
-                            <span className="rounded-sm bg-signal-error/10 px-1.5 py-0.5 font-mono text-[10px] font-medium uppercase tracking-[0.12em] text-signal-error">
-                              urgent
-                            </span>
+                            <Badge tone="danger" dot>
+                              Urgent
+                            </Badge>
+                          ) : null}
+                          {a.pinned ? (
+                            <Badge tone="brand" dot>
+                              Pinned
+                            </Badge>
                           ) : null}
                         </div>
-                        <p className="mt-1 line-clamp-2 font-sans text-[12px] text-slate">
-                          {a.body}
-                        </p>
-                        <p className="mt-2 flex flex-wrap items-center gap-3 font-mono text-[11px] uppercase tracking-[0.08em] text-steel">
+                        <p className="mt-1 line-clamp-2 text-small text-muted">{a.body}</p>
+                        <p className="mt-2 flex flex-wrap items-center gap-3 text-micro text-muted">
                           <span>{a.publishedBy}</span>
                           <span>·</span>
                           <span>
@@ -269,14 +269,22 @@ export default function AnnouncementsAdminPage() {
                           </span>
                           <span>·</span>
                           <span>
-                            <Users className="mr-1 inline-block h-3 w-3 -translate-y-px" strokeWidth={1.5} aria-hidden />
+                            <Users
+                              className="mr-1 inline-block h-3 w-3 -translate-y-px"
+                              strokeWidth={1.75}
+                              aria-hidden
+                            />
                             {a.audienceSize}
                           </span>
                           {a.requiresAck && a.ackCount !== undefined ? (
                             <>
                               <span>·</span>
                               <span>
-                                <CheckCircle2 className="mr-1 inline-block h-3 w-3 -translate-y-px" strokeWidth={1.5} aria-hidden />
+                                <CheckCircle2
+                                  className="mr-1 inline-block h-3 w-3 -translate-y-px text-success"
+                                  strokeWidth={1.75}
+                                  aria-hidden
+                                />
                                 {a.ackCount}/{a.audienceSize}
                               </span>
                             </>
@@ -288,8 +296,8 @@ export default function AnnouncementsAdminPage() {
                 );
               })}
             </ul>
-          </div>
-        </section>
+          </section>
+        </div>
 
         {/* Detail */}
         <section className="xl:col-span-1">
@@ -310,16 +318,16 @@ function Toggle({
   label: string;
 }) {
   return (
-    <label className="inline-flex items-center gap-2 cursor-pointer select-none">
+    <label className="inline-flex cursor-pointer select-none items-center gap-2">
       <span
         className={[
           'relative h-5 w-9 rounded-full border transition-colors',
-          value ? 'border-obsidian bg-obsidian' : 'border-mist bg-fog',
+          value ? 'border-brand-primary bg-brand-primary' : 'border-line bg-surface',
         ].join(' ')}
       >
         <span
           className={[
-            'absolute top-0.5 h-3.5 w-3.5 rounded-full bg-snow transition-transform',
+            'absolute top-0.5 h-3.5 w-3.5 rounded-full bg-white transition-transform',
             value ? 'translate-x-[18px]' : 'translate-x-0.5',
           ].join(' ')}
           aria-hidden
@@ -337,104 +345,95 @@ function Toggle({
 }
 
 function AnnouncementDetail({ announcement }: { announcement: SchoolAnnouncement }) {
-  const ackPct = announcement.requiresAck && announcement.ackCount
-    ? Math.round((announcement.ackCount / announcement.audienceSize) * 100)
-    : null;
+  const ackPct =
+    announcement.requiresAck && announcement.ackCount
+      ? Math.round((announcement.ackCount / announcement.audienceSize) * 100)
+      : null;
 
   return (
-    <article className="overflow-hidden rounded-md border border-mist bg-snow">
-      <div className="border-b border-mist px-5 py-4">
-        <div className="flex items-center gap-2">
-          <span
-            className="font-mono text-[11px] font-medium uppercase tracking-[0.14em]"
-            style={{ color: 'rgb(var(--accent))' }}
-          >
+    <article className="overflow-hidden rounded-lg border border-line bg-card shadow-card-sm">
+      <header className="border-b border-line px-5 py-4">
+        <div className="flex flex-wrap items-center gap-2">
+          <p className="text-micro font-semibold uppercase tracking-[0.12em] text-brand-primary">
             Inspect
-          </span>
+          </p>
           {announcement.urgent ? (
-            <span className="rounded-sm bg-signal-error/10 px-1.5 py-0.5 font-mono text-[10px] font-medium uppercase tracking-[0.12em] text-signal-error">
-              urgent
-            </span>
+            <Badge tone="danger" dot>
+              Urgent
+            </Badge>
           ) : null}
           {announcement.pinned ? (
-            <span className="rounded-sm bg-fog px-1.5 py-0.5 font-mono text-[10px] font-medium uppercase tracking-[0.12em] text-slate">
-              pinned
-            </span>
+            <Badge tone="brand" dot>
+              Pinned
+            </Badge>
           ) : null}
         </div>
-        <h3 className="mt-2 font-display text-[17px] font-medium leading-snug tracking-tight text-obsidian">
+        <h3 className="mt-2 text-h3 leading-snug tracking-tight text-ink">
           {announcement.title}
         </h3>
-      </div>
+      </header>
 
-      <div className="px-5 py-5 space-y-4">
-        <p className="font-sans text-[13px] leading-relaxed text-slate">{announcement.body}</p>
+      <div className="space-y-4 px-5 py-5">
+        <p className="text-small leading-relaxed text-ink">{announcement.body}</p>
 
         <div className="space-y-2">
-          <p className="font-mono text-[10px] uppercase tracking-[0.14em] text-steel">Audience</p>
+          <p className="text-micro font-semibold uppercase tracking-[0.12em] text-muted">Audience</p>
           <div className="flex flex-wrap gap-1.5">
             {announcement.audience.map((a) => (
-              <span
-                key={a}
-                className="inline-flex items-center rounded-sm bg-fog px-1.5 py-0.5 font-mono text-[10px] font-medium uppercase tracking-[0.1em] text-slate"
-              >
+              <Badge key={a} tone="neutral">
                 {audienceLabel(a)}
-              </span>
+              </Badge>
             ))}
           </div>
-          <p className="font-mono text-[11px] uppercase tracking-[0.08em] text-steel">
+          <p className="text-micro text-muted">
             {announcement.audienceSize} recipients · {announcement.views ?? 0} opened
           </p>
         </div>
 
         {announcement.requiresAck && ackPct !== null ? (
-          <div className="rounded-md border border-mist bg-fog/50 p-3">
+          <div className="rounded-md border border-line bg-surface/40 p-3">
             <div className="flex items-center justify-between">
-              <p className="font-mono text-[10px] uppercase tracking-[0.12em] text-steel">
+              <p className="text-micro font-semibold uppercase tracking-[0.12em] text-muted">
                 Acknowledgement
               </p>
-              <p className="font-mono text-[11px] tabular-nums text-obsidian">{ackPct}%</p>
+              <p className="text-small font-semibold tabular-nums text-ink">{ackPct}%</p>
             </div>
-            <div className="mt-2 h-1.5 w-full overflow-hidden rounded-full bg-mist">
+            <div className="mt-2 h-1.5 w-full overflow-hidden rounded-full bg-line">
               <div
-                className="h-full rounded-full"
-                style={{
-                  width: `${ackPct}%`,
-                  backgroundColor: 'rgb(var(--accent))',
-                }}
+                className="h-full rounded-full bg-brand-primary"
+                style={{ width: `${ackPct}%` }}
               />
             </div>
-            <p className="mt-2 font-sans text-[12px] text-steel">
+            <p className="mt-2 text-micro text-muted">
               {announcement.ackCount}/{announcement.audienceSize} have acknowledged
             </p>
           </div>
         ) : null}
 
         <div className="space-y-2">
-          <p className="font-mono text-[10px] uppercase tracking-[0.14em] text-steel">
+          <p className="text-micro font-semibold uppercase tracking-[0.12em] text-muted">
             Delivery channels
           </p>
-          <ul className="space-y-1 font-sans text-[12px] text-slate">
+          <ul className="space-y-1.5 text-small text-ink">
             <li className="flex items-center gap-2">
-              <MessageSquare className="h-3.5 w-3.5 text-slate" strokeWidth={1.5} aria-hidden />
+              <MessageSquare className="h-3.5 w-3.5 text-brand-primary" strokeWidth={1.75} aria-hidden />
               Portal feed · always
             </li>
             <li className="flex items-center gap-2">
-              <Languages className="h-3.5 w-3.5 text-slate" strokeWidth={1.5} aria-hidden />
+              <Languages className="h-3.5 w-3.5 text-brand-primary" strokeWidth={1.75} aria-hidden />
               {announcement.translatedTo.length > 0
                 ? `Translated · ${announcement.translatedTo.join(' · ')}`
                 : 'English only'}
             </li>
             <li className="flex items-center gap-2">
-              <BellRing className="h-3.5 w-3.5 text-slate" strokeWidth={1.5} aria-hidden />
+              <BellRing className="h-3.5 w-3.5 text-brand-primary" strokeWidth={1.75} aria-hidden />
               SMS fallback · {announcement.smsFallback ? 'on' : 'off'}
             </li>
           </ul>
         </div>
 
-        <div className="border-t border-mist pt-3 font-mono text-[11px] uppercase tracking-[0.08em] text-steel">
-          Published by{' '}
-          <span className="text-obsidian">{announcement.publishedBy}</span> ·{' '}
+        <div className="border-t border-line pt-3 text-micro text-muted">
+          Published by <span className="font-semibold text-ink">{announcement.publishedBy}</span> ·{' '}
           {new Date(announcement.publishedAt).toLocaleString('en-ZW', {
             day: '2-digit',
             month: 'short',

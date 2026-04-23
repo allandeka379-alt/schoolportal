@@ -13,6 +13,7 @@ import {
   XCircle,
 } from 'lucide-react';
 
+import { Badge } from '@/components/ui/badge';
 import {
   RECEIPTS,
   RECEIPTS_KPIS,
@@ -21,19 +22,11 @@ import {
   type SchoolReceipt,
 } from '@/lib/mock/school';
 
-/**
- * Receipts — Admin.
- *
- * Every reconciled or verified payment produces a digital receipt with a
- * unique reference. Reconciled-against-statement line is traceable through
- * the audit log; "Failed" receipts are back on the parent's desk.
- */
-
-const STATUS_TONE: Record<ReceiptStatus, string> = {
-  RECONCILED: 'bg-signal-success/10 text-signal-success',
-  VERIFIED: 'bg-signal-warning/10 text-signal-warning',
-  PENDING: 'bg-fog text-slate',
-  FAILED: 'bg-signal-error/10 text-signal-error',
+const STATUS_TONE: Record<ReceiptStatus, 'success' | 'warning' | 'neutral' | 'danger'> = {
+  RECONCILED: 'success',
+  VERIFIED: 'warning',
+  PENDING: 'neutral',
+  FAILED: 'danger',
 };
 
 const METHOD_TAG: Record<ReceiptMethod, string> = {
@@ -69,52 +62,48 @@ export default function ReceiptsPage() {
   }, [query, statusFilter]);
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-8">
       {/* Header */}
       <header>
-        <p
-          className="font-mono text-[11px] font-medium uppercase tracking-[0.18em]"
-          style={{ color: 'rgb(var(--accent))' }}
-        >
-          Finance · Receipts
-        </p>
-        <h1 className="mt-2 font-display text-[clamp(1.75rem,3vw,2.25rem)] font-medium tracking-tight text-obsidian">
-          Every payment, receipted.
+        <p className="text-small text-muted">Finance · receipts</p>
+        <h1 className="mt-1 text-[clamp(1.75rem,3vw,2.25rem)] font-bold leading-tight tracking-tight text-ink">
+          Every payment, receipted
         </h1>
-        <p className="mt-2 max-w-[72ch] font-sans text-[14px] text-slate">
+        <p className="mt-2 max-w-[72ch] text-small text-muted">
           Every method — bank slip, EcoCash, OneMoney, ZIPIT, cash, card — produces a unique,
           attributable, immutable receipt. Reconciled lines are traceable back to the bank statement.
         </p>
       </header>
 
       {/* KPIs */}
-      <div className="grid grid-cols-2 gap-3 md:grid-cols-4">
-        <KpiCard
+      <ul className="grid grid-cols-2 gap-3 md:grid-cols-4">
+        <KpiTile
           label="Reconciled (7 days)"
-          value={`$${RECEIPTS_KPIS.last7DaysAmount.toLocaleString('en-ZW')}`}
+          value={`USD ${RECEIPTS_KPIS.last7DaysAmount.toLocaleString('en-ZW')}`}
           sub={`${RECEIPTS_KPIS.last7DaysCount} receipts · all methods`}
+          tone="success"
         />
-        <KpiCard
+        <KpiTile
           label="Awaiting statement"
           value={String(RECEIPTS_KPIS.pendingReconcile)}
           sub="Verified · auto-reconciled at 06:00"
           tone="warning"
         />
-        <KpiCard
+        <KpiTile
           label="Failed"
           value={String(RECEIPTS_KPIS.failedCount)}
           sub="Returned to parent for reupload"
-          tone="error"
+          tone="danger"
         />
-        <KpiCard label="Avg ref→recon" value="2h 14m" sub="–34 min vs last week" tone="accent" />
-      </div>
+        <KpiTile label="Avg ref→recon" value="2h 14m" sub="–34 min vs last week" tone="brand" />
+      </ul>
 
       {/* Toolbar */}
-      <div className="flex flex-wrap items-center gap-3 rounded-md border border-mist bg-snow p-3">
-        <div className="relative flex-1 min-w-[220px]">
+      <div className="flex flex-wrap items-center gap-2 rounded-lg border border-line bg-card p-3 shadow-card-sm">
+        <div className="relative min-w-[220px] flex-1">
           <Search
-            className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-steel"
-            strokeWidth={1.5}
+            className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted"
+            strokeWidth={1.75}
             aria-hidden
           />
           <input
@@ -122,18 +111,18 @@ export default function ReceiptsPage() {
             value={query}
             onChange={(e) => setQuery(e.target.value)}
             placeholder="Search by reference, student, invoice or method…"
-            className="h-10 w-full rounded-md border border-mist bg-snow pl-9 pr-3 font-sans text-[13px] text-obsidian placeholder-steel focus:outline-none"
+            className="h-10 w-full rounded-full border border-line bg-surface/40 pl-9 pr-3 text-small text-ink placeholder:text-muted focus:border-brand-primary focus:outline-none focus:ring-2 focus:ring-brand-primary/20"
           />
         </div>
-        <div className="flex items-center gap-1 rounded-md border border-mist bg-fog p-0.5 font-mono text-[11px] font-medium uppercase tracking-[0.1em]">
+        <div className="inline-flex items-center gap-1 rounded-full bg-surface p-1">
           {(['ALL', 'RECONCILED', 'VERIFIED', 'FAILED'] as const).map((s) => (
             <button
               key={s}
               type="button"
               onClick={() => setStatusFilter(s)}
               className={[
-                'rounded-sm px-2.5 py-1 transition-colors',
-                statusFilter === s ? 'bg-obsidian text-snow' : 'text-slate hover:text-obsidian',
+                'rounded-full px-3 py-1 text-micro font-semibold transition-colors',
+                statusFilter === s ? 'bg-card text-ink shadow-card-sm' : 'text-muted hover:text-ink',
               ].join(' ')}
             >
               {s.toLowerCase()}
@@ -142,118 +131,106 @@ export default function ReceiptsPage() {
         </div>
         <button
           type="button"
-          className="inline-flex h-10 items-center gap-2 rounded-md border border-mist bg-snow px-3 font-sans text-[13px] font-medium text-slate hover:bg-fog"
+          className="inline-flex h-10 items-center gap-2 rounded-full border border-line bg-card px-3 text-micro font-semibold text-ink transition-colors hover:bg-surface"
         >
-          <Filter className="h-3.5 w-3.5" strokeWidth={1.5} aria-hidden />
+          <Filter className="h-3.5 w-3.5" strokeWidth={1.75} aria-hidden />
           More filters
         </button>
         <button
           type="button"
-          className="inline-flex h-10 items-center gap-2 rounded-md border border-mist bg-snow px-3 font-sans text-[13px] font-medium text-slate hover:bg-fog"
+          className="inline-flex h-10 items-center gap-2 rounded-full border border-line bg-card px-3 text-micro font-semibold text-ink transition-colors hover:bg-surface"
         >
-          <Download className="h-3.5 w-3.5" strokeWidth={1.5} aria-hidden />
+          <Download className="h-3.5 w-3.5" strokeWidth={1.75} aria-hidden />
           Export CSV
         </button>
       </div>
 
-      {/* Main grid: receipts table + detail drawer */}
+      {/* Main grid */}
       <div className="grid grid-cols-1 gap-6 xl:grid-cols-3">
         <section className="xl:col-span-2">
-          <div className="overflow-hidden rounded-md border border-mist bg-snow">
-            <div className="flex items-center justify-between border-b border-mist px-5 py-3">
-              <p className="font-sans text-[13px] font-medium text-obsidian">
-                {filtered.length} receipts
-              </p>
-              <p className="font-mono text-[11px] uppercase tracking-[0.1em] text-steel">
-                Click a row to inspect
-              </p>
+          <div className="overflow-hidden rounded-lg border border-line bg-card shadow-card-sm">
+            <header className="flex items-center justify-between border-b border-line px-5 py-3.5">
+              <p className="text-small font-semibold text-ink">{filtered.length} receipts</p>
+              <p className="text-micro text-muted">Click a row to inspect</p>
+            </header>
+            <div className="overflow-x-auto">
+              <table className="w-full text-small">
+                <thead>
+                  <tr className="border-b border-line bg-surface/60 text-left">
+                    <th className="px-4 py-2.5 text-micro font-semibold uppercase tracking-[0.1em] text-muted">
+                      Reference
+                    </th>
+                    <th className="px-4 py-2.5 text-micro font-semibold uppercase tracking-[0.1em] text-muted">
+                      Student
+                    </th>
+                    <th className="px-4 py-2.5 text-micro font-semibold uppercase tracking-[0.1em] text-muted">
+                      Method
+                    </th>
+                    <th className="px-4 py-2.5 text-right text-micro font-semibold uppercase tracking-[0.1em] text-muted">
+                      Amount
+                    </th>
+                    <th className="px-4 py-2.5 text-micro font-semibold uppercase tracking-[0.1em] text-muted">
+                      Status
+                    </th>
+                    <th className="px-4 py-2.5 text-micro font-semibold uppercase tracking-[0.1em] text-muted">
+                      When
+                    </th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {filtered.map((r) => {
+                    const activeRow = selected?.id === r.id;
+                    return (
+                      <tr
+                        key={r.id}
+                        onClick={() => setSelected(r)}
+                        className={[
+                          'cursor-pointer border-b border-line/60 transition-colors',
+                          activeRow ? 'bg-brand-primary/[0.06]' : 'hover:bg-surface/40',
+                        ].join(' ')}
+                      >
+                        <td className="px-4 py-3">
+                          <p className="font-mono text-micro text-ink">{r.ref}</p>
+                          <p className="font-mono text-micro uppercase tracking-[0.08em] text-muted">
+                            {r.invoiceRef}
+                          </p>
+                        </td>
+                        <td className="px-4 py-3">
+                          <p className="text-small font-semibold text-ink">{r.studentName}</p>
+                          <p className="font-mono text-micro uppercase tracking-[0.08em] text-muted">
+                            {r.form}
+                          </p>
+                        </td>
+                        <td className="px-4 py-3">
+                          <Badge tone="neutral">{METHOD_TAG[r.method]}</Badge>
+                        </td>
+                        <td className="px-4 py-3 text-right">
+                          <p className="text-small font-bold tabular-nums text-ink">
+                            USD {r.amount.toLocaleString('en-ZW')}
+                          </p>
+                        </td>
+                        <td className="px-4 py-3">
+                          <Badge tone={STATUS_TONE[r.status]} dot>
+                            {r.status.toLowerCase()}
+                          </Badge>
+                        </td>
+                        <td className="px-4 py-3 text-micro text-muted">
+                          {new Date(r.issuedAt).toLocaleString('en-ZW', {
+                            day: '2-digit',
+                            month: 'short',
+                            hour: '2-digit',
+                            minute: '2-digit',
+                          })}
+                        </td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
             </div>
-            <table className="w-full text-sm">
-              <thead>
-                <tr className="border-b border-mist bg-fog/50">
-                  <th className="px-4 py-2.5 text-left font-mono text-[11px] font-medium uppercase tracking-[0.12em] text-slate">
-                    Reference
-                  </th>
-                  <th className="px-4 py-2.5 text-left font-mono text-[11px] font-medium uppercase tracking-[0.12em] text-slate">
-                    Student
-                  </th>
-                  <th className="px-4 py-2.5 text-left font-mono text-[11px] font-medium uppercase tracking-[0.12em] text-slate">
-                    Method
-                  </th>
-                  <th className="px-4 py-2.5 text-right font-mono text-[11px] font-medium uppercase tracking-[0.12em] text-slate">
-                    Amount
-                  </th>
-                  <th className="px-4 py-2.5 text-left font-mono text-[11px] font-medium uppercase tracking-[0.12em] text-slate">
-                    Status
-                  </th>
-                  <th className="px-4 py-2.5 text-left font-mono text-[11px] font-medium uppercase tracking-[0.12em] text-slate">
-                    When
-                  </th>
-                </tr>
-              </thead>
-              <tbody>
-                {filtered.map((r) => {
-                  const active = selected?.id === r.id;
-                  return (
-                    <tr
-                      key={r.id}
-                      onClick={() => setSelected(r)}
-                      className={[
-                        'cursor-pointer border-b border-mist/60 transition-colors',
-                        active ? 'bg-fog' : 'hover:bg-fog/60',
-                      ].join(' ')}
-                    >
-                      <td className="px-4 py-3">
-                        <p className="font-mono text-[12px] text-obsidian">{r.ref}</p>
-                        <p className="font-mono text-[10px] uppercase tracking-[0.08em] text-steel">
-                          {r.invoiceRef}
-                        </p>
-                      </td>
-                      <td className="px-4 py-3">
-                        <p className="font-sans text-[13px] font-medium text-obsidian">
-                          {r.studentName}
-                        </p>
-                        <p className="font-mono text-[10px] uppercase tracking-[0.08em] text-steel">
-                          {r.form}
-                        </p>
-                      </td>
-                      <td className="px-4 py-3">
-                        <span className="inline-flex items-center rounded-sm bg-fog px-1.5 py-0.5 font-mono text-[10px] font-medium uppercase tracking-[0.1em] text-slate">
-                          {METHOD_TAG[r.method]}
-                        </span>
-                      </td>
-                      <td className="px-4 py-3 text-right">
-                        <p className="font-mono text-[13px] tabular-nums text-obsidian">
-                          ${r.amount.toLocaleString('en-ZW')}
-                        </p>
-                      </td>
-                      <td className="px-4 py-3">
-                        <span
-                          className={[
-                            'inline-flex items-center rounded-sm px-2 py-0.5 font-mono text-[10px] font-medium uppercase tracking-[0.12em]',
-                            STATUS_TONE[r.status],
-                          ].join(' ')}
-                        >
-                          {r.status.toLowerCase()}
-                        </span>
-                      </td>
-                      <td className="px-4 py-3 font-mono text-[11px] uppercase tracking-[0.08em] text-steel">
-                        {new Date(r.issuedAt).toLocaleString('en-ZW', {
-                          day: '2-digit',
-                          month: 'short',
-                          hour: '2-digit',
-                          minute: '2-digit',
-                        })}
-                      </td>
-                    </tr>
-                  );
-                })}
-              </tbody>
-            </table>
           </div>
         </section>
 
-        {/* Detail drawer */}
         <section className="xl:col-span-1">
           {selected ? <ReceiptDetail receipt={selected} /> : <DetailPlaceholder />}
         </section>
@@ -262,90 +239,76 @@ export default function ReceiptsPage() {
   );
 }
 
-function KpiCard({
+function KpiTile({
   label,
   value,
   sub,
-  tone = 'default',
+  tone,
 }: {
   label: string;
   value: string;
   sub: string;
-  tone?: 'default' | 'accent' | 'warning' | 'error';
+  tone?: 'brand' | 'success' | 'warning' | 'danger';
 }) {
-  const border =
-    tone === 'accent'
-      ? 'border-t-[3px] border-t-[rgb(var(--accent))]'
-      : tone === 'warning'
-      ? 'border-t-[3px] border-t-signal-warning'
-      : tone === 'error'
-      ? 'border-t-[3px] border-t-signal-error'
-      : 'border-t-[3px] border-t-mist';
+  const valueColor =
+    tone === 'warning'
+      ? 'text-warning'
+      : tone === 'success'
+      ? 'text-success'
+      : tone === 'danger'
+      ? 'text-danger'
+      : tone === 'brand'
+      ? 'text-brand-primary'
+      : 'text-ink';
   return (
-    <div className={`rounded-md border border-mist bg-snow p-4 ${border}`}>
-      <p className="font-mono text-[11px] font-medium uppercase tracking-[0.12em] text-slate">
-        {label}
-      </p>
-      <p className="mt-2 font-display text-[26px] font-medium leading-none text-obsidian tabular-nums">
-        {value}
-      </p>
-      <p className="mt-2 font-sans text-[12px] text-steel">{sub}</p>
-    </div>
+    <li className="rounded-lg border border-line bg-card p-5 shadow-card-sm">
+      <p className="text-micro font-semibold uppercase tracking-[0.12em] text-muted">{label}</p>
+      <p className={`mt-2 text-h2 tabular-nums ${valueColor}`}>{value}</p>
+      <p className="mt-1 text-micro text-muted">{sub}</p>
+    </li>
   );
 }
 
 function ReceiptDetail({ receipt }: { receipt: SchoolReceipt }) {
   const reconciled = receipt.status === 'RECONCILED';
   return (
-    <article className="overflow-hidden rounded-md border border-mist bg-snow">
-      <div className="flex items-center justify-between border-b border-mist px-5 py-4">
+    <article className="overflow-hidden rounded-lg border border-line bg-card shadow-card-sm">
+      <div className="flex items-center justify-between border-b border-line px-5 py-4">
         <div>
-          <p
-            className="font-mono text-[11px] font-medium uppercase tracking-[0.14em]"
-            style={{ color: 'rgb(var(--accent))' }}
-          >
+          <p className="text-micro font-semibold uppercase tracking-[0.12em] text-brand-primary">
             Receipt
           </p>
-          <p className="font-mono text-[14px] text-obsidian">{receipt.ref}</p>
+          <p className="mt-1 font-mono text-small text-ink">{receipt.ref}</p>
         </div>
-        <span
-          className={[
-            'inline-flex items-center gap-1 rounded-sm px-2 py-0.5 font-mono text-[10px] font-medium uppercase tracking-[0.12em]',
-            STATUS_TONE[receipt.status],
-          ].join(' ')}
-        >
+        <Badge tone={STATUS_TONE[receipt.status]} dot>
           {reconciled ? (
-            <CheckCircle2 className="h-3 w-3" strokeWidth={2} aria-hidden />
+            <CheckCircle2 className="mr-1 inline-block h-3 w-3" strokeWidth={2} aria-hidden />
           ) : receipt.status === 'FAILED' ? (
-            <XCircle className="h-3 w-3" strokeWidth={2} aria-hidden />
+            <XCircle className="mr-1 inline-block h-3 w-3" strokeWidth={2} aria-hidden />
           ) : (
-            <Clock className="h-3 w-3" strokeWidth={2} aria-hidden />
+            <Clock className="mr-1 inline-block h-3 w-3" strokeWidth={2} aria-hidden />
           )}
           {receipt.status.toLowerCase()}
-        </span>
+        </Badge>
       </div>
 
       <div className="px-5 py-5">
-        {/* Figure */}
-        <div className="flex items-end justify-between border-b border-mist pb-4">
+        <div className="flex items-end justify-between border-b border-line pb-4">
           <div>
-            <p className="font-mono text-[10px] uppercase tracking-[0.14em] text-steel">Amount</p>
-            <p className="mt-1 font-display text-[36px] font-medium leading-none text-obsidian tabular-nums">
-              ${receipt.amount.toLocaleString('en-ZW')}
+            <p className="text-micro font-semibold uppercase tracking-[0.12em] text-muted">Amount</p>
+            <p className="mt-1 text-[2.25rem] font-bold leading-none tabular-nums text-ink">
+              USD {receipt.amount.toLocaleString('en-ZW')}
             </p>
-            <p className="mt-1 font-mono text-[11px] uppercase tracking-[0.1em] text-steel">
+            <p className="mt-1 text-micro uppercase tracking-[0.1em] text-muted">
               {receipt.currency}
             </p>
           </div>
-          <ReceiptIcon
-            className="h-10 w-10 text-mist"
-            strokeWidth={1}
-            aria-hidden
-          />
+          <span className="inline-flex h-12 w-12 items-center justify-center rounded-md bg-brand-primary/10 text-brand-primary">
+            <ReceiptIcon className="h-6 w-6" strokeWidth={1.75} aria-hidden />
+          </span>
         </div>
 
-        {/* Detail rows */}
-        <dl className="mt-4 space-y-3 font-sans text-[13px]">
+        <dl className="mt-4 space-y-3 text-small">
           <Row label="Student" value={receipt.studentName} sub={receipt.form} />
           <Row label="Invoice" value={receipt.invoiceRef} mono />
           <Row label="Method" value={receipt.method} />
@@ -360,40 +323,37 @@ function ReceiptDetail({ receipt }: { receipt: SchoolReceipt }) {
             })}
             sub={`by ${receipt.issuedBy}`}
           />
-          {receipt.slipId ? (
-            <Row label="Slip" value={receipt.slipId} mono />
-          ) : null}
+          {receipt.slipId ? <Row label="Slip" value={receipt.slipId} mono /> : null}
           {receipt.notes ? (
             <div>
-              <p className="font-mono text-[10px] uppercase tracking-[0.14em] text-steel">Notes</p>
-              <p className="mt-1 font-sans text-[13px] text-slate">{receipt.notes}</p>
+              <p className="text-micro font-semibold uppercase tracking-[0.12em] text-muted">Notes</p>
+              <p className="mt-1 text-small text-ink">{receipt.notes}</p>
             </div>
           ) : null}
         </dl>
 
-        {/* Actions */}
         <div className="mt-5 flex flex-wrap items-center gap-2">
           <button
             type="button"
-            className="inline-flex h-9 items-center gap-2 rounded-md border border-mist bg-snow px-3 font-sans text-[13px] font-medium text-slate hover:bg-fog"
+            className="inline-flex h-10 items-center gap-2 rounded-full border border-line bg-card px-3 text-micro font-semibold text-ink transition-colors hover:bg-surface"
           >
-            <Download className="h-3.5 w-3.5" strokeWidth={1.5} aria-hidden />
+            <Download className="h-3.5 w-3.5" strokeWidth={1.75} aria-hidden />
             PDF
           </button>
           <button
             type="button"
-            className="inline-flex h-9 items-center gap-2 rounded-md border border-mist bg-snow px-3 font-sans text-[13px] font-medium text-slate hover:bg-fog"
+            className="inline-flex h-10 items-center gap-2 rounded-full border border-line bg-card px-3 text-micro font-semibold text-ink transition-colors hover:bg-surface"
           >
-            <Printer className="h-3.5 w-3.5" strokeWidth={1.5} aria-hidden />
+            <Printer className="h-3.5 w-3.5" strokeWidth={1.75} aria-hidden />
             Print
           </button>
           {receipt.slipId ? (
             <a
               href={`/admin/slips?slip=${receipt.slipId}`}
-              className="ml-auto inline-flex items-center gap-1 font-mono text-[11px] font-medium uppercase tracking-[0.1em] text-obsidian hover:opacity-70"
+              className="ml-auto inline-flex items-center gap-1 text-micro font-semibold text-brand-primary transition-colors hover:underline underline-offset-4"
             >
               Open slip
-              <ArrowUpRight className="h-3 w-3" strokeWidth={1.5} aria-hidden />
+              <ArrowUpRight className="h-3 w-3" strokeWidth={1.75} aria-hidden />
             </a>
           ) : null}
         </div>
@@ -415,18 +375,18 @@ function Row({
 }) {
   return (
     <div className="flex items-start justify-between gap-4">
-      <dt className="font-mono text-[10px] uppercase tracking-[0.14em] text-steel">{label}</dt>
+      <dt className="text-micro font-semibold uppercase tracking-[0.12em] text-muted">{label}</dt>
       <dd className="text-right">
         <span
           className={[
-            'font-medium text-obsidian',
-            mono ? 'font-mono text-[12px]' : 'font-sans text-[13px]',
+            'font-semibold text-ink',
+            mono ? 'font-mono text-micro' : 'text-small',
           ].join(' ')}
         >
           {value}
         </span>
         {sub ? (
-          <span className="block font-mono text-[11px] uppercase tracking-[0.08em] text-steel">
+          <span className="block font-mono text-micro uppercase tracking-[0.08em] text-muted">
             {sub}
           </span>
         ) : null}
@@ -437,12 +397,10 @@ function Row({
 
 function DetailPlaceholder() {
   return (
-    <div className="flex h-full items-center justify-center rounded-md border border-dashed border-mist bg-snow p-10 text-center">
+    <div className="flex h-full items-center justify-center rounded-lg border border-dashed border-line bg-card p-10 text-center">
       <div>
-        <ReceiptIcon className="mx-auto h-10 w-10 text-mist" strokeWidth={1} aria-hidden />
-        <p className="mt-3 font-sans text-[14px] text-slate">
-          Select a receipt to inspect
-        </p>
+        <ReceiptIcon className="mx-auto h-10 w-10 text-muted" strokeWidth={1.25} aria-hidden />
+        <p className="mt-3 text-small text-muted">Select a receipt to inspect</p>
       </div>
     </div>
   );

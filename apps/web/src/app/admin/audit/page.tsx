@@ -12,21 +12,14 @@ import {
   User,
 } from 'lucide-react';
 
+import { Badge } from '@/components/ui/badge';
 import { AUDIT_LOG, type AuditEntry, type AuditSeverity } from '@/lib/mock/school';
 
-/**
- * Audit log — every privileged write, attributable and immutable.
- *
- * Satisfies Section 10 of the proposal and the Data Protection Act
- * Chapter 11:24. Live tail on the left, selectable row detail on the
- * right.
- */
-
-const SEVERITY_TONE: Record<AuditSeverity, string> = {
-  INFO: 'bg-fog text-slate',
-  NOTICE: 'bg-signal-success/10 text-signal-success',
-  WARNING: 'bg-signal-warning/10 text-signal-warning',
-  ALERT: 'bg-signal-error/10 text-signal-error',
+const SEVERITY_TONE: Record<AuditSeverity, 'neutral' | 'success' | 'warning' | 'danger'> = {
+  INFO: 'neutral',
+  NOTICE: 'success',
+  WARNING: 'warning',
+  ALERT: 'danger',
 };
 
 const ROLE_LABEL: Record<AuditEntry['actorRole'], string> = {
@@ -67,18 +60,14 @@ export default function AuditLogPage() {
   }, []);
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-8">
+      {/* Header */}
       <header>
-        <p
-          className="font-mono text-[11px] font-medium uppercase tracking-[0.18em]"
-          style={{ color: 'rgb(var(--accent))' }}
-        >
-          Compliance · Audit log
-        </p>
-        <h1 className="mt-2 font-display text-[clamp(1.75rem,3vw,2.25rem)] font-medium tracking-tight text-obsidian">
-          Every privileged write, on the record.
+        <p className="text-small text-muted">Compliance · audit log</p>
+        <h1 className="mt-1 text-[clamp(1.75rem,3vw,2.25rem)] font-bold leading-tight tracking-tight text-ink">
+          Every privileged write, on the record
         </h1>
-        <p className="mt-2 max-w-[78ch] font-sans text-[14px] text-slate">
+        <p className="mt-2 max-w-[78ch] text-small text-muted">
           Attributable. Immutable. Retained 7 years. Satisfies Section 10 of the proposal and
           complies with the Data Protection Act [Chapter 11:24]. Exports are hash-stamped so
           regulators can verify authenticity.
@@ -86,42 +75,46 @@ export default function AuditLogPage() {
       </header>
 
       {/* Severity summary */}
-      <div className="grid grid-cols-2 gap-3 md:grid-cols-4">
+      <ul className="grid grid-cols-2 gap-3 md:grid-cols-4">
         <SeverityTile
-          icon={<Info className="h-5 w-5" strokeWidth={1.5} aria-hidden />}
+          icon={<Info className="h-5 w-5" strokeWidth={1.75} aria-hidden />}
+          iconTone="info"
           label="Info"
           count={counts.INFO}
           sub="Routine writes · OK to tail"
         />
         <SeverityTile
-          icon={<ShieldCheck className="h-5 w-5" strokeWidth={1.5} aria-hidden />}
+          icon={<ShieldCheck className="h-5 w-5" strokeWidth={1.75} aria-hidden />}
+          iconTone="success"
           label="Notice"
           count={counts.NOTICE}
           sub="Signed decisions · publish events"
-          tone="success"
+          valueTone="success"
         />
         <SeverityTile
-          icon={<Bell className="h-5 w-5" strokeWidth={1.5} aria-hidden />}
+          icon={<Bell className="h-5 w-5" strokeWidth={1.75} aria-hidden />}
+          iconTone="warning"
           label="Warning"
           count={counts.WARNING}
           sub="Unlocks · failed auth · delays"
-          tone="warning"
+          valueTone="warning"
         />
         <SeverityTile
-          icon={<ShieldAlert className="h-5 w-5" strokeWidth={1.5} aria-hidden />}
+          icon={<ShieldAlert className="h-5 w-5" strokeWidth={1.75} aria-hidden />}
+          iconTone="danger"
           label="Alert"
           count={counts.ALERT}
           sub="Financial waivers · data changes"
-          tone="error"
+          valueTone="danger"
         />
-      </div>
+      </ul>
 
       {/* Toolbar */}
-      <div className="flex flex-wrap items-center gap-3 rounded-md border border-mist bg-snow p-3">
-        <div className="relative flex-1 min-w-[240px]">
+      <div className="flex flex-wrap items-center gap-2 rounded-lg border border-line bg-card p-3 shadow-card-sm">
+        <div className="relative min-w-[240px] flex-1">
           <Search
-            className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-steel"
-            strokeWidth={1.5}
+            className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted"
+            strokeWidth={1.75}
             aria-hidden
           />
           <input
@@ -129,18 +122,18 @@ export default function AuditLogPage() {
             value={query}
             onChange={(e) => setQuery(e.target.value)}
             placeholder="Search actor, action, resource or summary…"
-            className="h-10 w-full rounded-md border border-mist bg-snow pl-9 pr-3 font-sans text-[13px] text-obsidian placeholder-steel focus:outline-none"
+            className="h-10 w-full rounded-full border border-line bg-surface/40 pl-9 pr-3 text-small text-ink placeholder:text-muted focus:border-brand-primary focus:outline-none focus:ring-2 focus:ring-brand-primary/20"
           />
         </div>
-        <div className="flex items-center gap-1 rounded-md border border-mist bg-fog p-0.5 font-mono text-[11px] font-medium uppercase tracking-[0.1em]">
+        <div className="inline-flex items-center gap-1 rounded-full bg-surface p-1">
           {(['ALL', 'INFO', 'NOTICE', 'WARNING', 'ALERT'] as const).map((s) => (
             <button
               key={s}
               type="button"
               onClick={() => setSeverity(s)}
               className={[
-                'rounded-sm px-2.5 py-1 transition-colors',
-                severity === s ? 'bg-obsidian text-snow' : 'text-slate hover:text-obsidian',
+                'rounded-full px-3 py-1 text-micro font-semibold transition-colors',
+                severity === s ? 'bg-card text-ink shadow-card-sm' : 'text-muted hover:text-ink',
               ].join(' ')}
             >
               {s.toLowerCase()}
@@ -149,9 +142,9 @@ export default function AuditLogPage() {
         </div>
         <button
           type="button"
-          className="inline-flex h-10 items-center gap-2 rounded-md border border-mist bg-snow px-3 font-sans text-[13px] font-medium text-slate hover:bg-fog"
+          className="inline-flex h-10 items-center gap-2 rounded-full border border-line bg-card px-3 text-micro font-semibold text-ink transition-colors hover:bg-surface"
         >
-          <Download className="h-3.5 w-3.5" strokeWidth={1.5} aria-hidden />
+          <Download className="h-3.5 w-3.5" strokeWidth={1.75} aria-hidden />
           Export (hash-stamped)
         </button>
       </div>
@@ -159,18 +152,16 @@ export default function AuditLogPage() {
       {/* Main grid */}
       <div className="grid grid-cols-1 gap-6 xl:grid-cols-3">
         <section className="xl:col-span-2">
-          <div className="overflow-hidden rounded-md border border-mist bg-snow">
-            <div className="flex items-center justify-between border-b border-mist px-5 py-3">
-              <p className="font-sans text-[13px] font-medium text-obsidian">
+          <div className="overflow-hidden rounded-lg border border-line bg-card shadow-card-sm">
+            <header className="flex items-center justify-between border-b border-line px-5 py-3.5">
+              <p className="text-small font-semibold text-ink">
                 {filtered.length} entries · last 24 hours
               </p>
-              <p className="font-mono text-[11px] uppercase tracking-[0.1em] text-steel">
-                Newest first
-              </p>
-            </div>
-            <ul className="divide-y divide-mist">
+              <p className="text-micro text-muted">Newest first</p>
+            </header>
+            <ul className="divide-y divide-line">
               {filtered.map((a) => {
-                const active = selected?.id === a.id;
+                const activeRow = selected?.id === a.id;
                 return (
                   <li key={a.id}>
                     <button
@@ -178,31 +169,26 @@ export default function AuditLogPage() {
                       onClick={() => setSelected(a)}
                       className={[
                         'flex w-full items-start gap-4 px-5 py-3 text-left transition-colors',
-                        active ? 'bg-fog' : 'hover:bg-fog/60',
+                        activeRow ? 'bg-brand-primary/[0.06]' : 'hover:bg-surface/40',
                       ].join(' ')}
                     >
-                      <span
-                        className={[
-                          'inline-flex items-center rounded-sm px-2 py-0.5 font-mono text-[10px] font-medium uppercase tracking-[0.12em]',
-                          SEVERITY_TONE[a.severity],
-                        ].join(' ')}
-                      >
+                      <Badge tone={SEVERITY_TONE[a.severity]} dot>
                         {a.severity.toLowerCase()}
-                      </span>
+                      </Badge>
                       <div className="min-w-0 flex-1">
                         <div className="flex flex-wrap items-center gap-x-2 gap-y-1">
-                          <span className="font-mono text-[12px] text-obsidian">{a.action}</span>
-                          <span className="font-mono text-[10px] text-steel">·</span>
-                          <span className="font-sans text-[13px] text-obsidian">{a.actor}</span>
-                          <span className="font-mono text-[10px] uppercase tracking-[0.1em] text-steel">
+                          <span className="font-mono text-micro text-ink">{a.action}</span>
+                          <span className="text-micro text-muted">·</span>
+                          <span className="text-small font-semibold text-ink">{a.actor}</span>
+                          <span className="text-micro uppercase tracking-[0.1em] text-muted">
                             ({ROLE_LABEL[a.actorRole]})
                           </span>
                         </div>
-                        <p className="mt-0.5 truncate font-mono text-[11px] uppercase tracking-[0.08em] text-steel">
+                        <p className="mt-0.5 truncate font-mono text-micro uppercase tracking-[0.08em] text-muted">
                           {a.resourceLabel ?? a.resource}
                         </p>
                       </div>
-                      <span className="flex-none font-mono text-[11px] uppercase tracking-[0.08em] text-steel">
+                      <span className="flex-none text-micro text-muted">
                         {new Date(a.at).toLocaleString('en-ZW', {
                           day: '2-digit',
                           month: 'short',
@@ -228,78 +214,76 @@ export default function AuditLogPage() {
 
 function SeverityTile({
   icon,
+  iconTone,
   label,
   count,
   sub,
-  tone = 'default',
+  valueTone,
 }: {
   icon: React.ReactNode;
+  iconTone: 'info' | 'success' | 'warning' | 'danger';
   label: string;
   count: number;
   sub: string;
-  tone?: 'default' | 'success' | 'warning' | 'error';
+  valueTone?: 'success' | 'warning' | 'danger';
 }) {
-  const border =
-    tone === 'success'
-      ? 'border-t-[3px] border-t-signal-success'
-      : tone === 'warning'
-      ? 'border-t-[3px] border-t-signal-warning'
-      : tone === 'error'
-      ? 'border-t-[3px] border-t-signal-error'
-      : 'border-t-[3px] border-t-mist';
+  const iconBg: Record<typeof iconTone, string> = {
+    info: 'bg-info/10 text-info',
+    success: 'bg-success/10 text-success',
+    warning: 'bg-warning/10 text-warning',
+    danger: 'bg-danger/10 text-danger',
+  };
+  const valueColor =
+    valueTone === 'warning'
+      ? 'text-warning'
+      : valueTone === 'success'
+      ? 'text-success'
+      : valueTone === 'danger'
+      ? 'text-danger'
+      : 'text-ink';
   return (
-    <div className={`rounded-md border border-mist bg-snow p-4 ${border}`}>
+    <li className="rounded-lg border border-line bg-card p-5 shadow-card-sm">
       <div className="flex items-center justify-between">
-        <p className="font-mono text-[11px] font-medium uppercase tracking-[0.12em] text-slate">
-          {label}
-        </p>
-        <span className="text-slate">{icon}</span>
+        <p className="text-micro font-semibold uppercase tracking-[0.12em] text-muted">{label}</p>
+        <span className={`inline-flex h-9 w-9 items-center justify-center rounded-md ${iconBg[iconTone]}`}>
+          {icon}
+        </span>
       </div>
-      <p className="mt-2 font-display text-[26px] font-medium leading-none text-obsidian tabular-nums">
-        {count}
-      </p>
-      <p className="mt-2 font-sans text-[12px] text-steel">{sub}</p>
-    </div>
+      <p className={`mt-3 text-h2 tabular-nums ${valueColor}`}>{count}</p>
+      <p className="mt-1 text-micro text-muted">{sub}</p>
+    </li>
   );
 }
 
 function AuditDetail({ entry }: { entry: AuditEntry }) {
   return (
-    <article className="overflow-hidden rounded-md border border-mist bg-snow">
-      <div className="flex items-center justify-between border-b border-mist px-5 py-4">
+    <article className="overflow-hidden rounded-lg border border-line bg-card shadow-card-sm">
+      <div className="flex items-center justify-between border-b border-line px-5 py-4">
         <div>
-          <p
-            className="font-mono text-[11px] font-medium uppercase tracking-[0.14em]"
-            style={{ color: 'rgb(var(--accent))' }}
-          >
+          <p className="text-micro font-semibold uppercase tracking-[0.12em] text-brand-primary">
             Entry
           </p>
-          <p className="font-mono text-[14px] text-obsidian">{entry.id}</p>
+          <p className="mt-1 font-mono text-small text-ink">{entry.id}</p>
         </div>
-        <span
-          className={[
-            'inline-flex items-center gap-1 rounded-sm px-2 py-0.5 font-mono text-[10px] font-medium uppercase tracking-[0.12em]',
-            SEVERITY_TONE[entry.severity],
-          ].join(' ')}
-        >
+        <Badge tone={SEVERITY_TONE[entry.severity]} dot>
           {entry.severity === 'ALERT' ? (
-            <AlertTriangle className="h-3 w-3" strokeWidth={2} aria-hidden />
+            <AlertTriangle className="mr-1 inline-block h-3 w-3" strokeWidth={2} aria-hidden />
           ) : null}
           {entry.severity.toLowerCase()}
-        </span>
+        </Badge>
       </div>
 
-      <div className="px-5 py-5 space-y-4">
-        <div className="flex items-center gap-3 rounded-md bg-fog px-3 py-3">
+      <div className="space-y-4 px-5 py-5">
+        <div className="flex items-center gap-3 rounded-md bg-surface/60 px-3 py-3">
           <span
-            className="flex h-10 w-10 flex-none items-center justify-center rounded-full bg-obsidian text-snow"
+            className="flex h-10 w-10 flex-none items-center justify-center rounded-full bg-ink text-white"
             aria-hidden
           >
-            <User className="h-4 w-4" strokeWidth={1.5} />
+            <User className="h-4 w-4" strokeWidth={1.75} />
           </span>
           <div>
-            <p className="font-sans text-[14px] font-medium text-obsidian">{entry.actor}</p>
-            <p className="font-mono text-[11px] uppercase tracking-[0.1em] text-steel">
+            <p className="text-small font-semibold text-ink">{entry.actor}</p>
+            <p className="text-micro uppercase tracking-[0.1em] text-muted">
               {ROLE_LABEL[entry.actorRole]}
               {entry.ip ? ` · ${entry.ip}` : ''}
             </p>
@@ -330,16 +314,18 @@ function AuditDetail({ entry }: { entry: AuditEntry }) {
 
         {entry.summary ? (
           <div>
-            <p className="font-mono text-[10px] uppercase tracking-[0.14em] text-steel">Summary</p>
-            <p className="mt-1 font-sans text-[13px] leading-relaxed text-slate">{entry.summary}</p>
+            <p className="text-micro font-semibold uppercase tracking-[0.12em] text-muted">
+              Summary
+            </p>
+            <p className="mt-1 text-small leading-relaxed text-ink">{entry.summary}</p>
           </div>
         ) : null}
 
-        <div className="rounded-md border border-mist bg-fog/50 px-3 py-2.5">
-          <p className="font-mono text-[10px] uppercase tracking-[0.12em] text-steel">
+        <div className="rounded-md border border-line bg-surface/40 px-3 py-2.5">
+          <p className="text-micro font-semibold uppercase tracking-[0.12em] text-muted">
             Tamper-evident hash
           </p>
-          <p className="mt-0.5 break-all font-mono text-[11px] text-slate">
+          <p className="mt-0.5 break-all font-mono text-micro text-ink">
             sha256:9f4a…{entry.id.slice(-4)}…c8e2
           </p>
         </div>
@@ -361,18 +347,18 @@ function Row({
 }) {
   return (
     <div className="flex items-start justify-between gap-4">
-      <dt className="font-mono text-[10px] uppercase tracking-[0.14em] text-steel">{label}</dt>
+      <dt className="text-micro font-semibold uppercase tracking-[0.12em] text-muted">{label}</dt>
       <dd className="max-w-[60%] text-right">
         <span
           className={[
-            'font-medium text-obsidian break-words',
-            mono ? 'font-mono text-[12px]' : 'font-sans text-[13px]',
+            'font-semibold text-ink break-words',
+            mono ? 'font-mono text-micro' : 'text-small',
           ].join(' ')}
         >
           {value}
         </span>
         {sub ? (
-          <span className="block break-words font-mono text-[11px] uppercase tracking-[0.08em] text-steel">
+          <span className="block break-words font-mono text-micro uppercase tracking-[0.08em] text-muted">
             {sub}
           </span>
         ) : null}
@@ -383,8 +369,8 @@ function Row({
 
 function DetailPlaceholder() {
   return (
-    <div className="flex h-full items-center justify-center rounded-md border border-dashed border-mist bg-snow p-10 text-center">
-      <p className="font-sans text-[14px] text-slate">Select an entry to inspect</p>
+    <div className="flex h-full items-center justify-center rounded-lg border border-dashed border-line bg-card p-10 text-center">
+      <p className="text-small text-muted">Select an entry to inspect</p>
     </div>
   );
 }
