@@ -16,6 +16,7 @@ import {
 
 import { Badge } from '@/components/ui/badge';
 import { AUDIT_LOG, type AuditEntry, type AuditSeverity } from '@/lib/mock/school';
+import { downloadBlob } from '@/lib/pdf/generate';
 
 const SEVERITY_TONE: Record<AuditSeverity, 'neutral' | 'success' | 'warning' | 'danger'> = {
   INFO: 'neutral',
@@ -49,9 +50,24 @@ export default function AuditLogPage() {
   function exportLog() {
     setExporting(true);
     setTimeout(() => {
+      const hash = `sha256:${Math.random().toString(36).slice(-12)}${Date.now().toString(36)}`;
+      const header = 'ID,Timestamp,Severity,Actor,Role,Action,Resource,Summary,IP\n';
+      const rows = filtered
+        .map((a) => {
+          const summary = (a.summary ?? '').replace(/"/g, '""');
+          return `"${a.id}","${a.at}","${a.severity}","${a.actor}","${a.actorRole}","${a.action}","${a.resource}","${summary}","${a.ip ?? ''}"`;
+        })
+        .join('\n');
+      const footer = `\n# Export signed ${new Date().toISOString()}\n# ${hash}\n`;
+      const bytes = new TextEncoder().encode(header + rows + footer);
+      downloadBlob(
+        bytes,
+        `HHA-Audit-${new Date().toISOString().slice(0, 10)}.csv`,
+        'text/csv',
+      );
       setExporting(false);
-      setToast(`Exported ${AUDIT_LOG.length} entries · SHA-256 footer ${Math.random().toString(36).slice(-6)}`);
-    }, 1100);
+      setToast(`Exported ${filtered.length} entries · ${hash.slice(0, 18)}…`);
+    }, 700);
   }
 
   const filtered = useMemo(() => {

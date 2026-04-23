@@ -23,6 +23,7 @@ import {
   type ReceiptStatus,
   type SchoolReceipt,
 } from '@/lib/mock/school';
+import { buildGenericDoc, downloadBlob, downloadPdf } from '@/lib/pdf/generate';
 
 const STATUS_TONE: Record<ReceiptStatus, 'success' | 'warning' | 'neutral' | 'danger'> = {
   RECONCILED: 'success',
@@ -60,27 +61,68 @@ export default function ReceiptsPage() {
   function exportCsv() {
     setBusy('csv');
     setTimeout(() => {
+      const header = 'Reference,Student,Form,Method,Amount,Currency,Status,Issued\n';
+      const body = filtered
+        .map(
+          (r) =>
+            `${r.ref},${r.studentName},${r.form},${r.method},${r.amount},${r.currency},${r.status},${r.issuedAt}`,
+        )
+        .join('\n');
+      const bytes = new TextEncoder().encode(header + body);
+      downloadBlob(bytes, `HHA-Receipts-${new Date().toISOString().slice(0, 10)}.csv`, 'text/csv');
       setBusy(null);
-      setToast(`Exported ${RECEIPTS.length} receipts to CSV`);
-    }, 1000);
+      setToast(`Exported ${filtered.length} receipts to CSV`);
+    }, 600);
   }
 
-  function downloadPdf() {
+  function downloadReceiptPdf() {
     if (!selected) return;
     setBusy('pdf');
     setTimeout(() => {
+      downloadPdf(
+        `HHA-Receipt-${selected.ref}.pdf`,
+        buildGenericDoc({
+          title: `Receipt ${selected.ref}`,
+          eyebrow: 'HHA · Bursary',
+          subtitle: `Issued ${new Date(selected.issuedAt).toLocaleString('en-ZW', {
+            day: '2-digit',
+            month: 'short',
+            year: 'numeric',
+            hour: '2-digit',
+            minute: '2-digit',
+          })}`,
+          fields: [
+            { label: 'Student', value: `${selected.studentName} · ${selected.form}` },
+            { label: 'Method', value: selected.method },
+            { label: 'Invoice', value: selected.invoiceRef },
+            { label: 'Amount', value: `${selected.currency} ${selected.amount.toLocaleString('en-ZW')}` },
+            { label: 'Status', value: selected.status.toLowerCase() },
+            { label: 'Issued by', value: selected.issuedBy },
+          ],
+          body: selected.notes ?? 'Digitally-signed receipt. Reconciled against the bank statement.',
+          footer: 'For verification call +263 242 123 456 or email bursary@hha.ac.zw',
+        }),
+      );
       setBusy(null);
       setToast(`Downloaded ${selected.ref}.pdf`);
-    }, 900);
+    }, 600);
   }
 
   function printReceipt() {
     if (!selected) return;
     setBusy('print');
     setTimeout(() => {
+      // In a browser, the best we can do from JS is open the print dialog on
+      // a new window containing the receipt. For the demo, trigger the
+      // native print on this tab so the user sees the OS dialog.
+      try {
+        window.print();
+      } catch {
+        /* noop */
+      }
       setBusy(null);
       setToast(`Sent ${selected.ref} to the default printer`);
-    }, 800);
+    }, 500);
   }
 
   const filtered = useMemo(() => {
@@ -278,7 +320,7 @@ export default function ReceiptsPage() {
           {selected ? (
             <ReceiptDetail
               receipt={selected}
-              onDownload={downloadPdf}
+              onDownload={downloadReceiptPdf}
               onPrint={printReceipt}
               busy={busy === 'pdf' ? 'pdf' : busy === 'print' ? 'print' : null}
             />

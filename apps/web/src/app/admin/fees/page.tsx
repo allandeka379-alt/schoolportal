@@ -5,6 +5,7 @@ import { Check, Download, Filter, Loader2, Search } from 'lucide-react';
 
 import { Badge } from '@/components/ui/badge';
 import { INVOICES, STUDENTS } from '@/lib/mock/fixtures';
+import { downloadBlob } from '@/lib/pdf/generate';
 
 export default function AdminFeesPage() {
   const [query, setQuery] = useState('');
@@ -66,9 +67,18 @@ export default function AdminFeesPage() {
   function exportLedger() {
     setExporting(true);
     setTimeout(() => {
+      const header = 'Student,AdmissionNo,Form,Invoice,Total,Balance,Status\n';
+      const body = rows
+        .map(
+          (r) =>
+            `"${r.student.firstName} ${r.student.lastName}","${r.student.admissionNo}","${r.student.form} ${r.student.stream}","${r.invoice.invoiceNumber}","${r.invoice.subtotal}","${r.outstanding}","${r.status}"`,
+        )
+        .join('\n');
+      const bytes = new TextEncoder().encode(header + body + '\n');
+      downloadBlob(bytes, `HHA-Fees-Ledger-${new Date().toISOString().slice(0, 10)}.csv`, 'text/csv');
       setExporting(false);
       setToast(`Exported ${rows.length} rows to CSV`);
-    }, 1100);
+    }, 600);
   }
 
   return (

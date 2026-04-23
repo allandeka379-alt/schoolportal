@@ -18,7 +18,8 @@ import { Badge } from '@/components/ui/badge';
 import { ProgressRing } from '@/components/student/progress-ring';
 import { EditorialAvatar } from '@/components/student/primitives';
 import { useSelectedChild } from '@/components/parent/selected-child-context';
-import { reportsFor } from '@/lib/mock/parent-extras';
+import { gradesFor, reportsFor, type ParentReport } from '@/lib/mock/parent-extras';
+import { buildReportCard, downloadPdf } from '@/lib/pdf/generate';
 
 /**
  * Parent reports — §09.
@@ -45,17 +46,46 @@ export default function ParentReportsPage() {
     return () => clearTimeout(t);
   }, [toast]);
 
-  function simulateDownload(id: string, label: string) {
-    setDownloading(id);
+  const subjects = gradesFor(selectedChild.id);
+
+  function downloadReport(report: ParentReport) {
+    setDownloading(report.id);
+    // Short simulated delay so the spinner feels real, then push a live PDF
     setTimeout(() => {
+      const pdf = buildReportCard({
+        studentName: `${selectedChild.firstName} ${selectedChild.lastName}`,
+        form: selectedChild.form,
+        term: report.term,
+        year: report.year,
+        releasedOn: report.releasedOn,
+        termAverage: report.average,
+        grade: report.grade,
+        position: report.position,
+        classSize: report.classSize,
+        attendance: report.attendance,
+        formTeacher: selectedChild.formTeacher,
+        formTeacherComment: report.formTeacherComment,
+        subjects: subjects.map((s) => ({
+          code: s.subjectCode,
+          name: s.subjectName,
+          score: s.percent,
+          grade: s.grade,
+          classAverage: s.classAverage,
+          teacher: s.teacher,
+        })),
+        headmasterName: 'Mr T. Moyo · Headmaster',
+      });
+      const safeName = `${selectedChild.firstName}-${selectedChild.lastName}`.replace(/\s+/g, '-');
+      const filename = `HHA-${safeName}-${report.term.replace(/\s+/g, '')}-${report.year}.pdf`;
+      downloadPdf(filename, pdf);
       setDownloading(null);
       setDownloaded((curr) => {
         const next = new Set(curr);
-        next.add(id);
+        next.add(report.id);
         return next;
       });
-      setToast(`Downloaded "${label}" (watermarked PDF)`);
-    }, 1100);
+      setToast(`Downloaded "${filename}" — watermarked with your login`);
+    }, 900);
   }
 
   const ringTone: 'success' | 'brand' | 'warning' | 'danger' =
@@ -76,7 +106,7 @@ export default function ParentReportsPage() {
         </div>
         <button
           type="button"
-          onClick={() => simulateDownload(current.id, `${current.term} ${current.year} — ${selectedChild.firstName}`)}
+          onClick={() => downloadReport(current)}
           disabled={downloading === current.id}
           className="inline-flex h-11 items-center gap-2 rounded-full bg-brand-primary px-5 text-small font-semibold text-white shadow-card-sm transition hover:bg-brand-primary/90 hover:shadow-card-md disabled:opacity-60"
         >
@@ -230,7 +260,7 @@ export default function ParentReportsPage() {
                   </Badge>
                   <button
                     type="button"
-                    onClick={() => simulateDownload(r.id, `${r.term} ${r.year} — ${selectedChild.firstName}`)}
+                    onClick={() => downloadReport(r)}
                     disabled={isDownloading}
                     className="inline-flex h-9 items-center gap-1.5 rounded-full border border-line bg-card px-3 text-micro font-semibold text-ink transition-colors hover:bg-surface disabled:opacity-60"
                   >
