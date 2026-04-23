@@ -71,7 +71,7 @@ export default function SubjectGradePage({ params }: PageProps) {
               {row.subjectName}
             </h1>
             <p className="mt-2 font-sans text-[13px] text-stone">
-              Teacher: {subject?.teacher ?? 'HHA faculty'} · Term 2, 2026
+              Teacher: {subject?.teacher ?? 'JHS faculty'} · Term 2, 2026
             </p>
           </div>
           <Link
@@ -206,7 +206,7 @@ export default function SubjectGradePage({ params }: PageProps) {
               {comment}
             </blockquote>
             <p className="mt-3 font-sans text-[12px] text-stone">
-              — {subject?.teacher ?? 'HHA faculty'}
+              — {subject?.teacher ?? 'JHS faculty'}
             </p>
           </EditorialCard>
 

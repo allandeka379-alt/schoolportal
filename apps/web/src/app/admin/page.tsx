@@ -35,7 +35,7 @@ export default function AdminOverview() {
       <header>
         <p className="text-small text-muted">Admin · bursary overview</p>
         <h1 className="mt-1 text-[clamp(1.75rem,3vw,2.25rem)] font-bold leading-tight tracking-tight text-ink">
-          Today at Harare Heritage Academy
+          Today at Junior High School
         </h1>
         <p className="mt-2 text-small text-muted">
           Statements imported at 06:00 · 18 payments auto-matched overnight.

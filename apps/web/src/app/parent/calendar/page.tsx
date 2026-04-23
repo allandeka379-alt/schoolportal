@@ -318,7 +318,7 @@ export default function ParentCalendarPage() {
                     <p className="mt-1 truncate text-small font-semibold text-ink">{e.title}</p>
                     <p className="text-micro text-muted">
                       {e.time ? `${e.time} · ` : ''}
-                      {e.location ?? 'Harare Heritage Academy'}
+                      {e.location ?? 'Junior High School'}
                     </p>
                     <div className="mt-1.5 flex items-center gap-1.5">
                       {e.affectedChildIds.map((id) => {

@@ -3,10 +3,10 @@ import Link from 'next/link';
 import { cn } from '@hha/ui';
 
 /**
- * HHA logo — crest-shield glyph + wordmark.
+ * Junior High School logo — crest-shield glyph + wordmark.
  *
- * `variant="on-light"` renders the crest in brand-primary over a white
- * background; `on-dark` flips to white-on-navy for dark hero contexts.
+ * `variant="on-light"` renders the crest in brand-primary (navy blue) over a
+ * white background; `on-dark` flips to white-on-navy for dark hero contexts.
  */
 
 interface LogoProps {
@@ -62,10 +62,10 @@ export function Logo({
           <span
             className={cn(
               'text-body font-bold tracking-tight',
-              variant === 'on-light' ? 'text-ink' : 'text-white',
+              variant === 'on-light' ? 'text-brand-primary' : 'text-white',
             )}
           >
-            HHA Portal
+            Junior High School
           </span>
           <span
             className={cn(
@@ -73,7 +73,7 @@ export function Logo({
               variant === 'on-light' ? 'text-muted' : 'text-white/80',
             )}
           >
-            Harare Heritage Academy
+            Masvingo · Portal
           </span>
         </span>
       ) : null}
@@ -84,7 +84,7 @@ export function Logo({
     return (
       <Link
         href="/"
-        aria-label="HHA Portal — home"
+        aria-label="Junior High School Portal — home"
         className="rounded-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-primary/40"
       >
         {inner}

@@ -10,7 +10,7 @@ export const ME_HEADMASTER = {
   title: 'Mr',
   firstName: 'Tendai',
   lastName: 'Makoni',
-  email: 'head@hha.ac.zw',
+  email: 'head@jhs.ac.zw',
   display: 'T. Makoni',
   avatarInitials: 'TM',
 } as const;

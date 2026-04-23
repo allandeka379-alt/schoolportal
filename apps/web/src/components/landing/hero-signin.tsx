@@ -9,9 +9,9 @@ import { signInAction } from '@/lib/auth/actions';
 type Role = 'student' | 'teacher' | 'parent';
 
 const ROLE_HINTS: Record<Role, { email: string }> = {
-  student: { email: 'student@hha.ac.zw' },
-  teacher: { email: 'teacher@hha.ac.zw' },
-  parent: { email: 'parent@hha.ac.zw' },
+  student: { email: 'student@jhs.ac.zw' },
+  teacher: { email: 'teacher@jhs.ac.zw' },
+  parent: { email: 'parent@jhs.ac.zw' },
 };
 
 /**
@@ -40,7 +40,7 @@ export function HeroSignIn() {
     const form = document.getElementById('hero-signin') as HTMLFormElement | null;
     if (!form) return;
     (form.elements.namedItem('email') as HTMLInputElement).value = ROLE_HINTS[role].email;
-    (form.elements.namedItem('password') as HTMLInputElement).value = 'HHA!Portal2026';
+    (form.elements.namedItem('password') as HTMLInputElement).value = 'JHS!Portal2026';
   }
 
   return (
@@ -101,7 +101,7 @@ export function HeroSignIn() {
             name="email"
             type="email"
             autoComplete="username"
-            placeholder="you@hha.ac.zw"
+            placeholder="you@jhs.ac.zw"
             className="input-underlined"
             required
           />

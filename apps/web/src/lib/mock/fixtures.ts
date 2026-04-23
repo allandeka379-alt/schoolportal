@@ -32,12 +32,12 @@ export interface DemoAccount {
   staffId?: string;
 }
 
-export const DEMO_PASSWORD = 'HHA!Portal2026';
+export const DEMO_PASSWORD = 'JHS!Portal2026';
 
 export const ACCOUNTS: readonly DemoAccount[] = [
   {
     id: 'u-head',
-    email: 'head@hha.ac.zw',
+    email: 'head@jhs.ac.zw',
     password: DEMO_PASSWORD,
     firstName: 'Tendai',
     lastName: 'Makoni',
@@ -49,7 +49,7 @@ export const ACCOUNTS: readonly DemoAccount[] = [
   },
   {
     id: 'u-bursar',
-    email: 'bursar@hha.ac.zw',
+    email: 'bursar@jhs.ac.zw',
     password: DEMO_PASSWORD,
     firstName: 'Rutendo',
     lastName: 'Chideme',
@@ -61,7 +61,7 @@ export const ACCOUNTS: readonly DemoAccount[] = [
   },
   {
     id: 'u-teacher',
-    email: 'teacher@hha.ac.zw',
+    email: 'teacher@jhs.ac.zw',
     password: DEMO_PASSWORD,
     firstName: 'Miriam',
     lastName: 'Dziva',
@@ -73,7 +73,7 @@ export const ACCOUNTS: readonly DemoAccount[] = [
   },
   {
     id: 'u-student',
-    email: 'student@hha.ac.zw',
+    email: 'student@jhs.ac.zw',
     password: DEMO_PASSWORD,
     firstName: 'Farai',
     lastName: 'Moyo',
@@ -84,7 +84,7 @@ export const ACCOUNTS: readonly DemoAccount[] = [
   },
   {
     id: 'u-parent',
-    email: 'parent@hha.ac.zw',
+    email: 'parent@jhs.ac.zw',
     password: DEMO_PASSWORD,
     firstName: 'Sekai',
     lastName: 'Moyo',
@@ -116,7 +116,7 @@ export interface DemoStudent {
 export const STUDENTS: readonly DemoStudent[] = [
   {
     id: 's-farai',
-    admissionNo: 'HHA-2023-0042',
+    admissionNo: 'JHS-2023-0042',
     firstName: 'Farai',
     lastName: 'Moyo',
     form: 'Form 3',
@@ -129,7 +129,7 @@ export const STUDENTS: readonly DemoStudent[] = [
   },
   {
     id: 's-tanaka',
-    admissionNo: 'HHA-2025-0081',
+    admissionNo: 'JHS-2025-0081',
     firstName: 'Tanaka',
     lastName: 'Moyo',
     form: 'Form 1',
@@ -142,7 +142,7 @@ export const STUDENTS: readonly DemoStudent[] = [
   },
   {
     id: 's-chipo',
-    admissionNo: 'HHA-2023-0045',
+    admissionNo: 'JHS-2023-0045',
     firstName: 'Chipo',
     lastName: 'Banda',
     form: 'Form 3',
@@ -155,7 +155,7 @@ export const STUDENTS: readonly DemoStudent[] = [
   },
   {
     id: 's-ruvimbo',
-    admissionNo: 'HHA-2023-0049',
+    admissionNo: 'JHS-2023-0049',
     firstName: 'Ruvimbo',
     lastName: 'Sibanda',
     form: 'Form 3',
@@ -168,7 +168,7 @@ export const STUDENTS: readonly DemoStudent[] = [
   },
   {
     id: 's-tinashe',
-    admissionNo: 'HHA-2023-0051',
+    admissionNo: 'JHS-2023-0051',
     firstName: 'Tinashe',
     lastName: 'Ncube',
     form: 'Form 3',
@@ -181,7 +181,7 @@ export const STUDENTS: readonly DemoStudent[] = [
   },
   {
     id: 's-rudo',
-    admissionNo: 'HHA-2023-0057',
+    admissionNo: 'JHS-2023-0057',
     firstName: 'Rudo',
     lastName: 'Mutasa',
     form: 'Form 3',
@@ -610,7 +610,7 @@ export const SLIPS: readonly DemoSlip[] = [
     detectedBank: 'CBZ',
     parsedAmount: '800.00',
     parsedCurrency: 'USD',
-    parsedReference: 'HHA-2023-0042',
+    parsedReference: 'JHS-2023-0042',
     confidence: 96,
     steps: buildSteps(6),
   },
@@ -623,7 +623,7 @@ export const SLIPS: readonly DemoSlip[] = [
     detectedBank: 'Stanbic',
     parsedAmount: '1450.00',
     parsedCurrency: 'USD',
-    parsedReference: 'HHA-2025-0081',
+    parsedReference: 'JHS-2025-0081',
     confidence: 92,
     steps: [...buildSteps(4), { step: 'STATEMENT_RECONCILIATION', outcome: 'in-progress' as const }, { step: 'ACCOUNT_UPDATE', outcome: 'pending' as const }],
   },
@@ -645,7 +645,7 @@ export const SLIPS: readonly DemoSlip[] = [
     detectedBank: 'Steward',
     parsedAmount: '1650.00',
     parsedCurrency: 'USD',
-    parsedReference: 'HHA-2023-0049',
+    parsedReference: 'JHS-2023-0049',
     confidence: 74,
     failureReason: 'Teller stamp illegible; confidence below 80% threshold.',
     steps: buildSteps(3),
@@ -660,7 +660,7 @@ export const SLIPS: readonly DemoSlip[] = [
     parsedAmount: '500.00',
     parsedCurrency: 'USD',
     confidence: 88,
-    failureReason: 'Beneficiary account on slip does not match any HHA registered account.',
+    failureReason: 'Beneficiary account on slip does not match anyJHS registered account.',
     steps: buildSteps(3, 3),
   },
   {

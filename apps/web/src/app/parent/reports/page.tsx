@@ -55,7 +55,7 @@ export default function ParentReportsPage() {
     setTimeout(() => {
       const pdf = buildReportCard({
         studentName: `${selectedChild.firstName} ${selectedChild.lastName}`,
-        admissionNo: selectedChild.id.replace('s-', 'HHA-2026-').toUpperCase(),
+        admissionNo: selectedChild.id.replace('s-', 'JHS-2026-').toUpperCase(),
         house: selectedChild.house,
         age: selectedChild.form.includes('4')
           ? 16
@@ -101,7 +101,7 @@ export default function ParentReportsPage() {
         })),
       });
       const safeName = `${selectedChild.firstName}-${selectedChild.lastName}`.replace(/\s+/g, '-');
-      const filename = `HHA-${safeName}-${report.term.replace(/\s+/g, '')}-${report.year}.pdf`;
+      const filename = `JHS-${safeName}-${report.term.replace(/\s+/g, '')}-${report.year}.pdf`;
       downloadPdf(filename, pdf);
       setDownloading(null);
       setDownloaded((curr) => {

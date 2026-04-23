@@ -17,7 +17,7 @@ interface LandingCrestProps {
 export function LandingCrest({
   size = 36,
   className,
-  label = 'Harare Heritage Academy',
+  label = 'Junior High School',
   variant = 'earth',
 }: LandingCrestProps) {
   const fill = variant === 'cream' ? '#FAF5EB' : 'url(#hhaEarth)';

@@ -21,7 +21,7 @@ const VOICES = [
     quote:
       'I paid Term 2 fees through EcoCash on a Sunday evening. The receipt came through in thirty seconds. My days of calling the bursary are over.',
     name: 'Sekai Moyo',
-    role: 'Parent of two HHA learners',
+    role: 'Parent of twoJHS learners',
     initials: 'SM',
     accent: 'coral' as const,
   },

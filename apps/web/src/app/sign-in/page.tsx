@@ -33,7 +33,7 @@ const DEMO_USERS: DemoUser[] = [
   {
     key: 'student',
     role: 'Student',
-    email: 'student@hha.ac.zw',
+    email: 'student@jhs.ac.zw',
     subtitle: 'Farai Moyo · Form 4A',
     description: 'Assignments, grades, library, timetable, messages.',
     icon: GraduationCap,
@@ -43,7 +43,7 @@ const DEMO_USERS: DemoUser[] = [
   {
     key: 'teacher',
     role: 'Teacher',
-    email: 'teacher@hha.ac.zw',
+    email: 'teacher@jhs.ac.zw',
     subtitle: 'Mrs M. Dziva · Mathematics · Form Teacher 4A',
     description: 'Gradebook, attendance, marking, lesson plans, reports.',
     icon: Briefcase,
@@ -53,7 +53,7 @@ const DEMO_USERS: DemoUser[] = [
   {
     key: 'parent',
     role: 'Parent',
-    email: 'parent@hha.ac.zw',
+    email: 'parent@jhs.ac.zw',
     subtitle: 'Mrs S. Moyo · 3 children',
     description: 'Fees, progress, reports, messages, calendar.',
     icon: Users,
@@ -63,7 +63,7 @@ const DEMO_USERS: DemoUser[] = [
   {
     key: 'admin',
     role: 'Bursar / Administrator',
-    email: 'bursar@hha.ac.zw',
+    email: 'bursar@jhs.ac.zw',
     subtitle: 'Fees · slip reconciliation · receipts',
     description: 'Ledger, bank-slip queue, receipts, audit log, announcements.',
     icon: LifeBuoy,
@@ -73,8 +73,8 @@ const DEMO_USERS: DemoUser[] = [
   {
     key: 'headmaster',
     role: 'Headmaster',
-    email: 'head@hha.ac.zw',
-    subtitle: 'Mr T. Moyo · Whole-school oversight',
+    email: 'head@jhs.ac.zw',
+    subtitle: 'Mr S. Mutsambiwa · Whole-school oversight',
     description: 'Academic, fees, teachers, students, alerts.',
     icon: Sparkles,
     tone: 'gold',
@@ -82,7 +82,7 @@ const DEMO_USERS: DemoUser[] = [
   },
 ];
 
-const DEMO_PASSWORD = 'HHA!Portal2026';
+const DEMO_PASSWORD = 'JHS!Portal2026';
 
 const TONE_BG: Record<DemoUser['tone'], string> = {
   brand: 'bg-brand-primary/10 text-brand-primary',
@@ -140,7 +140,7 @@ export default async function SignInPage({ searchParams }: PageProps) {
             {/* Middle — headline + quote */}
             <div className="mt-16 max-w-lg xl:mt-20">
               <p className="text-micro font-semibold uppercase tracking-[0.22em] text-white/75">
-                Harare Heritage Academy
+                Junior High School
               </p>
               <h1 className="mt-3 text-[clamp(2rem,3.6vw,3rem)] font-bold leading-tight tracking-tight">
                 One portal for every role at the school.
@@ -152,10 +152,10 @@ export default async function SignInPage({ searchParams }: PageProps) {
               <blockquote className="mt-10 border-l-2 border-white/30 pl-4">
                 <p className="text-small italic leading-relaxed text-white/90">
                   &ldquo;We built this so a parent in London can upload a bank slip, and the bursar
-                  in Harare can reconcile it before the bell rings.&rdquo;
+                  in Masvingo can reconcile it before the bell rings.&rdquo;
                 </p>
                 <footer className="mt-3 text-micro font-semibold uppercase tracking-[0.14em] text-white/70">
-                  Mr T. Moyo · Headmaster
+                  Mr S. Mutsambiwa · Headmaster
                 </footer>
               </blockquote>
             </div>
@@ -199,7 +199,7 @@ export default async function SignInPage({ searchParams }: PageProps) {
               </p>
               <h2 className="mt-3 text-h1 text-ink">Welcome back</h2>
               <p className="mt-1 text-small text-muted">
-                Sign in with your HHA credentials. We&rsquo;ll route you to the right portal
+                Sign in with yourJHS credentials. We&rsquo;ll route you to the right portal
                 automatically.
               </p>
             </div>

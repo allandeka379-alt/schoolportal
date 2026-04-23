@@ -12,7 +12,7 @@ export const ME_TEACHER = {
   title: 'Mrs',
   firstName: 'Miriam',
   lastName: 'Dziva',
-  email: 'teacher@hha.ac.zw',
+  email: 'teacher@jhs.ac.zw',
   subject: 'Mathematics',
   isFormTeacher: true,
   formTeacherOf: 'Form 4A',

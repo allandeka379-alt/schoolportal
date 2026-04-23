@@ -26,7 +26,7 @@ export function CtaBand() {
           Your portal is ready
         </p>
         <h2 className="mx-auto mt-5 max-w-2xl text-h1 text-white sm:text-display sm:leading-[1.08]">
-          Software for the academic life of Harare Heritage Academy.
+          Software for the academic life of Junior High School.
         </h2>
         <p className="mx-auto mt-4 max-w-xl text-body text-white/80 sm:text-[17px] sm:leading-7">
           Students, teachers, parents and administrators all sign in at the same door. The portal

@@ -17,7 +17,7 @@ const COLS = [
   {
     heading: 'School',
     links: [
-      { label: 'About HHA',     href: '#about' },
+      { label: 'About JHS',     href: '#about' },
       { label: 'Academics',     href: '#services' },
       { label: 'Admissions',    href: '#admissions' },
       { label: 'Alumni',        href: '#alumni' },
@@ -36,7 +36,7 @@ const COLS = [
     heading: 'Contact',
     links: [
       { label: '+263 242 123 456',        href: 'tel:+263242123456' },
-      { label: 'info@hha.ac.zw',          href: 'mailto:info@hha.ac.zw' },
+      { label: 'info@jhs.ac.zw',          href: 'mailto:info@jhs.ac.zw' },
       { label: '42 Samora Avenue, Harare',href: '#location' },
     ],
   },
@@ -51,7 +51,7 @@ export function LandingFooter() {
           <div className="lg:col-span-1">
             <Logo size={36} showText variant="on-light" />
             <p className="mt-5 max-w-xs text-small text-muted">
-              Software for the academic life of Harare Heritage Academy — students, teachers,
+              Software for the academic life of Junior High School — students, teachers,
               parents, administrators, one portal.
             </p>
           </div>
@@ -88,7 +88,7 @@ export function LandingFooter() {
       {/* Bottom rail */}
       <div className="mx-auto flex max-w-[1200px] flex-wrap items-center justify-between gap-3 px-5 py-5 sm:px-8">
         <p className="text-micro text-muted">
-          © 2026 Harare Heritage Academy · All rights reserved
+          © 2026 Junior High School · All rights reserved
         </p>
         <div className="flex items-center gap-3 text-muted">
           <Link href="#" aria-label="Facebook" className="transition-colors hover:text-brand-primary">

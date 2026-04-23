@@ -237,7 +237,7 @@ export interface ReportCardData {
   subjects: ReportCardSubject[];
 }
 
-const BRAND: [number, number, number] = [0.796, 0.196, 0.129]; // Terracotta #CB3221
+const BRAND: [number, number, number] = [0.122, 0.227, 0.408]; // Junior High School blue #1F3A68
 const INK: [number, number, number] = [0.043, 0.047, 0.059]; // Near-black
 const MUTED: [number, number, number] = [0.412, 0.447, 0.49]; // Slate
 const LINE: [number, number, number] = [0.89, 0.9, 0.92]; // Light line
@@ -370,7 +370,7 @@ export function buildReportCard(data: ReportCardData): PdfDoc {
     color: BRAND,
   });
   page2.lines.push({
-    text: data.headmasterName ?? 'Mr T. Moyo',
+    text: data.headmasterName ?? 'Mr S. Mutsambiwa',
     x: 50,
     y: hmY - 14,
     size: 10,
@@ -418,7 +418,7 @@ export function buildReportCard(data: ReportCardData): PdfDoc {
   const sigY = 110;
   const sigCells = [
     { label: 'Form Teacher', name: data.formTeacher },
-    { label: 'Headmaster', name: data.headmasterName ?? 'Mr T. Moyo' },
+    { label: 'Headmaster', name: data.headmasterName ?? 'Mr S. Mutsambiwa' },
     { label: 'Date', name: data.releasedOn },
   ];
   sigCells.forEach((c, i) => {
@@ -450,7 +450,7 @@ function drawHeader(
   // Terracotta band
   page.rects.push({ x: 0, y: 792, w: 595, h: 50, fill: BRAND });
   page.lines.push({
-    text: 'HARARE HERITAGE ACADEMY',
+    text: 'JUNIOR HIGH SCHOOL',
     x: 50,
     y: 814,
     size: 16,
@@ -465,7 +465,7 @@ function drawHeader(
     color: [1, 0.93, 0.86],
   });
   // Thin accent rule under band
-  page.rects.push({ x: 0, y: 790, w: 595, h: 2, fill: [0.95, 0.3, 0.2] });
+  page.rects.push({ x: 0, y: 790, w: 595, h: 2, fill: [0.804, 0.635, 0.153] }); // gold accent rule
 }
 
 function drawStudentBlock(
@@ -696,7 +696,7 @@ function pageFooter(
 function gradeColor(grade: string): [number, number, number] {
   const g = grade.toUpperCase().charAt(0);
   if (g === 'A') return [0.137, 0.482, 0.255]; // success
-  if (g === 'B') return [0.796, 0.196, 0.129]; // brand
+  if (g === 'B') return [0.122, 0.227, 0.408]; // brand
   if (g === 'C') return [0.75, 0.486, 0.055]; // warn
   return [0.722, 0.212, 0.165]; // danger
 }
@@ -745,7 +745,7 @@ export function buildGenericDoc(data: GenericDocData): PdfDoc {
 
   rects.push({ x: 0, y: 792, w: 595, h: 50, fill: BRAND });
   lines.push({
-    text: 'HARARE HERITAGE ACADEMY',
+    text: 'JUNIOR HIGH SCHOOL',
     x: 50,
     y: 812,
     size: 16,

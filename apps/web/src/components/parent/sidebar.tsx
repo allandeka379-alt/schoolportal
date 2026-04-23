@@ -113,7 +113,7 @@ export function ParentSidebar({
         ].join(' ')}
       >
         <div className="flex items-center justify-between border-b border-line px-5 py-4">
-          <Link href="/parent" className="flex items-center" aria-label="HHA parent portal">
+          <Link href="/parent" className="flex items-center" aria-label="JHS parent portal">
             <Logo size={32} showText variant="on-light" />
           </Link>
           {mobileOpen ? (

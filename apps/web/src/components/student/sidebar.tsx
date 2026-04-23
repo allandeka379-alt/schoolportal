@@ -88,7 +88,7 @@ export function StudentSidebar({
         ].join(' ')}
       >
         <div className="flex items-center justify-between border-b border-line px-5 py-4">
-          <Link href="/student" className="flex items-center" aria-label="HHA student portal">
+          <Link href="/student" className="flex items-center" aria-label="JHS student portal">
             <Logo size={32} showText variant="on-light" />
           </Link>
           {mobileOpen ? (

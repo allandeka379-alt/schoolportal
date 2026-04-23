@@ -454,7 +454,7 @@ function SingleChildView({ child }: { child: ParentChild }) {
                       <p className="truncate text-small font-semibold text-ink">{e.title}</p>
                       <p className="text-micro text-muted">
                         {e.time ? `${e.time} · ` : ''}
-                        {e.location ?? 'Harare Heritage Academy'}
+                        {e.location ?? 'Junior High School'}
                       </p>
                     </div>
                     {e.requiresPermission && !e.permissionGranted ? (
@@ -506,7 +506,7 @@ function AllChildrenView({ onOpen }: { onOpen: (id: string) => void }) {
             The family, at a glance.
           </h1>
           <p className="mt-2 text-small text-muted">
-            {PARENT_CHILDREN.length} children at HHA · click a card to open their portal.
+            {PARENT_CHILDREN.length} children at JHS · click a card to open their portal.
           </p>
         </div>
         <div className="rounded-lg border border-line bg-card p-4 shadow-card-sm">

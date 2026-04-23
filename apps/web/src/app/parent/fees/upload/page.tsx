@@ -95,7 +95,7 @@ export default function SlipUploadPage() {
   const [fileName, setFileName] = useState<string | null>(null);
   const [amount, setAmount] = useState<string>('800');
   const [bank, setBank] = useState<string>('CBZ');
-  const [reference, setReference] = useState<string>('HHA/F.MOYO/T2');
+  const [reference, setReference] = useState<string>('JHS/F.MOYO/T2');
 
   const [running, setRunning] = useState(false);
   const [currentStep, setCurrentStep] = useState<number>(0); // 0 = none
@@ -309,7 +309,7 @@ export default function SlipUploadPage() {
                   type="text"
                   value={reference}
                   onChange={(e) => setReference(e.target.value)}
-                  placeholder="HHA / STUDENT-SHORTNAME / TERM"
+                  placeholder="JHS / STUDENT-SHORTNAME / TERM"
                   className="input-boxed"
                 />
                 <p className="mt-1 font-mono text-[11px] uppercase tracking-[0.08em] text-steel">
@@ -496,7 +496,7 @@ function StepOutput({
     case 4:
       return (
         <p className={`mt-2 ${tiny}`}>
-          Account 01234567890 · HHA · {bank} ✓ &nbsp;·&nbsp; payer matches parent on file ✓
+          Account 01234567890 · JHS · {bank} ✓ &nbsp;·&nbsp; payer matches parent on file ✓
         </p>
       );
     case 5:

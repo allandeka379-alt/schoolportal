@@ -80,7 +80,7 @@ export function HeadmasterSidebar({
           <Link
             href="/headmaster"
             className="flex items-center"
-            aria-label="HHA Administrator"
+            aria-label="JHS Administrator"
           >
             <Logo size={32} showText variant="on-light" />
           </Link>

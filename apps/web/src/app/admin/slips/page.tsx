@@ -27,7 +27,7 @@ const STEP_DESCRIPTIONS = {
   IMAGE_ENHANCEMENT: 'Deskew, crop, contrast-adjust.',
   OCR: 'Extract every printed field via Document AI.',
   STRUCTURAL_PARSING: 'Match bank-specific slip template.',
-  ACCOUNT_VERIFICATION: 'Beneficiary account matches registered HHA account.',
+  ACCOUNT_VERIFICATION: 'Beneficiary account matches registered JHS account.',
   STATEMENT_RECONCILIATION: 'Cross-reference against imported bank statement.',
   ACCOUNT_UPDATE: 'Update ledger, credit student, issue receipt.',
 } as const;

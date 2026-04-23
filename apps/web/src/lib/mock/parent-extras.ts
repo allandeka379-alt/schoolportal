@@ -13,7 +13,7 @@ export const ME_PARENT = {
   title: 'Mrs',
   firstName: 'Sekai',
   lastName: 'Moyo',
-  email: 'parent@hha.ac.zw',
+  email: 'parent@jhs.ac.zw',
   displayName: 'Mrs Moyo',
   preferredLanguage: 'EN' as const,
   avatarInitials: 'SM',
@@ -816,7 +816,7 @@ const TANAKA_T1_SUBJECTS = buildSubjects([
 ]);
 
 const HM_COMMENT_GOOD =
-  'A strong term. This is the kind of form-wide contribution that makes Harare Heritage Academy a proud place. Keep going — the second half of the year is the one that shows character.';
+  'A strong term. This is the kind of form-wide contribution that makes Junior High School a proud place. Keep going — the second half of the year is the one that shows character.';
 const HM_COMMENT_MIXED =
   'The marks are mixed but the character is not. I have every confidence that a settled term 3, supported by close contact between the home and the school, will put this pupil back on track.';
 const HM_COMMENT_EXCELLENT =
@@ -842,7 +842,7 @@ export const PARENT_REPORTS: readonly ParentReport[] = [
     formTeacherName: 'Mr T. Chikova',
     formTeacherComment:
       'Farai has had a strong term. His mathematical reasoning has matured visibly, and his written work shows the care of a reader who pays attention. The one area to watch is consistency in examination conditions — Mrs Dziva and I would welcome a brief conversation at our next meeting about pacing. Overall, this is the kind of term that builds a Form 4 pupil into a confident Form 5.',
-    headmasterName: 'Mr T. Moyo',
+    headmasterName: 'Mr S. Mutsambiwa',
     headmasterComment: HM_COMMENT_GOOD,
     nextTermStarts: 'Tuesday 5 May 2026',
     feesDueAmount: '2,760.00',
@@ -870,7 +870,7 @@ export const PARENT_REPORTS: readonly ParentReport[] = [
     formTeacherName: 'Mr T. Gondo',
     formTeacherComment:
       'Rumbi is a diligent and curious pupil. She asks the questions the quieter pupils are thinking, which is an enormous gift to her class. Her English comprehension is now a clear strength; we should push her to apply the same thoroughness to her Shona essays, where fluency is beginning to outpace her discipline of structure.',
-    headmasterName: 'Mr T. Moyo',
+    headmasterName: 'Mr S. Mutsambiwa',
     headmasterComment: HM_COMMENT_EXCELLENT,
     nextTermStarts: 'Tuesday 5 May 2026',
     feesDueAmount: '2,640.00',
@@ -898,7 +898,7 @@ export const PARENT_REPORTS: readonly ParentReport[] = [
     formTeacherName: 'Ms P. Banda',
     formTeacherComment:
       "Tanaka has had a mixed term. She is by nature a hard worker, but she has been absent more than we would like and the missed lessons have shown in her marks. I would very much appreciate a short meeting to agree a plan for Term 3. The form is ready to welcome her back — we just need to get her into the room consistently.",
-    headmasterName: 'Mr T. Moyo',
+    headmasterName: 'Mr S. Mutsambiwa',
     headmasterComment: HM_COMMENT_MIXED,
     nextTermStarts: 'Tuesday 5 May 2026',
     feesDueAmount: '2,520.00',
@@ -926,7 +926,7 @@ export const PARENT_REPORTS: readonly ParentReport[] = [
     formTeacherName: 'Mr T. Chikova',
     formTeacherComment:
       'A settling term. Farai took a little time to find his rhythm after the Christmas break, but by mid-term he was back to his usual level. The spark in his English essays is very welcome.',
-    headmasterName: 'Mr T. Moyo',
+    headmasterName: 'Mr S. Mutsambiwa',
     headmasterComment: HM_COMMENT_GOOD,
     nextTermStarts: 'Tuesday 20 January 2026',
     feesDueAmount: '2,700.00',
@@ -954,7 +954,7 @@ export const PARENT_REPORTS: readonly ParentReport[] = [
     formTeacherName: 'Ms P. Banda',
     formTeacherComment:
       'A positive first term. Tanaka made friends across her form and settled in quickly. Her Shona teacher noted her confidence in oral recitation.',
-    headmasterName: 'Mr T. Moyo',
+    headmasterName: 'Mr S. Mutsambiwa',
     headmasterComment: HM_COMMENT_GOOD,
     nextTermStarts: 'Tuesday 20 January 2026',
     feesDueAmount: '2,500.00',
@@ -1058,7 +1058,7 @@ export const PARENT_ANNOUNCEMENTS: readonly ParentAnnouncement[] = [
     requiresAcknowledgement: false,
     title: 'Open morning for Form 1 applicants — Saturday 10 May',
     body:
-      'If you know families considering HHA for the next academic year, our open morning runs from 09:00 to 12:00 on Saturday 10 May. Tours will leave from the main hall every half hour.',
+      'If you know families consideringJHS for the next academic year, our open morning runs from 09:00 to 12:00 on Saturday 10 May. Tours will leave from the main hall every half hour.',
   },
 ];
 

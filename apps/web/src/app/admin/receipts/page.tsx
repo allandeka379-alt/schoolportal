@@ -69,7 +69,7 @@ export default function ReceiptsPage() {
         )
         .join('\n');
       const bytes = new TextEncoder().encode(header + body);
-      downloadBlob(bytes, `HHA-Receipts-${new Date().toISOString().slice(0, 10)}.csv`, 'text/csv');
+      downloadBlob(bytes, `JHS-Receipts-${new Date().toISOString().slice(0, 10)}.csv`, 'text/csv');
       setBusy(null);
       setToast(`Exported ${filtered.length} receipts to CSV`);
     }, 600);
@@ -80,10 +80,10 @@ export default function ReceiptsPage() {
     setBusy('pdf');
     setTimeout(() => {
       downloadPdf(
-        `HHA-Receipt-${selected.ref}.pdf`,
+        `JHS-Receipt-${selected.ref}.pdf`,
         buildGenericDoc({
           title: `Receipt ${selected.ref}`,
-          eyebrow: 'HHA · Bursary',
+          eyebrow: 'JHS · Bursary',
           subtitle: `Issued ${new Date(selected.issuedAt).toLocaleString('en-ZW', {
             day: '2-digit',
             month: 'short',
@@ -100,7 +100,7 @@ export default function ReceiptsPage() {
             { label: 'Issued by', value: selected.issuedBy },
           ],
           body: selected.notes ?? 'Digitally-signed receipt. Reconciled against the bank statement.',
-          footer: 'For verification call +263 242 123 456 or email bursary@hha.ac.zw',
+          footer: 'For verification call +263 242 123 456 or email bursary@jhs.ac.zw',
         }),
       );
       setBusy(null);

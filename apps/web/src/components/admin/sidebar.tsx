@@ -109,7 +109,7 @@ export function AdminSidebar({
         ].join(' ')}
       >
         <div className="flex items-center justify-between border-b border-line px-5 py-4">
-          <Link href="/admin" className="flex items-center" aria-label="HHA admin">
+          <Link href="/admin" className="flex items-center" aria-label="JHS admin">
             <Logo size={32} showText variant="on-light" />
           </Link>
           {mobileOpen ? (

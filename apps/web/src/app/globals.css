@@ -3,7 +3,7 @@
 @tailwind utilities;
 
 /*
- * HHA Portal — civic redesign.
+ *JHS Portal — civic redesign.
  *
  * Light-theme palette:
  *   Council-Blue brand primary  #1F3A68
@@ -148,7 +148,7 @@
 
 @layer components {
   /* ------------------------------------------------------------------ */
-  /*  Legacy HHA component classes — preserved for compat               */
+  /*  LegacyJHS component classes — preserved for compat               */
   /* ------------------------------------------------------------------ */
 
   .hha-wrap {

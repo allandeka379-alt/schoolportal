@@ -112,7 +112,7 @@ export default function ParentFeesPage() {
   const [payOpen, setPayOpen] = useState(false);
   const [payAmount, setPayAmount] = useState<string>('');
   const [payLabel, setPayLabel] = useState<string>(
-    'Harare Heritage Academy · family fees',
+    'Junior High School · family fees',
   );
   const [paidBumper, setPaidBumper] = useState(0);
   const [recentReceipts, setRecentReceipts] = useState<LocalReceipt[]>([]);
@@ -137,7 +137,7 @@ export default function ParentFeesPage() {
 
   function openPayAll() {
     setPayAmount(currentOutstanding.toFixed(2));
-    setPayLabel('Harare Heritage Academy · family fees');
+    setPayLabel('Junior High School · family fees');
     setPayOpen(true);
   }
 
@@ -185,10 +185,10 @@ export default function ParentFeesPage() {
             ];
           });
           downloadPdf(
-            `HHA-Statement-Term2-${new Date().getFullYear()}.pdf`,
+            `JHS-Statement-Term2-${new Date().getFullYear()}.pdf`,
             buildGenericDoc({
               title: 'Term 2 fees statement',
-              eyebrow: 'HHA · Bursary',
+              eyebrow: 'JHS · Bursary',
               subtitle: `Issued ${new Date().toLocaleDateString('en-ZW', { day: 'numeric', month: 'long', year: 'numeric' })}`,
               fields: [
                 { label: 'Family', value: 'Moyo' },
@@ -199,7 +199,7 @@ export default function ParentFeesPage() {
                 { label: 'Paid this term', value: `USD ${currentPaid.toLocaleString('en-ZW')}` },
               ],
               lines: rows,
-              footer: 'Watermarked with your parent login. For any queries, bursary@hha.ac.zw',
+              footer: 'Watermarked with your parent login. For any queries, bursary@jhs.ac.zw',
             }),
           );
         } else if (id === 'payment-export') {
@@ -214,10 +214,10 @@ export default function ParentFeesPage() {
             })),
           ];
           downloadPdf(
-            `HHA-Payment-History-${new Date().getFullYear()}.pdf`,
+            `JHS-Payment-History-${new Date().getFullYear()}.pdf`,
             buildGenericDoc({
               title: 'Payment history',
-              eyebrow: 'HHA · Bursary',
+              eyebrow: 'JHS · Bursary',
               subtitle: 'Every payment across the family',
               lines: rows,
               footer: 'Digitally signed export. Every receipt references the bank settlement that cleared it.',
@@ -228,10 +228,10 @@ export default function ParentFeesPage() {
           const r = recentReceipts.find((x) => x.reference === ref);
           if (r) {
             downloadPdf(
-              `HHA-Receipt-${ref}.pdf`,
+              `JHS-Receipt-${ref}.pdf`,
               buildGenericDoc({
                 title: `Receipt ${ref}`,
-                eyebrow: 'HHA · Bursary',
+                eyebrow: 'JHS · Bursary',
                 subtitle: `Issued ${r.when}`,
                 fields: [
                   { label: 'Payer', value: 'Sekai Moyo' },
@@ -241,7 +241,7 @@ export default function ParentFeesPage() {
                   { label: 'Reference', value: ref },
                 ],
                 body: 'This receipt is an auto-generated acknowledgement of a payment reconciled against our bank statement. It serves as proof of settlement.',
-                footer: 'For verification call +263 242 123 456 or email bursary@hha.ac.zw',
+                footer: 'For verification call +263 242 123 456 or email bursary@jhs.ac.zw',
               }),
             );
           }
@@ -250,10 +250,10 @@ export default function ParentFeesPage() {
           const p = PAYMENT_HISTORY.find((x) => x.id === pid);
           if (p) {
             downloadPdf(
-              `HHA-Receipt-${p.reference}.pdf`,
+              `JHS-Receipt-${p.reference}.pdf`,
               buildGenericDoc({
                 title: `Receipt ${p.reference}`,
-                eyebrow: 'HHA · Bursary',
+                eyebrow: 'JHS · Bursary',
                 subtitle: `Issued ${p.when}`,
                 fields: [
                   { label: 'Payer', value: 'Sekai Moyo' },
@@ -263,7 +263,7 @@ export default function ParentFeesPage() {
                   { label: 'Reference', value: p.reference },
                 ],
                 body: 'This receipt is an auto-generated acknowledgement of a payment reconciled against our bank statement. It serves as proof of settlement.',
-                footer: 'For verification call +263 242 123 456 or email bursary@hha.ac.zw',
+                footer: 'For verification call +263 242 123 456 or email bursary@jhs.ac.zw',
               }),
             );
           }

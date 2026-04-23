@@ -10,7 +10,7 @@ interface Props {
   initialError?: string;
 }
 
-const DEMO_PASSWORD = 'HHA!Portal2026';
+const DEMO_PASSWORD = 'JHS!Portal2026';
 
 export function SignInForm({ next, initialError }: Props) {
   const [error, setError] = useState<string | undefined>(initialError);
@@ -105,7 +105,7 @@ export function SignInForm({ next, initialError }: Props) {
             value={email}
             onChange={(e) => setEmail(e.target.value)}
             autoComplete="email"
-            placeholder="you@hha.ac.zw"
+            placeholder="you@jhs.ac.zw"
             required
             className="h-11 w-full rounded-md border border-line bg-card pl-9 pr-3 text-small text-ink placeholder:text-muted focus:border-brand-primary focus:outline-none focus:ring-2 focus:ring-brand-primary/20"
           />

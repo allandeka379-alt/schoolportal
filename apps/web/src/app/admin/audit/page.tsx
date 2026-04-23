@@ -62,7 +62,7 @@ export default function AuditLogPage() {
       const bytes = new TextEncoder().encode(header + rows + footer);
       downloadBlob(
         bytes,
-        `HHA-Audit-${new Date().toISOString().slice(0, 10)}.csv`,
+        `JHS-Audit-${new Date().toISOString().slice(0, 10)}.csv`,
         'text/csv',
       );
       setExporting(false);

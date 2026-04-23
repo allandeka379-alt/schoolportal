@@ -75,7 +75,7 @@ export default function AdminFeesPage() {
         )
         .join('\n');
       const bytes = new TextEncoder().encode(header + body + '\n');
-      downloadBlob(bytes, `HHA-Fees-Ledger-${new Date().toISOString().slice(0, 10)}.csv`, 'text/csv');
+      downloadBlob(bytes, `JHS-Fees-Ledger-${new Date().toISOString().slice(0, 10)}.csv`, 'text/csv');
       setExporting(false);
       setToast(`Exported ${rows.length} rows to CSV`);
     }, 600);

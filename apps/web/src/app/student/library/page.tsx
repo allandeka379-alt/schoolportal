@@ -484,7 +484,7 @@ function ResourcePreview({
                   <dt className="text-micro font-semibold uppercase tracking-[0.1em] text-muted">
                     Teacher
                   </dt>
-                  <dd className="mt-0.5 text-ink">{subject?.teacher ?? 'HHA faculty'}</dd>
+                  <dd className="mt-0.5 text-ink">{subject?.teacher ?? 'JHS faculty'}</dd>
                 </div>
                 <div>
                   <dt className="text-micro font-semibold uppercase tracking-[0.1em] text-muted">

@@ -7,16 +7,16 @@ import './globals.css';
 
 export const metadata: Metadata = {
   title: {
-    default: 'Harare Heritage Academy · Portal',
-    template: '%s · HHA Portal',
+    default: 'Junior High School · Portal',
+    template: '%s ·JHS Portal',
   },
   description:
-    'Software for the academic life of Harare Heritage Academy — students, teachers, parents, and the administrator.',
+    'Software for the academic life of Junior High School — students, teachers, parents, and the administrator.',
   metadataBase: new URL('https://hha-portal.vercel.app'),
   openGraph: {
-    title: 'HHA Portal',
+    title: 'JHS Portal',
     description:
-      'Software for the academic life of Harare Heritage Academy.',
+      'Software for the academic life of Junior High School.',
     type: 'website',
   },
 };

@@ -135,7 +135,7 @@ export function PaymentFlowModal({
   open,
   onClose,
   amount = '',
-  label = 'Harare Heritage Academy · school fees',
+  label = 'Junior High School · school fees',
   currency = 'USD',
   onComplete,
 }: PaymentFlowProps) {
@@ -434,7 +434,7 @@ export function PaymentFlowModal({
                       required
                       value={bankRef}
                       onChange={(e) => setBankRef(e.target.value)}
-                      placeholder="HHA-2026-000123"
+                      placeholder="JHS-2026-000123"
                       className={inputClass}
                     />
                   </Field>
@@ -442,7 +442,7 @@ export function PaymentFlowModal({
                     <p className="text-micro font-semibold uppercase tracking-[0.12em] text-muted">
                       Beneficiary
                     </p>
-                    <p className="mt-1 font-semibold">Harare Heritage Academy</p>
+                    <p className="mt-1 font-semibold">Junior High School</p>
                     <p className="text-micro text-muted">CBZ · 11234567890123 · Branch 01234</p>
                   </div>
                 </>

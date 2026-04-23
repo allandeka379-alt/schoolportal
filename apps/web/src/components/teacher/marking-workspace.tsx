@@ -192,10 +192,10 @@ export function MarkingWorkspace({
       value: `${s.mark ?? 0} / ${s.outOf}`,
     }));
     downloadPdf(
-      `HHA-${assignmentTitle.replace(/\s+/g, '-')}-marks.pdf`,
+      `JHS-${assignmentTitle.replace(/\s+/g, '-')}-marks.pdf`,
       buildGenericDoc({
         title: `${assignmentTitle} · marks`,
-        eyebrow: `HHA · ${classLabel}`,
+        eyebrow: `JHS · ${classLabel}`,
         subtitle: `Released ${releasedAt ? new Date(releasedAt).toLocaleString('en-ZW') : 'today'}`,
         fields: [
           { label: 'Students marked', value: `${marked.length} of ${submissions.length}` },
