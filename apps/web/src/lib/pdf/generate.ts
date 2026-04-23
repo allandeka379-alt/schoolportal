@@ -190,11 +190,29 @@ export function downloadPdf(filename: string, doc: PdfDoc) {
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
-// Report card builder
+// Report card builder — standard end-of-term structure
 // ─────────────────────────────────────────────────────────────────────────────
+
+export interface ReportCardSubject {
+  code: string;
+  name: string;
+  teacher: string;
+  initials: string;
+  ca: number; // /40
+  exam: number; // /60
+  total: number; // /100
+  grade: string; // A/B/C/D/E
+  position: number; // class position in subject
+  classSize: number;
+  classAverage: number;
+  comment: string;
+}
 
 export interface ReportCardData {
   studentName: string;
+  admissionNo?: string;
+  house?: string;
+  age?: number;
   form: string;
   term: string;
   year: string | number;
@@ -204,18 +222,19 @@ export interface ReportCardData {
   position: number;
   classSize: number;
   attendance: number; // 0-100
+  daysAbsent?: number;
+  daysLate?: number;
+  conduct?: string;
+  leadership?: string;
+  housePoints?: number;
   formTeacher: string;
   formTeacherComment: string;
-  subjects: {
-    code: string;
-    name: string;
-    score: number; // 0-100
-    grade: string;
-    classAverage: number;
-    teacher: string;
-    comment?: string;
-  }[];
   headmasterName?: string;
+  headmasterComment?: string;
+  nextTermStarts?: string;
+  feesDueAmount?: string; // e.g. "2,760.00"
+  feesDueBy?: string;
+  subjects: ReportCardSubject[];
 }
 
 const BRAND: [number, number, number] = [0.796, 0.196, 0.129]; // Terracotta #CB3221
@@ -225,126 +244,453 @@ const LINE: [number, number, number] = [0.89, 0.9, 0.92]; // Light line
 const SURFACE: [number, number, number] = [0.976, 0.98, 0.984]; // Very light
 
 export function buildReportCard(data: ReportCardData): PdfDoc {
-  const lines: TextLine[] = [];
-  const rects: Rectangle[] = [];
+  // Page 1 — banner, student block, KPIs, first chunk of subjects
+  // Page 2 — remaining subjects, conduct, form + HM comments, fees, signatures
+  //
+  // Each subject row renders a 2-line cell: top row for code/ca/exam/total/etc,
+  // second row for the teacher's per-subject comment (wrapped).
+  const SUBJECTS_PER_PAGE_1 = 4;
 
-  // Header band
-  rects.push({ x: 0, y: 792, w: 595, h: 50, fill: BRAND });
-  lines.push({
-    text: 'HARARE HERITAGE ACADEMY',
+  const page1: { lines: TextLine[]; rects: Rectangle[] } = { lines: [], rects: [] };
+  const page2: { lines: TextLine[]; rects: Rectangle[] } = { lines: [], rects: [] };
+
+  // ─── Page 1 ────────────────────────────────────────────────────────────
+  drawHeader(page1, data, 'End-of-term report');
+  drawStudentBlock(page1, data);
+  drawKpiRow(page1, data);
+  drawAttendanceStrip(page1, data);
+
+  const subjectsP1 = data.subjects.slice(0, SUBJECTS_PER_PAGE_1);
+  const subjectsP2 = data.subjects.slice(SUBJECTS_PER_PAGE_1);
+
+  page1.lines.push({
+    text: 'SUBJECT RESULTS',
     x: 50,
-    y: 812,
-    size: 18,
-    bold: true,
-    color: [1, 1, 1],
-  });
-  lines.push({
-    text: 'End-of-term report · Issued ' + data.releasedOn,
-    x: 50,
-    y: 796,
-    size: 10,
-    color: [1, 0.93, 0.86],
-  });
-
-  // Student block
-  lines.push({ text: data.studentName, x: 50, y: 760, size: 22, bold: true, color: INK });
-  lines.push({
-    text: `${data.form} · ${data.term} ${data.year}`,
-    x: 50,
-    y: 742,
-    size: 11,
-    color: MUTED,
-  });
-
-  // Key stats row — 4 blocks
-  const blocks = [
-    { label: 'TERM AVERAGE', value: `${data.termAverage}%` },
-    { label: 'GRADE', value: data.grade },
-    { label: 'POSITION', value: `${data.position} / ${data.classSize}` },
-    { label: 'ATTENDANCE', value: `${data.attendance}%` },
-  ];
-  const blockW = 125;
-  const blockH = 60;
-  const blockStartX = 50;
-  blocks.forEach((b, i) => {
-    const x = blockStartX + i * (blockW + 8);
-    const y = 660;
-    rects.push({ x, y, w: blockW, h: blockH, fill: SURFACE, stroke: LINE });
-    lines.push({ text: b.label, x: x + 10, y: y + blockH - 15, size: 8, bold: true, color: MUTED });
-    lines.push({ text: b.value, x: x + 10, y: y + 20, size: 18, bold: true, color: INK });
-  });
-
-  // Subjects header
-  const tableTop = 620;
-  lines.push({ text: 'SUBJECT RESULTS', x: 50, y: tableTop, size: 10, bold: true, color: BRAND });
-
-  // Table header row
-  const tableStartY = tableTop - 22;
-  rects.push({ x: 50, y: tableStartY - 6, w: 495, h: 18, fill: SURFACE });
-  lines.push({ text: 'Subject', x: 56, y: tableStartY, size: 9, bold: true, color: MUTED });
-  lines.push({ text: 'Score', x: 300, y: tableStartY, size: 9, bold: true, color: MUTED });
-  lines.push({ text: 'Grade', x: 360, y: tableStartY, size: 9, bold: true, color: MUTED });
-  lines.push({ text: 'Class avg', x: 420, y: tableStartY, size: 9, bold: true, color: MUTED });
-  lines.push({ text: 'Teacher', x: 495, y: tableStartY, size: 9, bold: true, color: MUTED });
-
-  // Table rows
-  let rowY = tableStartY - 20;
-  const rowH = 22;
-  data.subjects.forEach((s, i) => {
-    if (i % 2 === 1) {
-      rects.push({ x: 50, y: rowY - 6, w: 495, h: rowH - 2, fill: [0.988, 0.988, 0.99] });
-    }
-    lines.push({ text: s.name, x: 56, y: rowY, size: 10, color: INK });
-    lines.push({ text: `${s.score}%`, x: 300, y: rowY, size: 10, color: INK });
-    lines.push({ text: s.grade, x: 360, y: rowY, size: 10, bold: true, color: gradeColor(s.grade) });
-    lines.push({ text: `${s.classAverage}%`, x: 420, y: rowY, size: 10, color: MUTED });
-    lines.push({ text: shortTeacher(s.teacher), x: 495, y: rowY, size: 9, color: MUTED });
-    rowY -= rowH;
-  });
-
-  // Form teacher comment
-  const commentTop = rowY - 40;
-  lines.push({ text: `FORM TEACHER COMMENT`, x: 50, y: commentTop, size: 9, bold: true, color: BRAND });
-  lines.push({ text: data.formTeacher, x: 50, y: commentTop - 14, size: 10, bold: true, color: INK });
-
-  const wrappedComment = wrap(data.formTeacherComment, 82);
-  wrappedComment.forEach((ln, i) => {
-    lines.push({
-      text: ln,
-      x: 50,
-      y: commentTop - 32 - i * 14,
-      size: 10,
-      color: INK,
-    });
-  });
-
-  // Signature block
-  const sigY = 90;
-  rects.push({ x: 50, y: sigY - 10, w: 495, h: 1, fill: LINE });
-  lines.push({
-    text: 'Signed digitally by the Headmaster · ' + data.releasedOn,
-    x: 50,
-    y: sigY - 26,
-    size: 9,
-    color: MUTED,
-  });
-  lines.push({
-    text: data.headmasterName ?? 'Mr T. Moyo · Headmaster',
-    x: 50,
-    y: sigY - 42,
+    y: 512,
     size: 10,
     bold: true,
-    color: INK,
+    color: BRAND,
   });
-  lines.push({
-    text: 'This PDF is watermarked with the parent\u2019s name and download timestamp.',
-    x: 50,
-    y: 40,
+  page1.lines.push({
+    text: 'CA out of 40 · Exam out of 60 · Total out of 100',
+    x: 160,
+    y: 512,
     size: 8,
     color: MUTED,
   });
 
-  return { pages: [{ lines, rects }] };
+  drawSubjectTableHeader(page1, 498);
+  let y1 = 474;
+  subjectsP1.forEach((s) => {
+    y1 = drawSubjectRow(page1, s, y1);
+  });
+
+  pageFooter(page1, data, 1, 2);
+
+  // ─── Page 2 ────────────────────────────────────────────────────────────
+  drawHeader(page2, data, 'End-of-term report · continued');
+
+  page2.lines.push({
+    text: 'SUBJECT RESULTS (continued)',
+    x: 50,
+    y: 776,
+    size: 10,
+    bold: true,
+    color: BRAND,
+  });
+
+  drawSubjectTableHeader(page2, 760);
+  let y2 = 736;
+  subjectsP2.forEach((s) => {
+    y2 = drawSubjectRow(page2, s, y2);
+  });
+
+  // Conduct + house strip
+  y2 -= 12;
+  const conductY = y2;
+  page2.rects.push({ x: 50, y: conductY - 54, w: 495, h: 60, fill: SURFACE, stroke: LINE });
+  const conductBlocks = [
+    { label: 'CONDUCT', value: data.conduct ?? '—' },
+    { label: 'LEADERSHIP', value: data.leadership ?? '—' },
+    { label: 'HOUSE POINTS', value: String(data.housePoints ?? 0) },
+    { label: 'HOUSE', value: data.house ?? 'Savanna' },
+  ];
+  const cbW = 124;
+  conductBlocks.forEach((b, i) => {
+    const x = 56 + i * cbW;
+    page2.lines.push({
+      text: b.label,
+      x,
+      y: conductY - 20,
+      size: 8,
+      bold: true,
+      color: MUTED,
+    });
+    page2.lines.push({
+      text: b.value,
+      x,
+      y: conductY - 38,
+      size: 12,
+      bold: true,
+      color: INK,
+    });
+  });
+
+  // Form teacher comment
+  y2 = conductY - 80;
+  page2.lines.push({
+    text: "FORM TEACHER'S COMMENT",
+    x: 50,
+    y: y2,
+    size: 9,
+    bold: true,
+    color: BRAND,
+  });
+  page2.lines.push({
+    text: data.formTeacher,
+    x: 50,
+    y: y2 - 14,
+    size: 10,
+    bold: true,
+    color: INK,
+  });
+  const ftLines = wrap(data.formTeacherComment, 95);
+  ftLines.forEach((ln, i) => {
+    page2.lines.push({ text: ln, x: 50, y: y2 - 30 - i * 12, size: 10, color: INK });
+  });
+
+  // Headmaster comment
+  const hmY = y2 - 38 - ftLines.length * 12;
+  page2.lines.push({
+    text: "HEADMASTER'S COMMENT",
+    x: 50,
+    y: hmY,
+    size: 9,
+    bold: true,
+    color: BRAND,
+  });
+  page2.lines.push({
+    text: data.headmasterName ?? 'Mr T. Moyo',
+    x: 50,
+    y: hmY - 14,
+    size: 10,
+    bold: true,
+    color: INK,
+  });
+  const hmLines = wrap(data.headmasterComment ?? '', 95);
+  hmLines.forEach((ln, i) => {
+    page2.lines.push({ text: ln, x: 50, y: hmY - 30 - i * 12, size: 10, color: INK });
+  });
+
+  // Term logistics — next term + fees
+  const logY = hmY - 38 - hmLines.length * 12 - 10;
+  page2.rects.push({ x: 50, y: logY - 50, w: 495, h: 50, fill: SURFACE, stroke: LINE });
+  const logBlocks = [
+    { label: 'NEXT TERM BEGINS', value: data.nextTermStarts ?? '—' },
+    {
+      label: 'FEES DUE',
+      value: data.feesDueAmount
+        ? `USD ${data.feesDueAmount}${data.feesDueBy ? ' · by ' + data.feesDueBy : ''}`
+        : '—',
+    },
+  ];
+  logBlocks.forEach((b, i) => {
+    const x = 56 + i * 248;
+    page2.lines.push({
+      text: b.label,
+      x,
+      y: logY - 18,
+      size: 8,
+      bold: true,
+      color: MUTED,
+    });
+    page2.lines.push({
+      text: b.value,
+      x,
+      y: logY - 36,
+      size: 11,
+      bold: true,
+      color: INK,
+    });
+  });
+
+  // Signatures (three cells)
+  const sigY = 110;
+  const sigCells = [
+    { label: 'Form Teacher', name: data.formTeacher },
+    { label: 'Headmaster', name: data.headmasterName ?? 'Mr T. Moyo' },
+    { label: 'Date', name: data.releasedOn },
+  ];
+  sigCells.forEach((c, i) => {
+    const x = 50 + i * 170;
+    page2.rects.push({ x, y: sigY, w: 155, h: 1, fill: MUTED });
+    page2.lines.push({
+      text: c.label.toUpperCase(),
+      x,
+      y: sigY - 16,
+      size: 8,
+      bold: true,
+      color: MUTED,
+    });
+    page2.lines.push({ text: c.name, x, y: sigY - 30, size: 10, color: INK });
+  });
+
+  pageFooter(page2, data, 2, 2);
+
+  return { pages: [page1, page2] };
+}
+
+// ── drawing helpers ─────────────────────────────────────────────────────
+
+function drawHeader(
+  page: { lines: TextLine[]; rects: Rectangle[] },
+  data: ReportCardData,
+  subtitle: string,
+) {
+  // Terracotta band
+  page.rects.push({ x: 0, y: 792, w: 595, h: 50, fill: BRAND });
+  page.lines.push({
+    text: 'HARARE HERITAGE ACADEMY',
+    x: 50,
+    y: 814,
+    size: 16,
+    bold: true,
+    color: [1, 1, 1],
+  });
+  page.lines.push({
+    text: `${subtitle} · ${data.term} ${data.year} · Issued ${data.releasedOn}`,
+    x: 50,
+    y: 798,
+    size: 9,
+    color: [1, 0.93, 0.86],
+  });
+  // Thin accent rule under band
+  page.rects.push({ x: 0, y: 790, w: 595, h: 2, fill: [0.95, 0.3, 0.2] });
+}
+
+function drawStudentBlock(
+  page: { lines: TextLine[]; rects: Rectangle[] },
+  data: ReportCardData,
+) {
+  page.lines.push({
+    text: data.studentName,
+    x: 50,
+    y: 762,
+    size: 20,
+    bold: true,
+    color: INK,
+  });
+  const pieces = [
+    data.form,
+    data.admissionNo ? `Adm. ${data.admissionNo}` : null,
+    data.house ? `${data.house} House` : null,
+    data.age !== undefined ? `Age ${data.age}` : null,
+  ]
+    .filter(Boolean)
+    .join('  ·  ');
+  page.lines.push({ text: pieces, x: 50, y: 746, size: 10, color: MUTED });
+}
+
+function drawKpiRow(
+  page: { lines: TextLine[]; rects: Rectangle[] },
+  data: ReportCardData,
+) {
+  const blocks = [
+    { label: 'TERM AVERAGE', value: `${data.termAverage}%` },
+    { label: 'GRADE', value: data.grade, accent: true },
+    { label: 'CLASS POSITION', value: `${data.position} / ${data.classSize}` },
+    { label: 'ATTENDANCE', value: `${data.attendance}%` },
+  ];
+  const blockW = 118;
+  const blockH = 62;
+  const startX = 50;
+  blocks.forEach((b, i) => {
+    const x = startX + i * (blockW + 8);
+    const y = 668;
+    page.rects.push({ x, y, w: blockW, h: blockH, fill: SURFACE, stroke: LINE });
+    page.lines.push({
+      text: b.label,
+      x: x + 10,
+      y: y + blockH - 15,
+      size: 7,
+      bold: true,
+      color: MUTED,
+    });
+    page.lines.push({
+      text: b.value,
+      x: x + 10,
+      y: y + 20,
+      size: b.accent ? 22 : 18,
+      bold: true,
+      color: b.accent ? gradeColor(b.value) : INK,
+    });
+  });
+}
+
+function drawAttendanceStrip(
+  page: { lines: TextLine[]; rects: Rectangle[] },
+  data: ReportCardData,
+) {
+  const y = 630;
+  const items = [
+    { label: 'DAYS ABSENT', value: String(data.daysAbsent ?? 0) },
+    { label: 'LATE MARKS', value: String(data.daysLate ?? 0) },
+    { label: 'CONDUCT', value: data.conduct ?? 'Good' },
+    { label: 'HOUSE POINTS', value: String(data.housePoints ?? 0) },
+  ];
+  const itemW = 118;
+  items.forEach((it, i) => {
+    const x = 50 + i * (itemW + 8);
+    page.lines.push({ text: it.label, x, y, size: 7, bold: true, color: MUTED });
+    page.lines.push({
+      text: it.value,
+      x: x + 85,
+      y,
+      size: 9,
+      bold: true,
+      color: INK,
+    });
+  });
+  // separator line below strip
+  page.rects.push({ x: 50, y: y - 8, w: 495, h: 0.5, fill: LINE });
+}
+
+const COL = {
+  code: 56,
+  subject: 90,
+  ca: 244,
+  exam: 278,
+  total: 322,
+  grade: 372,
+  position: 408,
+  classAvg: 460,
+  teacher: 500,
+};
+
+function drawSubjectTableHeader(
+  page: { lines: TextLine[]; rects: Rectangle[] },
+  y: number,
+) {
+  page.rects.push({ x: 50, y: y - 6, w: 495, h: 18, fill: SURFACE });
+  page.lines.push({ text: 'Code', x: COL.code, y, size: 8, bold: true, color: MUTED });
+  page.lines.push({ text: 'Subject', x: COL.subject, y, size: 8, bold: true, color: MUTED });
+  page.lines.push({ text: 'CA', x: COL.ca, y, size: 8, bold: true, color: MUTED });
+  page.lines.push({ text: 'Exam', x: COL.exam, y, size: 8, bold: true, color: MUTED });
+  page.lines.push({ text: 'Total', x: COL.total, y, size: 8, bold: true, color: MUTED });
+  page.lines.push({ text: 'Grade', x: COL.grade, y, size: 8, bold: true, color: MUTED });
+  page.lines.push({ text: 'Pos.', x: COL.position, y, size: 8, bold: true, color: MUTED });
+  page.lines.push({ text: 'Avg', x: COL.classAvg, y, size: 8, bold: true, color: MUTED });
+  page.lines.push({ text: 'Teacher', x: COL.teacher, y, size: 8, bold: true, color: MUTED });
+}
+
+/** Draws a subject row with primary data line + wrapped comment line.
+ *  Returns the new cursor Y after the row. */
+function drawSubjectRow(
+  page: { lines: TextLine[]; rects: Rectangle[] },
+  s: ReportCardSubject,
+  startY: number,
+): number {
+  const wrapped = wrap(s.comment, 105);
+  const lineCount = Math.max(1, Math.min(wrapped.length, 3));
+  const rowHeight = 18 + lineCount * 10 + 4;
+  // background stripe for readability
+  page.rects.push({
+    x: 50,
+    y: startY - rowHeight + 6,
+    w: 495,
+    h: rowHeight,
+    fill: [0.992, 0.992, 0.995],
+  });
+  // Primary row
+  page.lines.push({ text: s.code, x: COL.code, y: startY, size: 9, bold: true, color: MUTED });
+  page.lines.push({ text: s.name, x: COL.subject, y: startY, size: 10, color: INK });
+  page.lines.push({
+    text: `${s.ca}/40`,
+    x: COL.ca,
+    y: startY,
+    size: 9,
+    color: INK,
+  });
+  page.lines.push({
+    text: `${s.exam}/60`,
+    x: COL.exam,
+    y: startY,
+    size: 9,
+    color: INK,
+  });
+  page.lines.push({
+    text: `${s.total}`,
+    x: COL.total,
+    y: startY,
+    size: 10,
+    bold: true,
+    color: INK,
+  });
+  page.lines.push({
+    text: s.grade,
+    x: COL.grade,
+    y: startY,
+    size: 10,
+    bold: true,
+    color: gradeColor(s.grade),
+  });
+  page.lines.push({
+    text: `${s.position}/${s.classSize}`,
+    x: COL.position,
+    y: startY,
+    size: 9,
+    color: INK,
+  });
+  page.lines.push({
+    text: `${s.classAverage}%`,
+    x: COL.classAvg,
+    y: startY,
+    size: 9,
+    color: MUTED,
+  });
+  page.lines.push({
+    text: s.initials,
+    x: COL.teacher,
+    y: startY,
+    size: 9,
+    bold: true,
+    color: MUTED,
+  });
+  // Comment
+  wrapped.slice(0, 3).forEach((ln, i) => {
+    page.lines.push({
+      text: ln,
+      x: COL.subject,
+      y: startY - 14 - i * 10,
+      size: 8,
+      color: MUTED,
+    });
+  });
+  // Underline between rows
+  page.rects.push({ x: 50, y: startY - rowHeight + 4, w: 495, h: 0.5, fill: LINE });
+  return startY - rowHeight;
+}
+
+function pageFooter(
+  page: { lines: TextLine[]; rects: Rectangle[] },
+  data: ReportCardData,
+  n: number,
+  total: number,
+) {
+  page.lines.push({
+    text: `${data.studentName} · ${data.term} ${data.year} · Page ${n} of ${total}`,
+    x: 50,
+    y: 28,
+    size: 8,
+    color: MUTED,
+  });
+  page.lines.push({
+    text: 'Watermarked with the parent\u2019s login and download timestamp.',
+    x: 320,
+    y: 28,
+    size: 8,
+    color: MUTED,
+  });
 }
 
 function gradeColor(grade: string): [number, number, number] {

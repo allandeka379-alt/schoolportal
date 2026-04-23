@@ -401,6 +401,23 @@ export const PAYMENT_HISTORY = [
 /*  Reports                                                            */
 /* ------------------------------------------------------------------ */
 
+export type ConductRating = 'Excellent' | 'Good' | 'Satisfactory' | 'Needs improvement';
+
+export interface ReportSubjectRow {
+  code: string;
+  name: string;
+  teacher: string;
+  ca: number; // Continuous assessment out of 40
+  exam: number; // End-of-term exam out of 60
+  total: number; // Combined 0-100
+  grade: 'A' | 'B' | 'C' | 'D' | 'E';
+  position: number; // position in subject class
+  classSize: number;
+  classAverage: number;
+  comment: string;
+  initials: string; // subject teacher initials for sign-off
+}
+
 export interface ParentReport {
   id: string;
   childId: string;
@@ -412,10 +429,398 @@ export interface ParentReport {
   position: number;
   classSize: number;
   attendance: number;
+  daysAbsent: number;
+  daysLate: number;
+  conduct: ConductRating;
+  leadership: string; // e.g. "Form prefect" or "—"
+  housePoints: number;
+  formTeacherName: string;
   formTeacherComment: string;
+  headmasterName: string;
+  headmasterComment: string;
+  nextTermStarts: string; // plain text date
+  feesDueAmount: string; // e.g. "2,760.00"
+  feesDueBy: string; // plain text date
+  subjects: ReportSubjectRow[];
   acknowledged: boolean;
   current: boolean;
 }
+
+function teacherInitials(name: string): string {
+  const parts = name.replace(/^(Mr|Mrs|Ms|Dr)\s+/i, '').split(/\s+/);
+  if (parts.length === 1) return (parts[0] ?? '').slice(0, 2).toUpperCase();
+  return `${(parts[0] ?? '').charAt(0)}${(parts[parts.length - 1] ?? '').charAt(0)}`.toUpperCase();
+}
+
+function letterGrade(total: number): 'A' | 'B' | 'C' | 'D' | 'E' {
+  if (total >= 80) return 'A';
+  if (total >= 70) return 'B';
+  if (total >= 60) return 'C';
+  if (total >= 50) return 'D';
+  return 'E';
+}
+
+interface SubjectSeed {
+  code: string;
+  name: string;
+  teacher: string;
+  total: number; // out of 100
+  caRatio: number; // 0-1, portion of the total coming from CA
+  classSize: number;
+  classAverage: number;
+  position: number;
+  comment: string;
+}
+
+function buildSubjects(seeds: SubjectSeed[]): ReportSubjectRow[] {
+  return seeds.map((s) => {
+    const ca = Math.round(s.total * s.caRatio * 0.4); // CA weighted to /40
+    const examScaled = Math.round(s.total * (1 - s.caRatio) * 0.6); // Exam weighted to /60
+    // Bring CA+Exam into /100 at target total: scale so CA out of 40 + exam out of 60 adds up ≈ total
+    const caMark = Math.min(40, Math.max(0, Math.round((s.total * 0.4) + (ca - 16) * 0.4)));
+    const examMark = Math.min(60, Math.max(0, s.total - caMark));
+    return {
+      code: s.code,
+      name: s.name,
+      teacher: s.teacher,
+      ca: caMark,
+      exam: examMark,
+      total: s.total,
+      grade: letterGrade(s.total),
+      position: s.position,
+      classSize: s.classSize,
+      classAverage: s.classAverage,
+      comment: s.comment,
+      initials: teacherInitials(s.teacher),
+    };
+  });
+}
+
+const FARAI_T2_SUBJECTS = buildSubjects([
+  {
+    code: 'MATH',
+    name: 'Mathematics',
+    teacher: 'Mrs M. Dziva',
+    total: 80,
+    caRatio: 0.85,
+    classSize: 32,
+    classAverage: 76,
+    position: 6,
+    comment:
+      'A really encouraging term. Farai shows genuine pleasure in problem-solving. Push him to set his work out step-by-step in exams — his instinct is to jump to the answer.',
+  },
+  {
+    code: 'ENGL',
+    name: 'English Language',
+    teacher: 'Mr T. Gondo',
+    total: 71,
+    caRatio: 0.62,
+    classSize: 32,
+    classAverage: 73,
+    position: 14,
+    comment:
+      'Farai reads widely and his vocabulary is strong. The focus next term is essay structure — he tends to run paragraphs together when a clearer break would help the argument.',
+  },
+  {
+    code: 'SHON',
+    name: 'Shona',
+    teacher: 'Mrs F. Chiweshe',
+    total: 88,
+    caRatio: 0.55,
+    classSize: 32,
+    classAverage: 78,
+    position: 3,
+    comment:
+      'Excellent. Farai writes with warmth and cultural precision. He should be encouraged to enter the inter-schools essay competition.',
+  },
+  {
+    code: 'HIST',
+    name: 'History',
+    teacher: 'Mr L. Chakanetsa',
+    total: 69,
+    caRatio: 0.45,
+    classSize: 30,
+    classAverage: 72,
+    position: 16,
+    comment:
+      'A quieter term. Farai knows the material but his exam answers lack depth — practise writing timed paragraphs using the PEEL framework.',
+  },
+  {
+    code: 'BIO',
+    name: 'Biology',
+    teacher: 'Dr A. Madziva',
+    total: 81,
+    caRatio: 0.58,
+    classSize: 28,
+    classAverage: 74,
+    position: 5,
+    comment:
+      'Sharp practical sense and good diagrams. Revisit the enzyme chapter — a couple of details were missed in the end-of-term paper.',
+  },
+  {
+    code: 'GEOG',
+    name: 'Geography',
+    teacher: 'Mrs P. Dube',
+    total: 75,
+    caRatio: 0.5,
+    classSize: 30,
+    classAverage: 70,
+    position: 9,
+    comment:
+      'Thorough coursework on the Zambezi basin. Map-work is a clear strength. Next term: climate graphs.',
+  },
+  {
+    code: 'PHYS',
+    name: 'Physics',
+    teacher: 'Ms S. Nyathi',
+    total: 72,
+    caRatio: 0.48,
+    classSize: 28,
+    classAverage: 68,
+    position: 8,
+    comment:
+      'Solid understanding of mechanics. Work on units and significant figures — easy marks were missed in the calculation paper.',
+  },
+  {
+    code: 'CHEM',
+    name: 'Chemistry',
+    teacher: 'Mr P. Mhlanga',
+    total: 74,
+    caRatio: 0.55,
+    classSize: 28,
+    classAverage: 71,
+    position: 7,
+    comment:
+      'Diligent practical work. Balancing equations has improved noticeably — keep reviewing the mole concept.',
+  },
+]);
+
+const RUMBI_T2_SUBJECTS = buildSubjects([
+  {
+    code: 'MATH',
+    name: 'Mathematics',
+    teacher: 'Mr J. Phiri',
+    total: 85,
+    caRatio: 0.6,
+    classSize: 30,
+    classAverage: 74,
+    position: 4,
+    comment:
+      'Rumbi&rsquo;s reasoning is a pleasure to mark. She should now push for full solutions, including checking her answers.',
+  },
+  {
+    code: 'ENGL',
+    name: 'English Language',
+    teacher: 'Mrs R. Sithole',
+    total: 88,
+    caRatio: 0.65,
+    classSize: 30,
+    classAverage: 75,
+    position: 2,
+    comment:
+      'Wonderful writing, thoughtful and personal. Ready for GCSE-style comprehension next term.',
+  },
+  {
+    code: 'SHON',
+    name: 'Shona',
+    teacher: 'Mrs F. Mutasa',
+    total: 79,
+    caRatio: 0.55,
+    classSize: 30,
+    classAverage: 76,
+    position: 8,
+    comment:
+      'Fluent and confident. Essay structure is the next step — we are working on paragraph cohesion.',
+  },
+  {
+    code: 'HIST',
+    name: 'History',
+    teacher: 'Mr L. Chakanetsa',
+    total: 81,
+    caRatio: 0.5,
+    classSize: 30,
+    classAverage: 72,
+    position: 5,
+    comment:
+      'Strong coursework on 20th-century Southern Africa. Encourage wider reading beyond the textbook.',
+  },
+  {
+    code: 'BIO',
+    name: 'Biology',
+    teacher: 'Ms N. Banda',
+    total: 83,
+    caRatio: 0.58,
+    classSize: 28,
+    classAverage: 74,
+    position: 4,
+    comment:
+      'Excellent practicals. Diagrams are neat and well-labelled. Ready for the inter-schools science quiz.',
+  },
+  {
+    code: 'GEOG',
+    name: 'Geography',
+    teacher: 'Mrs P. Dube',
+    total: 77,
+    caRatio: 0.52,
+    classSize: 30,
+    classAverage: 71,
+    position: 7,
+    comment:
+      'Map skills are strong. Work on extended writing — her 6-mark answers need more specific examples.',
+  },
+  {
+    code: 'PHYS',
+    name: 'Physics',
+    teacher: 'Ms S. Nyathi',
+    total: 78,
+    caRatio: 0.48,
+    classSize: 28,
+    classAverage: 69,
+    position: 6,
+    comment:
+      'Good grasp of the syllabus. Pay attention to graph-drawing — axis labels and scales need to be checked.',
+  },
+  {
+    code: 'ART',
+    name: 'Art & Design',
+    teacher: 'Mr K. Shoko',
+    total: 86,
+    caRatio: 0.85,
+    classSize: 20,
+    classAverage: 74,
+    position: 3,
+    comment:
+      'A very promising portfolio. Rumbi&rsquo;s charcoal work this term is expressive and technically sound.',
+  },
+]);
+
+const TANAKA_T2_SUBJECTS = buildSubjects([
+  {
+    code: 'MATH',
+    name: 'Mathematics',
+    teacher: 'Mrs M. Dziva',
+    total: 65,
+    caRatio: 0.55,
+    classSize: 28,
+    classAverage: 73,
+    position: 19,
+    comment:
+      'Tanaka has the ability but the absences have shown. Priority next term is catching up on the indices chapter.',
+  },
+  {
+    code: 'ENGL',
+    name: 'English Language',
+    teacher: 'Ms R. Sithole',
+    total: 72,
+    caRatio: 0.6,
+    classSize: 28,
+    classAverage: 72,
+    position: 12,
+    comment:
+      'Capable reader. Her essays have good ideas but presentation lets them down — we are working on neatness.',
+  },
+  {
+    code: 'SHON',
+    name: 'Shona',
+    teacher: 'Mrs F. Chiweshe',
+    total: 81,
+    caRatio: 0.55,
+    classSize: 28,
+    classAverage: 75,
+    position: 4,
+    comment:
+      'Tanaka&rsquo;s strongest subject. She speaks with confidence in class discussions and should aim for an A next term.',
+  },
+  {
+    code: 'HIST',
+    name: 'History',
+    teacher: 'Mr L. Chakanetsa',
+    total: 68,
+    caRatio: 0.48,
+    classSize: 28,
+    classAverage: 70,
+    position: 15,
+    comment:
+      'Interested and engaged in lessons. Her exam paper was rushed — we will practise timing next term.',
+  },
+  {
+    code: 'BIO',
+    name: 'Biology',
+    teacher: 'Ms N. Banda',
+    total: 74,
+    caRatio: 0.55,
+    classSize: 28,
+    classAverage: 73,
+    position: 10,
+    comment:
+      'Good improvement since Term 1. Her practical report was one of the clearest in the class.',
+  },
+  {
+    code: 'GEOG',
+    name: 'Geography',
+    teacher: 'Mrs P. Dube',
+    total: 70,
+    caRatio: 0.5,
+    classSize: 28,
+    classAverage: 69,
+    position: 13,
+    comment:
+      'Steady progress. Focus area is extended writing; keep building those 6-mark answers.',
+  },
+  {
+    code: 'PHYS',
+    name: 'Physics',
+    teacher: 'Ms S. Nyathi',
+    total: 66,
+    caRatio: 0.45,
+    classSize: 28,
+    classAverage: 68,
+    position: 16,
+    comment:
+      'Gaps in the circuits unit were evident. Additional tutoring is in place for Term 3.',
+  },
+  {
+    code: 'CHEM',
+    name: 'Chemistry',
+    teacher: 'Mr P. Mhlanga',
+    total: 69,
+    caRatio: 0.52,
+    classSize: 28,
+    classAverage: 71,
+    position: 14,
+    comment:
+      'Willing and hard-working in the lab. We need to shore up her symbol equations ahead of Paper 1.',
+  },
+]);
+
+const FARAI_T1_SUBJECTS = buildSubjects([
+  { code: 'MATH', name: 'Mathematics', teacher: 'Mrs M. Dziva', total: 76, caRatio: 0.8, classSize: 32, classAverage: 74, position: 10, comment: 'Good start. Keep up the algebra practice.' },
+  { code: 'ENGL', name: 'English Language', teacher: 'Mr T. Gondo', total: 70, caRatio: 0.6, classSize: 32, classAverage: 71, position: 16, comment: 'Writing is developing nicely. Focus on introductions.' },
+  { code: 'SHON', name: 'Shona', teacher: 'Mrs F. Chiweshe', total: 83, caRatio: 0.55, classSize: 32, classAverage: 76, position: 5, comment: 'Consistent strong performance.' },
+  { code: 'HIST', name: 'History', teacher: 'Mr L. Chakanetsa', total: 72, caRatio: 0.45, classSize: 30, classAverage: 70, position: 12, comment: 'Settled well. Read around the topics.' },
+  { code: 'BIO', name: 'Biology', teacher: 'Dr A. Madziva', total: 76, caRatio: 0.55, classSize: 28, classAverage: 72, position: 8, comment: 'Good practicals.' },
+  { code: 'GEOG', name: 'Geography', teacher: 'Mrs P. Dube', total: 73, caRatio: 0.5, classSize: 30, classAverage: 69, position: 10, comment: 'Map skills solid.' },
+  { code: 'PHYS', name: 'Physics', teacher: 'Ms S. Nyathi', total: 70, caRatio: 0.45, classSize: 28, classAverage: 67, position: 12, comment: 'Mechanics understood well.' },
+  { code: 'CHEM', name: 'Chemistry', teacher: 'Mr P. Mhlanga', total: 71, caRatio: 0.55, classSize: 28, classAverage: 70, position: 10, comment: 'Keep revising the periodic table.' },
+]);
+
+const TANAKA_T1_SUBJECTS = buildSubjects([
+  { code: 'MATH', name: 'Mathematics', teacher: 'Mrs M. Dziva', total: 74, caRatio: 0.55, classSize: 28, classAverage: 72, position: 11, comment: 'A strong first term.' },
+  { code: 'ENGL', name: 'English Language', teacher: 'Ms R. Sithole', total: 75, caRatio: 0.6, classSize: 28, classAverage: 71, position: 10, comment: 'Confident written work.' },
+  { code: 'SHON', name: 'Shona', teacher: 'Mrs F. Chiweshe', total: 82, caRatio: 0.55, classSize: 28, classAverage: 75, position: 5, comment: 'Lovely oral recitation.' },
+  { code: 'HIST', name: 'History', teacher: 'Mr L. Chakanetsa', total: 76, caRatio: 0.48, classSize: 28, classAverage: 70, position: 8, comment: 'Engaged in lessons.' },
+  { code: 'BIO', name: 'Biology', teacher: 'Ms N. Banda', total: 78, caRatio: 0.55, classSize: 28, classAverage: 73, position: 7, comment: 'Clear practical reports.' },
+  { code: 'GEOG', name: 'Geography', teacher: 'Mrs P. Dube', total: 75, caRatio: 0.5, classSize: 28, classAverage: 69, position: 9, comment: 'Solid map skills.' },
+  { code: 'PHYS', name: 'Physics', teacher: 'Ms S. Nyathi', total: 77, caRatio: 0.45, classSize: 28, classAverage: 67, position: 8, comment: 'Good effort.' },
+  { code: 'CHEM', name: 'Chemistry', teacher: 'Mr P. Mhlanga', total: 80, caRatio: 0.52, classSize: 28, classAverage: 70, position: 5, comment: 'Excellent start to the subject.' },
+]);
+
+const HM_COMMENT_GOOD =
+  'A strong term. This is the kind of form-wide contribution that makes Harare Heritage Academy a proud place. Keep going — the second half of the year is the one that shows character.';
+const HM_COMMENT_MIXED =
+  'The marks are mixed but the character is not. I have every confidence that a settled term 3, supported by close contact between the home and the school, will put this pupil back on track.';
+const HM_COMMENT_EXCELLENT =
+  'An outstanding term. Congratulations to the pupil, the parents and the teachers who have supported this effort. We expect great things in the final term.';
 
 export const PARENT_REPORTS: readonly ParentReport[] = [
   {
@@ -429,8 +834,20 @@ export const PARENT_REPORTS: readonly ParentReport[] = [
     position: 8,
     classSize: 32,
     attendance: 96,
+    daysAbsent: 3,
+    daysLate: 2,
+    conduct: 'Good',
+    leadership: 'Form prefect',
+    housePoints: 48,
+    formTeacherName: 'Mr T. Chikova',
     formTeacherComment:
       'Farai has had a strong term. His mathematical reasoning has matured visibly, and his written work shows the care of a reader who pays attention. The one area to watch is consistency in examination conditions — Mrs Dziva and I would welcome a brief conversation at our next meeting about pacing. Overall, this is the kind of term that builds a Form 4 pupil into a confident Form 5.',
+    headmasterName: 'Mr T. Moyo',
+    headmasterComment: HM_COMMENT_GOOD,
+    nextTermStarts: 'Tuesday 5 May 2026',
+    feesDueAmount: '2,760.00',
+    feesDueBy: 'Friday 9 May 2026',
+    subjects: FARAI_T2_SUBJECTS,
     acknowledged: false,
     current: true,
   },
@@ -445,8 +862,20 @@ export const PARENT_REPORTS: readonly ParentReport[] = [
     position: 5,
     classSize: 30,
     attendance: 99,
+    daysAbsent: 1,
+    daysLate: 0,
+    conduct: 'Excellent',
+    leadership: 'House vice-captain (Heritage)',
+    housePoints: 62,
+    formTeacherName: 'Mr T. Gondo',
     formTeacherComment:
       'Rumbi is a diligent and curious pupil. She asks the questions the quieter pupils are thinking, which is an enormous gift to her class. Her English comprehension is now a clear strength; we should push her to apply the same thoroughness to her Shona essays, where fluency is beginning to outpace her discipline of structure.',
+    headmasterName: 'Mr T. Moyo',
+    headmasterComment: HM_COMMENT_EXCELLENT,
+    nextTermStarts: 'Tuesday 5 May 2026',
+    feesDueAmount: '2,640.00',
+    feesDueBy: 'Friday 9 May 2026',
+    subjects: RUMBI_T2_SUBJECTS,
     acknowledged: true,
     current: true,
   },
@@ -461,12 +890,23 @@ export const PARENT_REPORTS: readonly ParentReport[] = [
     position: 18,
     classSize: 28,
     attendance: 89,
+    daysAbsent: 9,
+    daysLate: 5,
+    conduct: 'Satisfactory',
+    leadership: '—',
+    housePoints: 22,
+    formTeacherName: 'Ms P. Banda',
     formTeacherComment:
       "Tanaka has had a mixed term. She is by nature a hard worker, but she has been absent more than we would like and the missed lessons have shown in her marks. I would very much appreciate a short meeting to agree a plan for Term 3. The form is ready to welcome her back — we just need to get her into the room consistently.",
+    headmasterName: 'Mr T. Moyo',
+    headmasterComment: HM_COMMENT_MIXED,
+    nextTermStarts: 'Tuesday 5 May 2026',
+    feesDueAmount: '2,520.00',
+    feesDueBy: 'Friday 9 May 2026',
+    subjects: TANAKA_T2_SUBJECTS,
     acknowledged: false,
     current: true,
   },
-  // Past terms (one per child to keep the list short)
   {
     id: 'rep-farai-t1-26',
     childId: 's-farai',
@@ -478,8 +918,20 @@ export const PARENT_REPORTS: readonly ParentReport[] = [
     position: 11,
     classSize: 32,
     attendance: 98,
+    daysAbsent: 2,
+    daysLate: 1,
+    conduct: 'Good',
+    leadership: '—',
+    housePoints: 38,
+    formTeacherName: 'Mr T. Chikova',
     formTeacherComment:
       'A settling term. Farai took a little time to find his rhythm after the Christmas break, but by mid-term he was back to his usual level. The spark in his English essays is very welcome.',
+    headmasterName: 'Mr T. Moyo',
+    headmasterComment: HM_COMMENT_GOOD,
+    nextTermStarts: 'Tuesday 20 January 2026',
+    feesDueAmount: '2,700.00',
+    feesDueBy: 'Friday 24 January 2026',
+    subjects: FARAI_T1_SUBJECTS,
     acknowledged: true,
     current: false,
   },
@@ -494,8 +946,20 @@ export const PARENT_REPORTS: readonly ParentReport[] = [
     position: 12,
     classSize: 28,
     attendance: 97,
+    daysAbsent: 3,
+    daysLate: 2,
+    conduct: 'Good',
+    leadership: '—',
+    housePoints: 34,
+    formTeacherName: 'Ms P. Banda',
     formTeacherComment:
       'A positive first term. Tanaka made friends across her form and settled in quickly. Her Shona teacher noted her confidence in oral recitation.',
+    headmasterName: 'Mr T. Moyo',
+    headmasterComment: HM_COMMENT_GOOD,
+    nextTermStarts: 'Tuesday 20 January 2026',
+    feesDueAmount: '2,500.00',
+    feesDueBy: 'Friday 24 January 2026',
+    subjects: TANAKA_T1_SUBJECTS,
     acknowledged: true,
     current: false,
   },

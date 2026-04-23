@@ -18,7 +18,11 @@ import { Badge } from '@/components/ui/badge';
 import { ProgressRing } from '@/components/student/progress-ring';
 import { EditorialAvatar } from '@/components/student/primitives';
 import { useSelectedChild } from '@/components/parent/selected-child-context';
-import { gradesFor, reportsFor, type ParentReport } from '@/lib/mock/parent-extras';
+import {
+  reportsFor,
+  type ParentReport,
+  type ReportSubjectRow,
+} from '@/lib/mock/parent-extras';
 import { buildReportCard, downloadPdf } from '@/lib/pdf/generate';
 
 /**
@@ -46,14 +50,20 @@ export default function ParentReportsPage() {
     return () => clearTimeout(t);
   }, [toast]);
 
-  const subjects = gradesFor(selectedChild.id);
-
   function downloadReport(report: ParentReport) {
     setDownloading(report.id);
-    // Short simulated delay so the spinner feels real, then push a live PDF
     setTimeout(() => {
       const pdf = buildReportCard({
         studentName: `${selectedChild.firstName} ${selectedChild.lastName}`,
+        admissionNo: selectedChild.id.replace('s-', 'HHA-2026-').toUpperCase(),
+        house: selectedChild.house,
+        age: selectedChild.form.includes('4')
+          ? 16
+          : selectedChild.form.includes('3')
+          ? 15
+          : selectedChild.form.includes('2')
+          ? 14
+          : 13,
         form: selectedChild.form,
         term: report.term,
         year: report.year,
@@ -63,17 +73,32 @@ export default function ParentReportsPage() {
         position: report.position,
         classSize: report.classSize,
         attendance: report.attendance,
-        formTeacher: selectedChild.formTeacher,
+        daysAbsent: report.daysAbsent,
+        daysLate: report.daysLate,
+        conduct: report.conduct,
+        leadership: report.leadership,
+        housePoints: report.housePoints,
+        formTeacher: report.formTeacherName,
         formTeacherComment: report.formTeacherComment,
-        subjects: subjects.map((s) => ({
-          code: s.subjectCode,
-          name: s.subjectName,
-          score: s.percent,
-          grade: s.grade,
-          classAverage: s.classAverage,
+        headmasterName: report.headmasterName,
+        headmasterComment: report.headmasterComment,
+        nextTermStarts: report.nextTermStarts,
+        feesDueAmount: report.feesDueAmount,
+        feesDueBy: report.feesDueBy,
+        subjects: report.subjects.map((s) => ({
+          code: s.code,
+          name: s.name,
           teacher: s.teacher,
+          initials: s.initials,
+          ca: s.ca,
+          exam: s.exam,
+          total: s.total,
+          grade: s.grade,
+          position: s.position,
+          classSize: s.classSize,
+          classAverage: s.classAverage,
+          comment: s.comment,
         })),
-        headmasterName: 'Mr T. Moyo · Headmaster',
       });
       const safeName = `${selectedChild.firstName}-${selectedChild.lastName}`.replace(/\s+/g, '-');
       const filename = `HHA-${safeName}-${report.term.replace(/\s+/g, '')}-${report.year}.pdf`;
@@ -125,8 +150,9 @@ export default function ParentReportsPage() {
         </button>
       </header>
 
-      {/* Current report card */}
+      {/* Standard report card — current term */}
       <section className="overflow-hidden rounded-lg border border-line bg-card shadow-card-sm">
+        {/* Student header */}
         <div className="border-b border-line bg-surface/50 px-6 py-6 md:px-8">
           <div className="flex flex-wrap items-center justify-between gap-3">
             <div className="flex items-center gap-3">
@@ -140,7 +166,8 @@ export default function ParentReportsPage() {
                   {selectedChild.firstName} {selectedChild.lastName}
                 </p>
                 <p className="text-small text-muted">
-                  {selectedChild.form} · {current.term} {current.year}
+                  {selectedChild.form} · {current.term} {current.year} ·{' '}
+                  {selectedChild.house} House
                 </p>
               </div>
             </div>
@@ -148,42 +175,162 @@ export default function ParentReportsPage() {
               <Badge tone={acknowledged ? 'success' : 'warning'} dot>
                 {acknowledged ? 'Acknowledged' : 'Unacknowledged'}
               </Badge>
-              <span className="text-micro text-muted">
-                Released {current.releasedOn}
-              </span>
+              <span className="text-micro text-muted">Released {current.releasedOn}</span>
             </div>
           </div>
 
           <dl className="mt-6 grid grid-cols-2 gap-3 md:grid-cols-4">
-            <KpiTile label="Term average" value={`${current.average}%`} ring={current.average} ringTone={ringTone} />
+            <KpiTile
+              label="Term average"
+              value={`${current.average}%`}
+              ring={current.average}
+              ringTone={ringTone}
+            />
             <KpiTile label="Overall grade" value={current.grade} />
-            <KpiTile label="Position" value={`${current.position}/${current.classSize}`} />
+            <KpiTile label="Class position" value={`${current.position}/${current.classSize}`} />
             <KpiTile label="Attendance" value={`${current.attendance}%`} />
           </dl>
+
+          {/* Conduct + attendance strip */}
+          <ul className="mt-4 grid grid-cols-2 gap-3 rounded-md border border-line bg-card p-3 text-small sm:grid-cols-4">
+            <ConductCell label="Days absent" value={String(current.daysAbsent)} />
+            <ConductCell label="Late marks" value={String(current.daysLate)} />
+            <ConductCell label="Conduct" value={current.conduct} />
+            <ConductCell label="House points" value={String(current.housePoints)} />
+          </ul>
+          {current.leadership && current.leadership !== '—' ? (
+            <p className="mt-3 flex items-center gap-2 text-small text-ink">
+              <Badge tone="gold" dot>
+                Leadership
+              </Badge>
+              {current.leadership}
+            </p>
+          ) : null}
         </div>
 
-        {/* Form teacher comment */}
-        <section className="bg-card px-6 py-6 md:px-8">
-          <p className="text-micro font-semibold uppercase tracking-[0.12em] text-brand-primary">
-            Form teacher&rsquo;s comment
-          </p>
-          <p className="mt-1 text-small text-muted">{selectedChild.formTeacher}</p>
-          <blockquote className="mt-4 max-w-[68ch] text-body leading-relaxed text-ink">
-            &ldquo;{current.formTeacherComment}&rdquo;
-          </blockquote>
-        </section>
+        {/* Subject results table */}
+        <div className="border-b border-line px-6 py-6 md:px-8">
+          <div className="flex flex-wrap items-end justify-between gap-2">
+            <div>
+              <p className="text-micro font-semibold uppercase tracking-[0.12em] text-brand-primary">
+                Subject results
+              </p>
+              <p className="mt-0.5 text-small text-muted">
+                CA out of 40 · exam out of 60 · total out of 100 · position within the subject class
+              </p>
+            </div>
+            <span className="text-micro text-muted">
+              {current.subjects.length} subjects
+            </span>
+          </div>
+          <div className="mt-4 overflow-x-auto">
+            <table className="w-full text-small">
+              <thead>
+                <tr className="border-b border-line text-left">
+                  <th className="py-2 pr-3 text-micro font-semibold uppercase tracking-[0.1em] text-muted">
+                    Subject
+                  </th>
+                  <th className="px-3 py-2 text-right text-micro font-semibold uppercase tracking-[0.1em] text-muted">
+                    CA / 40
+                  </th>
+                  <th className="px-3 py-2 text-right text-micro font-semibold uppercase tracking-[0.1em] text-muted">
+                    Exam / 60
+                  </th>
+                  <th className="px-3 py-2 text-right text-micro font-semibold uppercase tracking-[0.1em] text-muted">
+                    Total
+                  </th>
+                  <th className="px-3 py-2 text-center text-micro font-semibold uppercase tracking-[0.1em] text-muted">
+                    Grade
+                  </th>
+                  <th className="px-3 py-2 text-center text-micro font-semibold uppercase tracking-[0.1em] text-muted">
+                    Position
+                  </th>
+                  <th className="px-3 py-2 text-right text-micro font-semibold uppercase tracking-[0.1em] text-muted">
+                    Class avg
+                  </th>
+                  <th className="px-3 py-2 text-left text-micro font-semibold uppercase tracking-[0.1em] text-muted">
+                    Teacher
+                  </th>
+                </tr>
+              </thead>
+              <tbody>
+                {current.subjects.map((s) => (
+                  <SubjectRow key={s.code} row={s} />
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </div>
 
-        <div className="flex flex-wrap items-center justify-between gap-3 border-t border-sand px-6 py-4 md:px-10">
-          <p className="font-sans text-[12px] text-stone">
-            Signed digitally by the Headmaster on {current.releasedOn}. This PDF is
-            watermarked with your name and download timestamp.
+        {/* Comments */}
+        <div className="grid grid-cols-1 gap-0 border-b border-line md:grid-cols-2">
+          <div className="border-b border-line px-6 py-6 md:border-b-0 md:border-r md:px-8">
+            <p className="text-micro font-semibold uppercase tracking-[0.12em] text-brand-primary">
+              Form teacher&rsquo;s comment
+            </p>
+            <p className="mt-1 text-small font-semibold text-ink">
+              {current.formTeacherName}
+            </p>
+            <blockquote className="mt-3 text-small leading-relaxed text-ink">
+              &ldquo;{current.formTeacherComment}&rdquo;
+            </blockquote>
+          </div>
+          <div className="px-6 py-6 md:px-8">
+            <p className="text-micro font-semibold uppercase tracking-[0.12em] text-brand-primary">
+              Headmaster&rsquo;s comment
+            </p>
+            <p className="mt-1 text-small font-semibold text-ink">
+              {current.headmasterName}
+            </p>
+            <blockquote className="mt-3 text-small leading-relaxed text-ink">
+              &ldquo;{current.headmasterComment}&rdquo;
+            </blockquote>
+          </div>
+        </div>
+
+        {/* Term logistics */}
+        <div className="grid grid-cols-1 gap-0 border-b border-line sm:grid-cols-2">
+          <div className="border-b border-line bg-surface/40 px-6 py-4 sm:border-b-0 sm:border-r md:px-8">
+            <p className="text-micro font-semibold uppercase tracking-[0.12em] text-muted">
+              Next term begins
+            </p>
+            <p className="mt-1 text-small font-semibold text-ink">{current.nextTermStarts}</p>
+          </div>
+          <div className="bg-surface/40 px-6 py-4 md:px-8">
+            <p className="text-micro font-semibold uppercase tracking-[0.12em] text-muted">
+              Fees due
+            </p>
+            <p className="mt-1 text-small font-semibold text-ink">
+              USD {current.feesDueAmount} · by {current.feesDueBy}
+            </p>
+          </div>
+        </div>
+
+        {/* Signatures + acknowledge bar */}
+        <div className="flex flex-wrap items-center justify-between gap-3 border-t border-line px-6 py-4 md:px-8">
+          <p className="max-w-[48ch] text-micro text-muted">
+            Signed digitally by {current.headmasterName} · {current.releasedOn}. The PDF is
+            watermarked with your parent login and the download timestamp.
           </p>
           <div className="flex items-center gap-2">
+            <button
+              type="button"
+              onClick={() => downloadReport(current)}
+              disabled={downloading === current.id}
+              className="inline-flex h-10 items-center gap-2 rounded-full border border-line bg-card px-4 text-small font-semibold text-ink transition-colors hover:bg-surface disabled:opacity-60"
+            >
+              {downloading === current.id ? (
+                <Loader2 className="h-4 w-4 animate-spin" strokeWidth={1.75} aria-hidden />
+              ) : (
+                <Download className="h-4 w-4" strokeWidth={1.75} aria-hidden />
+              )}
+              {downloading === current.id ? 'Preparing…' : 'Download PDF'}
+            </button>
             {!acknowledged ? (
               <button
                 type="button"
                 onClick={() => setAcknowledged(true)}
-                className="inline-flex h-11 items-center gap-2 rounded-full bg-brand-primary px-5 text-small font-semibold text-white shadow-card-sm transition hover:bg-brand-primary/90 hover:shadow-card-md"
+                className="inline-flex h-10 items-center gap-2 rounded-full bg-brand-primary px-5 text-small font-semibold text-white shadow-card-sm transition hover:bg-brand-primary/90 hover:shadow-card-md"
               >
                 <CheckCircle2 className="h-4 w-4" strokeWidth={1.75} aria-hidden />
                 Acknowledge report
@@ -466,6 +613,63 @@ function ComparisonRow({ label, values }: { label: string; values: string[] }) {
         </td>
       ))}
     </tr>
+  );
+}
+
+function ConductCell({ label, value }: { label: string; value: string }) {
+  return (
+    <li className="rounded-md bg-surface/40 px-3 py-2">
+      <p className="text-micro font-semibold uppercase tracking-[0.12em] text-muted">{label}</p>
+      <p className="mt-0.5 text-small font-semibold text-ink">{value}</p>
+    </li>
+  );
+}
+
+function SubjectRow({ row }: { row: ReportSubjectRow }) {
+  const gradeTone: 'success' | 'brand' | 'warning' | 'danger' =
+    row.grade === 'A' ? 'success' : row.grade === 'B' ? 'brand' : row.grade === 'C' ? 'warning' : 'danger';
+  return (
+    <>
+      <tr className="border-t border-line align-middle">
+        <td className="py-3 pr-3">
+          <p className="text-small font-semibold text-ink">{row.name}</p>
+          <p className="text-micro text-muted">{row.code}</p>
+        </td>
+        <td className="px-3 py-3 text-right font-mono tabular-nums text-ink">
+          {row.ca}
+          <span className="text-muted"> / 40</span>
+        </td>
+        <td className="px-3 py-3 text-right font-mono tabular-nums text-ink">
+          {row.exam}
+          <span className="text-muted"> / 60</span>
+        </td>
+        <td className="px-3 py-3 text-right font-bold tabular-nums text-ink">{row.total}</td>
+        <td className="px-3 py-3 text-center">
+          <Badge tone={gradeTone} dot>
+            {row.grade}
+          </Badge>
+        </td>
+        <td className="px-3 py-3 text-center font-mono tabular-nums text-ink">
+          {row.position}/{row.classSize}
+        </td>
+        <td className="px-3 py-3 text-right tabular-nums text-muted">{row.classAverage}%</td>
+        <td className="px-3 py-3 text-small text-ink">
+          {row.teacher}
+          <span className="ml-1 rounded-sm bg-surface px-1 font-mono text-micro text-muted">
+            {row.initials}
+          </span>
+        </td>
+      </tr>
+      {row.comment ? (
+        <tr className="bg-surface/20">
+          <td colSpan={8} className="px-0 pb-3 pt-1">
+            <p className="border-l-2 border-brand-primary/40 pl-3 text-micro italic text-muted">
+              &ldquo;{row.comment}&rdquo;
+            </p>
+          </td>
+        </tr>
+      ) : null}
+    </>
   );
 }
 
