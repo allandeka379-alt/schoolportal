@@ -1,5 +1,8 @@
+'use client';
+
 import Link from 'next/link';
-import { ArrowUpRight, ChevronRight } from 'lucide-react';
+import { useEffect, useMemo, useState } from 'react';
+import { ArrowUpRight, Check, CheckCircle2, ChevronRight } from 'lucide-react';
 
 import { ChartBar, ExecPageHeader, KPICard, Sparkline } from '@/components/headmaster/primitives';
 import {
@@ -13,25 +16,64 @@ import {
   TEACHING_KPIS,
 } from '@/lib/mock/headmaster-extras';
 
+type Term = 'term-2-26' | 'term-1-26' | 'term-3-25';
+const TERM_LABELS: Record<Term, string> = {
+  'term-2-26': 'Term 2, 2026',
+  'term-1-26': 'Term 1, 2026',
+  'term-3-25': 'Term 3, 2025',
+};
+
 /**
  * Administrator · Overview.
  *
- * Executive dashboard. Dense with monitoring. No decisions here — those
- * live under /alerts. Four focus areas mirror the sidebar: Students /
- * Teachers / Fees / Academic. Each has a headline figure + a small chart
- * + a shortcut into its deep-dive page.
+ * Interactive executive dashboard. Term filter nudges all figures.
+ * Alerts strip supports inline acknowledge. Click-through to focus-area
+ * pages via shortcut buttons.
  */
 export default function OverviewPage() {
-  const schoolAverage = COHORT_TREND.at(-1)?.avg ?? 76.2;
+  const [term, setTerm] = useState<Term>('term-2-26');
+  const [acked, setAcked] = useState<Set<string>>(new Set());
+  const [toast, setToast] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (!toast) return;
+    const t = setTimeout(() => setToast(null), 2200);
+    return () => clearTimeout(t);
+  }, [toast]);
+
+  const filterShift = useMemo(() => {
+    if (term === 'term-1-26') return -1.2;
+    if (term === 'term-3-25') return -2.1;
+    return 0;
+  }, [term]);
+
+  const schoolAverage = (COHORT_TREND.at(-1)?.avg ?? 76.2) + filterShift;
   const schoolAverageFrom = COHORT_TREND[0]?.avg ?? 70.2;
-  const passRate = 84;
-  const feesCollected = 184_320;
-  const feesTarget = 480_320;
+  const passRate = Math.max(70, Math.min(92, 84 + filterShift));
+  const feesCollected = term === 'term-2-26' ? 184_320 : term === 'term-1-26' ? 461_980 : 456_200;
+  const feesTarget = term === 'term-2-26' ? 480_320 : term === 'term-1-26' ? 472_100 : 458_700;
   const feesCollectedPct = Math.round((feesCollected / feesTarget) * 100);
   const enrolment = SCHOOL_STATE.learnersTotal;
   const present = SCHOOL_STATE.learnersPresent;
   const teachingStaff = 68;
   const onLeave = 2;
+
+  const visibleAlerts = HEAD_ALERTS.filter((a) => !acked.has(a.id));
+  const urgentCount = visibleAlerts.filter((a) => a.urgent).length;
+
+  function acknowledge(id: string) {
+    setAcked((curr) => {
+      const next = new Set(curr);
+      next.add(id);
+      return next;
+    });
+    setToast('Alert acknowledged');
+  }
+
+  function acknowledgeAll() {
+    setAcked(new Set(HEAD_ALERTS.map((a) => a.id)));
+    setToast('All alerts acknowledged');
+  }
 
   return (
     <div className="space-y-8">
@@ -52,7 +94,27 @@ export default function OverviewPage() {
         }
       />
 
-      {/* Headline KPI row — one per focus area */}
+      {/* Term selector */}
+      <div className="flex items-center gap-2 rounded border border-sand bg-white p-1 font-sans text-[12px] font-medium w-fit">
+        {(Object.keys(TERM_LABELS) as Term[]).map((k) => {
+          const active = term === k;
+          return (
+            <button
+              key={k}
+              type="button"
+              onClick={() => setTerm(k)}
+              className={[
+                'rounded-sm px-3 py-1.5 transition-colors',
+                active ? 'bg-ink text-cream' : 'text-stone hover:text-ink',
+              ].join(' ')}
+            >
+              {TERM_LABELS[k]}
+            </button>
+          );
+        })}
+      </div>
+
+      {/* Headline KPI row */}
       <div className="grid grid-cols-1 gap-3 md:grid-cols-2 xl:grid-cols-4">
         <KPICard
           label="Students · school average"
@@ -69,7 +131,7 @@ export default function OverviewPage() {
           size="lg"
         />
         <KPICard
-          label="Fees · Term 2 collected"
+          label="Fees · collected"
           value={`$${(feesCollected / 1000).toFixed(0)}k`}
           deltaLabel={`${feesCollectedPct}% of $${(feesTarget / 1000).toFixed(0)}k target`}
           trend="up"
@@ -84,30 +146,31 @@ export default function OverviewPage() {
         />
       </div>
 
-      {/* Chart grid — 4 panels */}
+      {/* Chart grid */}
       <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
-        {/* Students — performance by form */}
         <Panel
           eyebrow="Students"
           title="Performance by year group"
-          sub="Term 2, 2026 · click a bar to drill"
+          sub={`${TERM_LABELS[term]} · click-through for the full monitoring view`}
           href="/headmaster/students"
           hrefLabel="Open monitoring"
         >
           <div className="space-y-1 pt-3">
-            {FORM_AVERAGES.map((f) => (
-              <ChartBar
-                key={f.form}
-                label={f.form}
-                value={f.avg}
-                tone={f.avg >= 78 ? 'good' : f.avg >= 72 ? 'default' : 'warn'}
-                sub={`${f.avg.toFixed(1)}%`}
-              />
-            ))}
+            {FORM_AVERAGES.map((f) => {
+              const v = Math.max(50, Math.min(96, f.avg + filterShift));
+              return (
+                <ChartBar
+                  key={f.form}
+                  label={f.form}
+                  value={v}
+                  tone={v >= 78 ? 'good' : v >= 72 ? 'default' : 'warn'}
+                  sub={`${v.toFixed(1)}%`}
+                />
+              );
+            })}
           </div>
         </Panel>
 
-        {/* Academic — six-term trend */}
         <Panel
           eyebrow="Academic"
           title="Whole-school trend"
@@ -124,17 +187,22 @@ export default function OverviewPage() {
                 up from {schoolAverageFrom.toFixed(1)}% six terms ago
               </p>
             </div>
-            <Sparkline values={COHORT_TREND.map((t) => t.avg)} width={180} height={60} />
+            <Sparkline
+              values={COHORT_TREND.map((t) => t.avg + filterShift)}
+              width={180}
+              height={60}
+            />
           </div>
           <ul className="mt-4 space-y-1.5 font-sans text-[12px]">
             {COHORT_TREND.map((t, i) => {
+              const adj = t.avg + filterShift;
               const prev = COHORT_TREND[i - 1]?.avg;
-              const delta = prev !== undefined ? t.avg - prev : null;
+              const delta = prev !== undefined ? adj - (prev + filterShift) : null;
               return (
                 <li key={t.term} className="flex items-center justify-between">
                   <span className="text-stone">{t.term}</span>
                   <span className="font-mono tabular-nums text-ink">
-                    {t.avg.toFixed(1)}%
+                    {adj.toFixed(1)}%
                     {delta !== null ? (
                       <span
                         className={[
@@ -152,7 +220,6 @@ export default function OverviewPage() {
           </ul>
         </Panel>
 
-        {/* Teachers — CPD + walks */}
         <Panel
           eyebrow="Teachers"
           title="Quality of teaching"
@@ -180,11 +247,10 @@ export default function OverviewPage() {
           </div>
         </Panel>
 
-        {/* Fees — collection */}
         <Panel
           eyebrow="Fees"
-          title="Term 2 collection"
-          sub="Target $480k · all methods + banks"
+          title={`${TERM_LABELS[term].split(',')[0]} collection`}
+          sub={`Target $${(feesTarget / 1000).toFixed(0)}k · all methods + banks`}
           href="/headmaster/fees"
           hrefLabel="Open fees"
         >
@@ -194,7 +260,8 @@ export default function OverviewPage() {
                 ${(feesCollected / 1000).toFixed(0)}k
               </p>
               <p className="mt-2 font-sans text-[12px] text-stone">
-                {feesCollectedPct}% of target · ${((feesTarget - feesCollected) / 1000).toFixed(0)}k outstanding
+                {feesCollectedPct}% of target · $
+                {((feesTarget - feesCollected) / 1000).toFixed(0)}k outstanding
               </p>
             </div>
             <div className="text-right">
@@ -215,7 +282,7 @@ export default function OverviewPage() {
         </Panel>
       </div>
 
-      {/* Attention row — at-risk + alerts */}
+      {/* At-risk + alerts */}
       <div className="grid grid-cols-1 gap-6 lg:grid-cols-5">
         <Panel
           className="lg:col-span-3"
@@ -284,41 +351,69 @@ export default function OverviewPage() {
           className="lg:col-span-2"
           eyebrow="Alerts"
           title="Latest notifications"
-          sub={`${HEAD_ALERTS.filter((a) => a.urgent).length} urgent · ${HEAD_ALERTS.length} total`}
+          sub={`${urgentCount} urgent · ${visibleAlerts.length} open · acknowledge here to clear`}
           href="/headmaster/alerts"
           hrefLabel="Open alerts"
         >
-          <ul className="-mx-1 divide-y divide-sand-light">
-            {HEAD_ALERTS.slice(0, 5).map((a) => (
-              <li key={a.id}>
-                <Link
-                  href="/headmaster/alerts"
-                  className="group flex items-start gap-3 rounded px-1 py-3 transition-colors hover:bg-sand-light/40"
+          {visibleAlerts.length === 0 ? (
+            <div className="flex flex-col items-center gap-2 py-8 text-center">
+              <CheckCircle2 className="h-8 w-8 text-ok" strokeWidth={1.5} aria-hidden />
+              <p className="font-display text-[16px] text-ink">All clear.</p>
+              <p className="font-sans text-[12px] text-stone">
+                No open alerts. New ones will appear here.
+              </p>
+            </div>
+          ) : (
+            <>
+              <div className="mb-2 flex items-center justify-between">
+                <span className="font-mono text-[11px] uppercase tracking-[0.1em] text-stone">
+                  {urgentCount > 0 ? `${urgentCount} urgent` : 'No urgent items'}
+                </span>
+                <button
+                  type="button"
+                  onClick={acknowledgeAll}
+                  className="font-mono text-[11px] uppercase tracking-[0.1em] text-earth hover:text-terracotta"
                 >
-                  <span
-                    aria-hidden
-                    className={[
-                      'mt-1.5 h-2 w-2 flex-none rounded-full',
-                      a.urgent ? 'bg-danger' : 'bg-earth',
-                    ].join(' ')}
-                  />
-                  <div className="min-w-0 flex-1">
-                    <p className="font-sans text-[13px] text-ink group-hover:text-earth">
-                      {a.message}
-                    </p>
-                    <p className="mt-0.5 font-sans text-[11px] uppercase tracking-[0.1em] text-stone">
-                      {a.category} · {a.ago}
-                    </p>
-                  </div>
-                  <ChevronRight
-                    className="mt-1 h-4 w-4 flex-none text-stone transition-transform group-hover:translate-x-0.5"
-                    strokeWidth={1.5}
-                    aria-hidden
-                  />
-                </Link>
-              </li>
-            ))}
-          </ul>
+                  Acknowledge all
+                </button>
+              </div>
+              <ul className="-mx-1 divide-y divide-sand-light">
+                {visibleAlerts.slice(0, 5).map((a) => (
+                  <li key={a.id} className="group flex items-start gap-3 px-1 py-3">
+                    <span
+                      aria-hidden
+                      className={[
+                        'mt-1.5 h-2 w-2 flex-none rounded-full',
+                        a.urgent ? 'bg-danger' : 'bg-earth',
+                      ].join(' ')}
+                    />
+                    <div className="min-w-0 flex-1">
+                      <p className="font-sans text-[13px] text-ink">{a.message}</p>
+                      <p className="mt-0.5 font-sans text-[11px] uppercase tracking-[0.1em] text-stone">
+                        {a.category} · {a.ago}
+                      </p>
+                    </div>
+                    <div className="flex flex-col items-end gap-1">
+                      <Link
+                        href={a.actionHref ?? '/headmaster/alerts'}
+                        className="inline-flex h-7 items-center rounded border border-sand bg-white px-2 font-sans text-[11px] font-medium text-earth hover:bg-sand-light"
+                      >
+                        Open
+                      </Link>
+                      <button
+                        type="button"
+                        onClick={() => acknowledge(a.id)}
+                        className="inline-flex h-7 items-center gap-1 rounded px-2 font-sans text-[11px] font-medium text-stone hover:text-ink"
+                      >
+                        <Check className="h-3 w-3" strokeWidth={1.5} aria-hidden />
+                        Ack
+                      </button>
+                    </div>
+                  </li>
+                ))}
+              </ul>
+            </>
+          )}
         </Panel>
       </div>
 
@@ -352,7 +447,8 @@ export default function OverviewPage() {
           </thead>
           <tbody>
             {SUBJECT_AVERAGES.map((s) => {
-              const delta = s.avg - s.threeYear;
+              const adj = Math.max(50, Math.min(96, s.avg + filterShift));
+              const delta = adj - s.threeYear;
               return (
                 <tr key={s.code} className="border-t border-sand-light">
                   <td className="py-3">
@@ -362,7 +458,7 @@ export default function OverviewPage() {
                     </span>
                   </td>
                   <td className="py-3 text-right font-mono tabular-nums text-ink">
-                    {s.avg.toFixed(1)}%
+                    {adj.toFixed(1)}%
                   </td>
                   <td className="py-3 text-right font-mono tabular-nums text-stone">
                     {s.threeYear.toFixed(1)}%
@@ -380,9 +476,9 @@ export default function OverviewPage() {
                       <div
                         className={[
                           'h-full rounded-full',
-                          s.avg >= 78 ? 'bg-ok' : s.avg >= 72 ? 'bg-earth' : 'bg-ochre',
+                          adj >= 78 ? 'bg-ok' : adj >= 72 ? 'bg-earth' : 'bg-ochre',
                         ].join(' ')}
-                        style={{ width: `${s.avg}%` }}
+                        style={{ width: `${adj}%` }}
                       />
                     </div>
                   </td>
@@ -406,6 +502,16 @@ export default function OverviewPage() {
           Chikwangwana. School average holding at {schoolAverage.toFixed(1)}%; pass rate {passRate}%.
         </p>
       </aside>
+
+      {toast ? (
+        <div
+          role="status"
+          className="fixed bottom-6 left-1/2 z-40 -translate-x-1/2 rounded-full bg-ink px-4 py-2 font-sans text-[12px] font-semibold text-cream shadow-e3"
+        >
+          <Check className="mr-1 inline-block h-3.5 w-3.5" strokeWidth={2} aria-hidden />
+          {toast}
+        </div>
+      ) : null}
     </div>
   );
 }
@@ -419,7 +525,7 @@ function Panel({
   className,
   children,
 }: {
-  eyebrow: string;
+  eyebrow?: string;
   title: string;
   sub?: string;
   href?: string;
@@ -431,9 +537,11 @@ function Panel({
     <section className={['rounded border border-sand bg-white p-5', className ?? ''].join(' ')}>
       <header className="flex flex-wrap items-center justify-between gap-2 border-b border-sand pb-3">
         <div>
-          <p className="font-sans text-[11px] font-semibold uppercase tracking-[0.18em] text-earth">
-            {eyebrow}
-          </p>
+          {eyebrow ? (
+            <p className="font-sans text-[11px] font-semibold uppercase tracking-[0.18em] text-earth">
+              {eyebrow}
+            </p>
+          ) : null}
           <h2 className="mt-1 font-display text-[18px] tracking-tight text-ink">{title}</h2>
           {sub ? <p className="mt-0.5 font-sans text-[12px] text-stone">{sub}</p> : null}
         </div>
