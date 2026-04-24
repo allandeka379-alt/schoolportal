@@ -47,7 +47,7 @@ const PAYMENT_METHODS = [
     tone: 'success' as const,
     sub: 'Econet',
     logo: '/payments/ecocash.png',
-    logoBg: 'bg-[#E10600]',
+    logoBg: 'bg-white',
   },
   {
     name: 'OneMoney',
@@ -55,7 +55,7 @@ const PAYMENT_METHODS = [
     tone: 'info' as const,
     sub: 'NetOne',
     logo: '/payments/onemoney.png',
-    logoBg: 'bg-[#FFD800]',
+    logoBg: 'bg-white',
   },
   {
     name: 'InnBucks',
@@ -63,7 +63,7 @@ const PAYMENT_METHODS = [
     tone: 'warning' as const,
     sub: 'Innscor',
     logo: '/payments/innbucks.svg',
-    logoBg: 'bg-[#0B6B3A]',
+    logoBg: 'bg-white',
   },
   {
     name: 'ZIPIT',

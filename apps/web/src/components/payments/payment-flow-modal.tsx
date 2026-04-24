@@ -51,7 +51,7 @@ const METHODS: MethodDef[] = [
     tone: 'success',
     logo: '/payments/ecocash.png',
     logoAlt: 'EcoCash',
-    logoBg: 'bg-[#E10600]',
+    logoBg: 'bg-white',
     tag: 'Econet',
   },
   {
@@ -62,7 +62,7 @@ const METHODS: MethodDef[] = [
     tone: 'info',
     logo: '/payments/onemoney.png',
     logoAlt: 'OneMoney',
-    logoBg: 'bg-[#FFD800]',
+    logoBg: 'bg-white',
     tag: 'NetOne',
   },
   {
@@ -73,7 +73,7 @@ const METHODS: MethodDef[] = [
     tone: 'warning',
     logo: '/payments/innbucks.svg',
     logoAlt: 'InnBucks',
-    logoBg: 'bg-[#0B6B3A]',
+    logoBg: 'bg-white',
     tag: 'Innscor',
   },
   {

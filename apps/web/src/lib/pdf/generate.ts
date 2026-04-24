@@ -266,7 +266,7 @@ export function buildReportCard(data: ReportCardData): PdfDoc {
   page1.lines.push({
     text: 'SUBJECT RESULTS',
     x: 50,
-    y: 512,
+    y: 598,
     size: 10,
     bold: true,
     color: BRAND,
@@ -274,13 +274,13 @@ export function buildReportCard(data: ReportCardData): PdfDoc {
   page1.lines.push({
     text: 'CA out of 40 · Exam out of 60 · Total out of 100',
     x: 160,
-    y: 512,
+    y: 598,
     size: 8,
     color: MUTED,
   });
 
-  drawSubjectTableHeader(page1, 498);
-  let y1 = 474;
+  drawSubjectTableHeader(page1, 580);
+  let y1 = 556;
   subjectsP1.forEach((s) => {
     y1 = drawSubjectRow(page1, s, y1);
   });
@@ -293,14 +293,14 @@ export function buildReportCard(data: ReportCardData): PdfDoc {
   page2.lines.push({
     text: 'SUBJECT RESULTS (continued)',
     x: 50,
-    y: 776,
+    y: 762,
     size: 10,
     bold: true,
     color: BRAND,
   });
 
-  drawSubjectTableHeader(page2, 760);
-  let y2 = 736;
+  drawSubjectTableHeader(page2, 744);
+  let y2 = 720;
   subjectsP2.forEach((s) => {
     y2 = drawSubjectRow(page2, s, y2);
   });
@@ -555,119 +555,207 @@ function drawAttendanceStrip(
   page.rects.push({ x: 50, y: y - 8, w: 495, h: 0.5, fill: LINE });
 }
 
+// Wider, non-overlapping columns (page content area: 50-545, 495pt wide).
+// Numbers are right-aligned via xRight anchors below.
 const COL = {
-  code: 56,
-  subject: 90,
-  ca: 244,
-  exam: 278,
-  total: 322,
-  grade: 372,
-  position: 408,
-  classAvg: 460,
-  teacher: 500,
+  subject: 56,
+  subjectSub: 56, // code sub-label under subject name
+  ca: 260,
+  caRight: 300, // right-align end of CA mark
+  exam: 320,
+  examRight: 360,
+  totalRight: 400, // total bold
+  gradeCenter: 430, // grade letter
+  positionRight: 485, // position/classSize
+  avgRight: 540, // class average
 };
 
 function drawSubjectTableHeader(
   page: { lines: TextLine[]; rects: Rectangle[] },
   y: number,
 ) {
-  page.rects.push({ x: 50, y: y - 6, w: 495, h: 18, fill: SURFACE });
-  page.lines.push({ text: 'Code', x: COL.code, y, size: 8, bold: true, color: MUTED });
-  page.lines.push({ text: 'Subject', x: COL.subject, y, size: 8, bold: true, color: MUTED });
-  page.lines.push({ text: 'CA', x: COL.ca, y, size: 8, bold: true, color: MUTED });
-  page.lines.push({ text: 'Exam', x: COL.exam, y, size: 8, bold: true, color: MUTED });
-  page.lines.push({ text: 'Total', x: COL.total, y, size: 8, bold: true, color: MUTED });
-  page.lines.push({ text: 'Grade', x: COL.grade, y, size: 8, bold: true, color: MUTED });
-  page.lines.push({ text: 'Pos.', x: COL.position, y, size: 8, bold: true, color: MUTED });
-  page.lines.push({ text: 'Avg', x: COL.classAvg, y, size: 8, bold: true, color: MUTED });
-  page.lines.push({ text: 'Teacher', x: COL.teacher, y, size: 8, bold: true, color: MUTED });
+  // Solid header band with a subtle divider underneath
+  page.rects.push({ x: 50, y: y - 8, w: 495, h: 22, fill: [0.93, 0.95, 0.98] });
+  page.rects.push({ x: 50, y: y - 10, w: 495, h: 0.8, fill: BRAND });
+  page.lines.push({ text: 'SUBJECT', x: COL.subject, y, size: 8, bold: true, color: MUTED });
+  page.lines.push({
+    text: 'CA',
+    x: COL.caRight - measureW('CA', 8, true),
+    y,
+    size: 8,
+    bold: true,
+    color: MUTED,
+  });
+  page.lines.push({
+    text: 'EXAM',
+    x: COL.examRight - measureW('EXAM', 8, true),
+    y,
+    size: 8,
+    bold: true,
+    color: MUTED,
+  });
+  page.lines.push({
+    text: 'TOTAL',
+    x: COL.totalRight - measureW('TOTAL', 8, true),
+    y,
+    size: 8,
+    bold: true,
+    color: MUTED,
+  });
+  page.lines.push({
+    text: 'GRADE',
+    x: COL.gradeCenter - measureW('GRADE', 8, true) / 2,
+    y,
+    size: 8,
+    bold: true,
+    color: MUTED,
+  });
+  page.lines.push({
+    text: 'POSITION',
+    x: COL.positionRight - measureW('POSITION', 8, true),
+    y,
+    size: 8,
+    bold: true,
+    color: MUTED,
+  });
+  page.lines.push({
+    text: 'AVG',
+    x: COL.avgRight - measureW('AVG', 8, true),
+    y,
+    size: 8,
+    bold: true,
+    color: MUTED,
+  });
 }
 
-/** Draws a subject row with primary data line + wrapped comment line.
+/** Approximate text width so right-aligned numbers line up cleanly.
+ *  Helvetica average char is ~0.53 × font-size. */
+function measureW(s: string, size: number, bold = false): number {
+  return s.length * size * (bold ? 0.58 : 0.53);
+}
+
+/** Draws a subject row with primary data line + wrapped comment below + signoff.
  *  Returns the new cursor Y after the row. */
 function drawSubjectRow(
   page: { lines: TextLine[]; rects: Rectangle[] },
   s: ReportCardSubject,
   startY: number,
 ): number {
-  const wrapped = wrap(s.comment, 105);
-  const lineCount = Math.max(1, Math.min(wrapped.length, 3));
-  const rowHeight = 18 + lineCount * 10 + 4;
-  // background stripe for readability
-  page.rects.push({
-    x: 50,
-    y: startY - rowHeight + 6,
-    w: 495,
-    h: rowHeight,
-    fill: [0.992, 0.992, 0.995],
-  });
-  // Primary row
-  page.lines.push({ text: s.code, x: COL.code, y: startY, size: 9, bold: true, color: MUTED });
-  page.lines.push({ text: s.name, x: COL.subject, y: startY, size: 10, color: INK });
+  const MAX_COMMENT_LINES = 2;
+  const wrapped = wrap(s.comment, 92).slice(0, MAX_COMMENT_LINES);
+
+  // Vertical layout plan (each Y is the text baseline):
+  //   startY              : subject name + numbers
+  //   startY - 12         : subject code sub-label
+  //   startY - 28         : first comment line
+  //   startY - 28 - 11    : second comment line
+  //   (commentEndY)       : below last comment line
+  //   commentEndY - 4     : teacher signoff
+  //   commentEndY - 18    : row separator
+  const commentTopY = startY - 28;
+  const commentEndY = commentTopY - (wrapped.length - 1) * 11;
+  const signoffY = commentEndY - 12;
+  const separatorY = signoffY - 10;
+  const rowHeight = startY - separatorY + 4;
+
+  // Primary data row — name left, numbers right-aligned
   page.lines.push({
-    text: `${s.ca}/40`,
-    x: COL.ca,
+    text: s.name,
+    x: COL.subject,
     y: startY,
-    size: 9,
+    size: 11,
+    bold: true,
     color: INK,
   });
   page.lines.push({
-    text: `${s.exam}/60`,
-    x: COL.exam,
-    y: startY,
-    size: 9,
-    color: INK,
+    text: s.code,
+    x: COL.subject,
+    y: startY - 12,
+    size: 7,
+    bold: true,
+    color: MUTED,
   });
+  const caTxt = `${s.ca}`;
   page.lines.push({
-    text: `${s.total}`,
-    x: COL.total,
+    text: caTxt,
+    x: COL.caRight - measureW(caTxt, 10),
     y: startY,
     size: 10,
+    color: INK,
+  });
+  const examTxt = `${s.exam}`;
+  page.lines.push({
+    text: examTxt,
+    x: COL.examRight - measureW(examTxt, 10),
+    y: startY,
+    size: 10,
+    color: INK,
+  });
+  const totalTxt = `${s.total}`;
+  page.lines.push({
+    text: totalTxt,
+    x: COL.totalRight - measureW(totalTxt, 11, true),
+    y: startY,
+    size: 11,
     bold: true,
     color: INK,
   });
   page.lines.push({
     text: s.grade,
-    x: COL.grade,
+    x: COL.gradeCenter - measureW(s.grade, 12, true) / 2,
     y: startY,
-    size: 10,
+    size: 12,
     bold: true,
     color: gradeColor(s.grade),
   });
+  const posTxt = `${s.position} / ${s.classSize}`;
   page.lines.push({
-    text: `${s.position}/${s.classSize}`,
-    x: COL.position,
+    text: posTxt,
+    x: COL.positionRight - measureW(posTxt, 9),
     y: startY,
     size: 9,
     color: INK,
   });
+  const avgTxt = `${s.classAverage}%`;
   page.lines.push({
-    text: `${s.classAverage}%`,
-    x: COL.classAvg,
+    text: avgTxt,
+    x: COL.avgRight - measureW(avgTxt, 9),
     y: startY,
     size: 9,
     color: MUTED,
   });
-  page.lines.push({
-    text: s.initials,
-    x: COL.teacher,
-    y: startY,
-    size: 9,
-    bold: true,
-    color: MUTED,
-  });
-  // Comment
-  wrapped.slice(0, 3).forEach((ln, i) => {
+
+  // Comment with vertical accent bar
+  if (wrapped.length > 0) {
+    const barTop = commentTopY + 8;
+    const barBottom = commentEndY - 2;
+    page.rects.push({
+      x: 56,
+      y: barBottom,
+      w: 1.5,
+      h: Math.max(2, barTop - barBottom),
+      fill: BRAND,
+    });
+    wrapped.forEach((ln, i) => {
+      page.lines.push({
+        text: ln,
+        x: 64,
+        y: commentTopY - i * 11,
+        size: 9,
+        color: INK,
+      });
+    });
     page.lines.push({
-      text: ln,
-      x: COL.subject,
-      y: startY - 14 - i * 10,
+      text: `— ${s.teacher}`,
+      x: 64,
+      y: signoffY,
       size: 8,
       color: MUTED,
     });
-  });
-  // Underline between rows
-  page.rects.push({ x: 50, y: startY - rowHeight + 4, w: 495, h: 0.5, fill: LINE });
+  }
+
+  // Row separator
+  page.rects.push({ x: 50, y: separatorY, w: 495, h: 0.5, fill: LINE });
   return startY - rowHeight;
 }
 
